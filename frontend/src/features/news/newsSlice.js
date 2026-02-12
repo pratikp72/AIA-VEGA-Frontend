@@ -4,9 +4,11 @@ import { fetchAllNews, fetchNewsByCategory } from './newsAPI';
 // Async Thunks
 export const loadAllNews = createAsyncThunk(
   'news/loadAllNews',
-  async ({ page = 1, limit = 10 }, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, append = false } = {}, { rejectWithValue }) => {
     try {
-      return await fetchAllNews(page, limit);
+      const result = await fetchAllNews(page, limit);
+      // include append flag in meta arg for reducer awareness
+      return { ...result, __append: append };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -58,10 +60,18 @@ const newsSlice = createSlice({
       })
       .addCase(loadAllNews.fulfilled, (state, action) => {
         state.loading = false;
-        state.newsList = action.payload.news;
-        state.filteredNews = action.payload.news;
-        state.totalPages = action.payload.totalPages;
-        state.totalItems = action.payload.totalItems;
+        const payload = action.payload || {};
+        const incoming = payload.news || [];
+        const append = payload.__append === true;
+        if (append) {
+          state.newsList = Array.isArray(state.newsList) ? state.newsList.concat(incoming) : incoming;
+          state.filteredNews = state.newsList;
+        } else {
+          state.newsList = incoming;
+          state.filteredNews = incoming;
+        }
+        state.totalPages = payload.totalPages ?? state.totalPages;
+        state.totalItems = payload.totalItems ?? state.totalItems;
       })
       .addCase(loadAllNews.rejected, (state, action) => {
         state.loading = false;

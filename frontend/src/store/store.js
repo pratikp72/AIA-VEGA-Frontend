@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import homeReducer from '@/features/home/homeSlice';  // ← ADD THIS
 import newsReducer from '@/features/news/newsSlice';  // ← ADD THIS
 import peopleReducer from '@/features/people/peopleSlice';
+import resourcesReducer from '@/features/resources/resourcesSlice';
 // Import your feature slices here as you create them
 // import authReducer from '@/features/auth/authSlice';
 
@@ -10,6 +11,7 @@ export const store = configureStore({
     home: homeReducer, 
     news: newsReducer, // ← ADD THIS
     people: peopleReducer,
+    resources: resourcesReducer,
     // auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>

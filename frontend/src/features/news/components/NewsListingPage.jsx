@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadAllNews, setPage } from '@/features/news/newsSlice';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/features/news/newsSelectors';
 
 import NewsCard from './NewsCard';
-import Pagination from '@/components/common/Pagination';
+// Pagination removed in favor of infinite scroll
 import Loader from '@/components/common/Loader';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
@@ -29,8 +29,38 @@ export default function NewsListingPage() {
   const isLoading = useAppSelector(selectNewsLoading);
 
   useEffect(() => {
-    dispatch(loadAllNews({ page: currentPage, limit: NEWS_PER_PAGE }));
-  }, [dispatch, currentPage]);
+    // initial load - replace
+    dispatch(loadAllNews({ page: 1, limit: NEWS_PER_PAGE, append: false }));
+    dispatch(setPage(1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
+  const sentinelRef = useRef(null);
+
+  const loadNext = useCallback(() => {
+    if (isLoading) return;
+    if (currentPage >= totalPages) return;
+    const nextPage = currentPage + 1;
+    dispatch(loadAllNews({ page: nextPage, limit: NEWS_PER_PAGE, append: true }));
+    dispatch(setPage(nextPage));
+  }, [isLoading, currentPage, totalPages, dispatch]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            loadNext();
+          }
+        });
+      },
+      { root: null, rootMargin: '200px', threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loadNext]);
 
   const handlePageChange = (page) => {
     dispatch(setPage(page));
@@ -74,14 +104,13 @@ export default function NewsListingPage() {
               ))}
             </div>
 
-            {/* Pagination - always show when there are items, ensure visible */}
-            {newsList.length > 0 && (
-              <Pagination
-                className="mt-8 mb-8"
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={handlePageChange}
-              />
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-6" />
+            {/* optional loader at bottom while fetching next page */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-6">
+                <Loader />
+              </div>
             )}
           </>
         )}

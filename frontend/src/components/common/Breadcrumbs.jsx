@@ -11,7 +11,7 @@ export default function Breadcrumbs({ items = [], showTrailingSeparator = false,
     <nav className={cn('breadcrumb gap-2 text-small', className)} aria-label="Breadcrumb">
       {items.map((item, index) => {
         const isLast = index === items.length - 1;
-        const labelClass = item.className || (isLast ? 'text-gray-dark font-medium' : 'hover:underline');
+        const labelClass = item.className || (isLast ? 'text-primary-purple font-medium' : 'hover:underline');
 
         return (
           <span key={`${item.label}-${index}`} className="flex items-center gap-2">
