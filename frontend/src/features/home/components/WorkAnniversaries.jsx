@@ -10,56 +10,48 @@ export default function WorkAnniversaries({ anniversaries = [] }) {
   }
 
   return (
-    <Card className="p-4 border-gray-200 flex flex-col rounded-xl shadow-sm bg-white w-full h-full min-h-0">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-900">Work Anniversaries</h2>
+    <section className="w-full h-full min-h-0 flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-h2 text-gray-900">Work Anniversaries</h2>
         <Link
           href="/calendar"
-          className="text-sm text-purple-600 hover:text-purple-700 hover:underline font-medium"
+          className="text-body text-purple-600 hover:text-purple-700 hover:underline font-medium"
         >
           View Calendar →
         </Link>
       </div>
 
-      <div className="flex flex-col gap-2 flex-1 min-h-0">
-        {anniversaries.slice(0, 3).map((person) => (
-          <Card
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col items-center gap-4 self-stretch p-4 flex-1 min-h-[320px]">
+        {anniversaries.slice(0, 2).map((person) => (
+          <div
             key={person.id}
-            className="rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow min-h-0 p-0 gap-0 flex flex-1 flex-col"
+            className="flex flex-col items-start gap-4  w-full h-[130px]"
           >
-            {/* Card content with profile - no bottom padding so banner sits directly below */}
-            <div className="relative flex items-center gap-2.5 pt-2 pb-0 px-3 flex-1 min-h-0">
-              {/* Profile Picture - circular */}
+            <div className="relative flex items-center gap-4 py-4 px-5 w-full">
               <img
                 src={person.avatar}
                 alt={person.name}
-                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
               />
-
-              {/* Info - compact */}
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-gray-900 leading-tight">{person.name}</h3>
-                <p className="text-[11px] text-gray-500 leading-tight">
+                <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>
+                <p className="text-small text-gray-500 leading-tight mt-0.5">
                   {person.department} · {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                 </p>
               </div>
-
-              {/* Years Badge - top right, green */}
-              <span className="absolute top-1/2 right-2 bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
+              <span className="absolute right-5 top-1/2 -translate-y-1/2 bg-green-500 text-white text-small font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
                 {person.yearsCompleted} year{person.yearsCompleted > 1 ? 's' : ''}
               </span>
             </div>
-
-            {/* Celebration banner - flush to card bottom */}
-            <div className="bg-purple-100 px-3 py-1 flex items-center gap-1.5 rounded-b-xl flex-shrink-0">
+            <div className="bg-purple-100 px-4 py-2 flex items-center gap-2 flex-shrink-0 rounded w-full">
               <Trophy className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <span className="text-[12px] text-purple-700 font-medium leading-tight">
+              <span className="text-small text-purple-700 font-medium leading-tight">
                 {person.yearsCompleted} Year{person.yearsCompleted > 1 ? 's' : ''} Completion Celebration
               </span>
             </div>
-          </Card>
+          </div>
         ))}
-      </div>
-    </Card>
+      </Card>
+    </section>
   );
 }

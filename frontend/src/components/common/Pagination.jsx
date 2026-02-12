@@ -1,14 +1,41 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export default function NewsPagination({ currentPage, totalPages, onPageChange }) {
+export default function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+  showSummary = false,
+  totalCount,
+  perPageLabel,
+  onPerPageClick,
+  className,
+}) {
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-8 bg-card rounded-lg p-4 shadow-sm border-gray-200 hover:shadow-lg transition-shadow">
-      {/* Previous Button */}
+    <div className={cn('flex flex-col gap-4', className)}>
+      {showSummary ? (
+        <div className="flex items-center justify-between text-small text-muted-foreground">
+          <span>Total Count : {totalCount ?? 0}</span>
+          {perPageLabel ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onPerPageClick}
+              className="rounded-full"
+            >
+              {perPageLabel}
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex items-center justify-center gap-2">
       <Button
         variant="outline"
         size="icon"
@@ -19,7 +46,6 @@ export default function NewsPagination({ currentPage, totalPages, onPageChange }
         <ChevronLeft className="w-4 h-4" />
       </Button>
 
-      {/* Page Numbers */}
       {pages.map((page) => (
         <Button
           key={page}
@@ -36,7 +62,6 @@ export default function NewsPagination({ currentPage, totalPages, onPageChange }
         </Button>
       ))}
 
-      {/* Next Button */}
       <Button
         variant="outline"
         size="icon"
@@ -46,6 +71,7 @@ export default function NewsPagination({ currentPage, totalPages, onPageChange }
       >
         <ChevronRight className="w-4 h-4" />
       </Button>
+      </div>
     </div>
   );
 }

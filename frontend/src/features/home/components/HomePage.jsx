@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import PageSection from '@/components/common/PageSection';
 import { loadDashboardData } from '@/features/home/homeSlice';
 import {
   selectNewsCarousel,
@@ -64,23 +65,22 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       {/* Hero Header */}
       <section className="bg-background">
-        <PageContainer className="py-6 sm:py-8">
-          <div className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">Home &gt;</div>
-
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-            Good Morning, Erin
-          </h1>
-
-          <p className="mt-2 sm:mt-3 text-xs sm:text-lg text-muted-foreground max-w-3xl sm:max-w-5xl">
+        <PageHeader
+          className="bg-background"
+          containerClassName="pt-xl pb-xl px-xl"
+          title="Good Morning, Erin"
+          breadcrumbs={[{ label: 'Home' }]}
+        >
+          <p className="text-body text-muted-foreground max-w-3xl sm:max-w-5xl">
             Welcome to your learning and information hub. Stay updated with the latest announcements and continue your training journey.
           </p>
-        </PageContainer>
+        </PageHeader>
       </section>
 
       {/* Main Content */}
       <main>
-        <PageContainer className="py-4 sm:py-6 pb-8">
-        <div className="space-y-6">
+        <PageSection>
+        <div className="flex flex-col gap-xl">
           {/* News Carousel - Full Width */}
           <NewsCarousel news={news} />
 
@@ -91,7 +91,7 @@ export default function HomePage() {
           <QuickLinks links={quickLinks} />
 
           {/* New Joinees & My Courses - Two Column Equal Width */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-md">
             {/* Left Column - New Joinees */}
             <div>
               <NewJoinees joinees={joinees} />
@@ -104,7 +104,7 @@ export default function HomePage() {
           </div>
 
           {/* Birthdays & Anniversaries Section - equal column height so both sections align */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-md">
             {/* Birthdays Today */}
             <BirthdaysToday birthdays={birthdays} />
 
@@ -112,7 +112,7 @@ export default function HomePage() {
             <WorkAnniversaries anniversaries={anniversaries} />
           </div>
         </div>
-        </PageContainer>
+        </PageSection>
       </main>
     </div>
   );

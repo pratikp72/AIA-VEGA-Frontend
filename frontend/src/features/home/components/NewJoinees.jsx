@@ -10,47 +10,47 @@ export default function NewJoinees({ joinees = [] }) {
   }
 
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-gray-200 h-full flex flex-col">
+    <section className="h-[681px] flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">New Joinees</h2>
+        <h2 className="text-h2">New Joinees</h2>
         <Link
           href="/people"
-          className="text-sm text-primary hover:underline font-medium"
+          className="text-body text-primary hover:underline font-medium"
         >
           View All →
         </Link>
       </div>
 
-      <div className="flex flex-col gap-4 flex-1 overflow-auto">
-        {joinees.slice(0, 4).map((person) => (
-          <Link key={person.id} href={`/people/${person.id}`}>
-            <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer border-gray-200 bg-background min-h-[88px] rounded-xl shadow-sm">
-              <div className="flex gap-4">
+      <div className="flex flex-col items-start gap-6 flex-1 min-h-0 w-full overflow-y-auto scrollbar-hide">
+        {joinees.map((person) => (
+          <Link key={person.id} href={`/people/${person.id}`} className="w-full min-w-0">
+            <Card className="w-full min-w-0 p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 bg-white rounded-[20px] h-[140px] flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
+              <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">
               {/* Profile Picture */}
               <div className="flex-shrink-0">
                 <div className="relative">
                   <img
                     src={person.avatar}
                     alt={person.name}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className="w-20 h-20 rounded object-cover"
                   />
-                  <span className="absolute -top-2 -left-2 bg-primary text-primary-foreground text-xs font-semibold px-2 py-1 rounded-full whitespace-nowrap text-white">
+                  <span className="absolute left-1/2 top-1 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-small px-1 py-1 rounded whitespace-nowrap text-white">
                     New Joinee
                   </span>
                 </div>
               </div>
 
               {/* Person Info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm">{person.name}</h3>
-                <p className="text-xs text-muted-foreground mb-2">
+              <div className="flex flex-col items-start gap-2 flex-[1_0_0] min-w-0 ">
+                <h3 className="text-h3">{person.name}</h3>
+                <p className="text-small text-muted-foreground mb-2">
                   {person.position}
                 </p>
 
                 {/* Phone */}
                 <div className="flex items-center gap-2 mb-1">
                   <Phone className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className="text-small text-muted-foreground truncate">
                     {person.phone}
                   </span>
                 </div>
@@ -58,7 +58,7 @@ export default function NewJoinees({ joinees = [] }) {
                 {/* Email */}
                 <div className="flex items-center gap-2">
                   <Mail className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                  <span className="text-xs text-muted-foreground truncate">
+                  <span className="text-small text-muted-foreground truncate">
                     {person.email}
                   </span>
                 </div>
@@ -68,6 +68,6 @@ export default function NewJoinees({ joinees = [] }) {
           </Link>
         ))}
       </div>
-    </Card>
+    </section>
   );
 }

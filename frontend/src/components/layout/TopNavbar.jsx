@@ -23,9 +23,9 @@ export default function TopNavbar({ onMobileMenuToggle }) {
 
           {/* Logo */}
           <div className="w-8 sm:w-10 h-8 sm:h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg sm:text-xl">A</span>
+            <span className="text-white text-h2">A</span>
           </div>
-          <span className="hidden sm:block font-bold text-lg sm:text-xl">AIA Portal</span>
+          <span className="hidden sm:block text-h2 text-foreground">AIA Portal</span>
         </div>
 
         {/* Search, Notifications, Profile - Right Side */}
@@ -39,7 +39,7 @@ export default function TopNavbar({ onMobileMenuToggle }) {
                 type="text"
                 placeholder="Search..."
                 autoFocus
-                className="pl-10 bg-gray-100 border-gray-200 text-sm text-gray-600 placeholder:text-gray-400"
+                className="pl-10 bg-gray-100 border-gray-200 text-body text-gray-600 placeholder:text-gray-400"
                 onBlur={() => setSearchOpen(false)}
               />
             </div>
@@ -56,7 +56,7 @@ export default function TopNavbar({ onMobileMenuToggle }) {
             <Input
               type="text"
               placeholder="Search..."
-              className="pl-10 bg-gray-100 border-gray-200 text-sm text-gray-600 placeholder:text-gray-400"
+              className="pl-10 bg-gray-100 border-gray-200 text-body text-gray-600 placeholder:text-gray-400"
             />
           </div>
 

@@ -2,29 +2,26 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Home,
-  Users,
-  BookOpen,
-  MapPin,
-  Route,
-  FolderOpen,
-  Calendar,
-  Image,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from 'lucide-react';
+  Home01Icon,
+  BookOpen01Icon,
+  Location01Icon,
+  Route01Icon,
+  Folder01Icon,
+  Calendar01Icon,
+  Image01Icon,
+} from 'hugeicons-react';
+import { ChevronLeft, ChevronRight, X, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
-  { icon: Home, label: 'Home', href: '/home' },
+  { icon: Home01Icon, label: 'Home', href: '/home' },
   { icon: Users, label: 'People', href: '/people' },
-  { icon: BookOpen, label: 'Courses', href: '/courses' },
-  { icon: MapPin, label: 'Locations', href: '/locations' },
-  { icon: Route, label: 'Routes', href: '/routes' },
-  { icon: FolderOpen, label: 'Resources', href: '/resources' },
-  { icon: Calendar, label: 'Calendar', href: '/calendar' },
-  { icon: Image, label: 'Gallery', href: '/gallery' },
+  { icon: BookOpen01Icon, label: 'Courses', href: '/courses' },
+  { icon: Location01Icon, label: 'Locations', href: '/locations' },
+  { icon: Route01Icon, label: 'Routes', href: '/routes' },
+  { icon: Folder01Icon, label: 'Resources', href: '/resources' },
+  { icon: Calendar01Icon, label: 'Calendar', href: '/calendar' },
+  { icon: Image01Icon, label: 'Gallery', href: '/gallery' },
 ];
 
 export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen = false, onMobileClose }) {

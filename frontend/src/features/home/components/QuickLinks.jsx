@@ -22,21 +22,21 @@ export default function QuickLinks({ links = [] }) {
   if (links.length === 0) return null;
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Quick Links</h2>
+    <section>
+      <h2 className="text-h2 mb-6">Quick Links</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        {links.map((link, index) => (
+        {links.slice(0, 12).map((link, index) => (
           <Link key={link.id} href={link.link}>
             <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-gray-200">
               <div className="flex flex-col items-center text-center gap-3">
                 <div
                   className={`w-16 h-16 rounded-2xl ${
                     iconColors[index % iconColors.length]
-                  } flex items-center justify-center text-2xl`}
+                  } flex items-center justify-center text-h2`}
                 >
                   {link.icon}
                 </div>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-body font-medium text-gray-700">
                   {link.name}
                 </span>
               </div>
@@ -44,6 +44,6 @@ export default function QuickLinks({ links = [] }) {
           </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

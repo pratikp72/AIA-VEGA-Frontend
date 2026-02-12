@@ -11,11 +11,12 @@ import {
 } from '@/features/news/newsSelectors';
 
 import NewsCard from './NewsCard';
-import NewsPagination from './NewsPagination';
+import Pagination from '@/components/common/Pagination';
 import Loader from '@/components/common/Loader';
-import PageContainer from '@/components/layout/PageContainer';
+import PageHeader from '@/components/common/PageHeader';
+import PageSection from '@/components/common/PageSection';
 import Link from 'next/link';
-import { ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const NEWS_PER_PAGE = 6;
 
@@ -39,32 +40,23 @@ export default function NewsListingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-card">
-        <PageContainer className="py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-sm text-gray-medium mb-2">
-              <span>Home</span>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-dark font-medium">News</span>
-            </div>
-            {/* Title */}
-            <h1 className="text-h1 text-gray-dark">News</h1>
-          </div>
-          {/* Back to Home - right side */}
+      <PageHeader
+        title="News"
+        breadcrumbs={[{ label: 'Home', href: '/home' }, { label: 'News' }]}
+        right={(
           <Link
             href="/home"
-            className="flex items-center gap-2 text-xs font-medium text-gray-600 hover:text-gray-800 hover:underline shrink-0"
+            className="flex items-center gap-2 text-small font-medium text-gray-medium hover:text-gray-dark hover:underline shrink-0"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 rotate-180" />
             Back
           </Link>
-        </PageContainer>
-      </div>
+        )}
+      />
 
       {/* Content */}
       <main>
-        <PageContainer className="py-3">
+        <PageSection>
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader size="lg" />
@@ -84,17 +76,16 @@ export default function NewsListingPage() {
 
             {/* Pagination - always show when there are items, ensure visible */}
             {newsList.length > 0 && (
-              <div className="mt-8 mb-8">
-                <NewsPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                />
-              </div>
+              <Pagination
+                className="mt-8 mb-8"
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
             )}
           </>
         )}
-        </PageContainer>
+        </PageSection>
       </main>
     </div>
   );
