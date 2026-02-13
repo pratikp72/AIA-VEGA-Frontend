@@ -51,7 +51,12 @@ export default function ResourcesPage() {
         if (!(`${r.title} ${r.description} ${r.department}`.toLowerCase().includes(s))) return false;
       }
       if (date) {
-        if (new Date(r.date) < new Date(date)) return false;
+        try {
+          const sel = new Date(date).toDateString();
+          if (new Date(r.date).toDateString() !== sel) return false;
+        } catch (e) {
+          // ignore parse errors
+        }
       }
       return true;
     });
@@ -87,7 +92,7 @@ export default function ResourcesPage() {
   return (
     <div className="min-h-screen bg-background">
       <PageHeader title="Resources" breadcrumbs={[{ label: 'Resources' }, { label: breadcrumbChild }]} containerClassName="pt-xl pb-0 px-xl">
-        <p className="text-body text-muted-foreground">Company policies, forms, and templates</p>
+        <p className="text-body text-muted-foreground">Company policies, forms, and templates.</p>
         <PolicyFilters
           tab={tab}
           onTabChange={(val) => { setTab(val); }}
@@ -113,7 +118,7 @@ export default function ResourcesPage() {
             </div>
           ) : resources.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-body text-muted-foreground">No resources found</p>
+              <p className="text-body text-muted-foreground">{date ? 'No data for that date' : 'No resources found'}</p>
             </div>
           ) : (
             <>

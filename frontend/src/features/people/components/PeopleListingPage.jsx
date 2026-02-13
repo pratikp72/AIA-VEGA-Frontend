@@ -16,7 +16,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import SurfaceCard from '@/components/common/SurfaceCard';
-import PeopleFilters from './PeopleFilters';
+import Filters from '@/components/common/Filters';
 import PeopleGrid from './PeopleGrid';
 import PeopleDetail from './PeopleDetail';
 import Loader from '@/components/common/Loader';
@@ -193,17 +193,16 @@ export default function PeopleListingPage() {
           </div>
         }
       >
-        <PeopleFilters
-          searchTerm={searchTerm}
+        <Filters
+          search={searchTerm}
           onSearchChange={(val) => { setSearchTerm(val); dispatch(setPage(1)); }}
-          sortBy={sortBy}
-          onSortChange={(val) => { setSortBy(val); dispatch(setPage(1)); }}
-          departmentFilter={departmentFilter}
-          onDepartmentChange={(val) => { setDepartmentFilter(val); dispatch(setPage(1)); }}
-          locationFilter={locationFilter}
-          onLocationChange={(val) => { setLocationFilter(val); dispatch(setPage(1)); }}
-          departmentOptions={departmentOptions}
-          locationOptions={locationOptions}
+          showDate={false}
+          // date not used for people
+          selects={[
+            { value: sortBy, onChange: (v) => { setSortBy(v); dispatch(setPage(1)); }, options: ['', 'name-asc', 'name-desc', 'join-newest', 'join-oldest'], placeholder: 'Sort By' },
+            { value: departmentFilter, onChange: (v) => { setDepartmentFilter(v); dispatch(setPage(1)); }, options: departmentOptions, placeholder: 'Department' },
+            { value: locationFilter, onChange: (v) => { setLocationFilter(v); dispatch(setPage(1)); }, options: locationOptions, placeholder: 'Location' },
+          ]}
         />
       </PageHeader>
 

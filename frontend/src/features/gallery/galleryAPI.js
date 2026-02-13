@@ -1,0 +1,42 @@
+import { mockDelay, USE_MOCK_DATA } from '@/services/mockData';
+
+// Simple mock gallery items for development
+const MOCK_GALLERY = Array.from({ length: 20 }).map((_, i) => {
+  const isVideo = i % 3 === 0;
+  const company = i % 2 === 0 ? 'AIA' : 'VEGA';
+  return {
+    id: i + 1,
+    title: isVideo ? `Video ${i + 1}` : `Image ${i + 1}`,
+    type: isVideo ? 'Video' : 'Image',
+    company,
+    date: `2025-0${(i % 9) + 1}-0${(i % 27) + 1}`,
+    thumbnail: isVideo
+      ? `https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&fit=crop&q=80&auto=format&ixlib=rb-4.0.0&sat=${i}`
+      : `https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&fit=crop&q=80&auto=format&ixlib=rb-4.0.0&sat=${i}`,
+    url: 'https://images.unsplash.com',
+  };
+});
+
+export async function fetchGallery(page = 1, limit = 12) {
+  if (USE_MOCK_DATA) {
+    await mockDelay(200);
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    return {
+      items: MOCK_GALLERY.slice(start, end),
+      totalPages: Math.max(1, Math.ceil(MOCK_GALLERY.length / limit)),
+      totalItems: MOCK_GALLERY.length,
+      currentPage: page,
+    };
+  }
+
+  // TODO: implement real API call
+  return {
+    items: [],
+    totalPages: 1,
+    totalItems: 0,
+    currentPage: page,
+  };
+}
+
+export default { fetchGallery };

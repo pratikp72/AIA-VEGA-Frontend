@@ -8,8 +8,8 @@ export default function PageContainer({ children, className }) {
 
   const baseClasses =
     !isMobile && collapsed
-      ? 'w-full px-4 sm:px-6 lg:px-8'
-      : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8';
+      ? 'w-full px-4 sm:px-6 lg:px-10'
+        : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-10';
 
   return <div className={cn(baseClasses, className)}>{children}</div>;
 }

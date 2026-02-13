@@ -241,11 +241,35 @@ export const MOCK_RESOURCES = [
     id: 1,
     title: 'Remote Work Policy',
     tag: 'Human Resource',
-    description: 'Guidelines for employees working remotely, including eligibility, expectations, and equipment policies.',
+    description: `
+      <p><strong>Overview</strong> This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Eligibility</strong> Employees who have completed their probation period and whose role is suitable for remote work may apply. Eligibility is subject to manager approval and business requirements. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      <p><strong>Work Hours</strong> Remote employees are expected to be available during core business hours (9 AM - 3 PM) and respond to communications within a reasonable timeframe. Flexibility outside of core hours is permitted with manager approval. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Security & Data</strong> All company data and information must be handled securely when working remotely. Employees must use VPN connections, secure passwords, and follow all IT security protocols to protect sensitive information. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      This policy establishes the framework for remote work arrangements at our organization. It applies to all employees who have been approved for remote work, whether on a full-time, part-time, or occasional basis. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Equipment & Workspace</strong> Employees should maintain a dedicated workspace that is safe, secure, and free from distractions. Equipment provided by the company remains company property and must be returned upon termination of employment or end of remote work arrangement. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Communication</strong> Employees must keep their calendars up to date, attend required meetings, and maintain regular check-ins with their managers. Any changes to availability should be communicated promptly. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'HR Department',
     date: '2026-01-15',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 2,
@@ -256,16 +280,24 @@ export const MOCK_RESOURCES = [
     date: '2025-12-01',
     type: 'Form',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 3,
     title: 'Code of Conduct',
     tag: 'Company',
-    description: 'Standards and behaviours expected from all employees to maintain a professional workplace.',
+    description: `
+      <p><strong>Overview</strong> Standards and behaviours expected from all employees to maintain a professional workplace. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Professionalism</strong> Employees are expected to act with integrity, respect, and consideration in all interactions with colleagues, clients, and partners. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Conflict of Interest</strong> Employees must disclose any potential conflicts of interest and avoid situations where personal interests could influence professional judgment. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Use of Company Resources</strong> Company resources should be used responsibly and for legitimate business purposes. Personal use should be limited and follow company policy. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Reporting Misconduct</strong> Any concerns about policy violations, ethical issues, or misconduct should be reported through the appropriate channels promptly. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'People & Culture',
     date: '2025-11-20',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 4,
@@ -276,16 +308,23 @@ export const MOCK_RESOURCES = [
     date: '2026-02-01',
     type: 'Template',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 5,
     title: 'Flexible Working Guidelines',
     tag: 'Human Resource',
-    description: 'Policy outlining flexible working arrangements and approval process.',
+    description: `
+      <p><strong>Overview</strong> Policy outlining flexible working arrangements and the approval process for employees seeking adjusted schedules. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Eligibility</strong> Employees may request flexible hours or part-time arrangements subject to manager approval and operational needs. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Application Process</strong> Employees should submit requests using the formal flexible working form and provide justification and proposed schedule. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Review & Approval</strong> Managers will review requests considering team impact, role suitability, and fairness, providing responses within a reasonable timeframe. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'HR Department',
     date: '2025-10-10',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 6,
@@ -296,16 +335,23 @@ export const MOCK_RESOURCES = [
     date: '2025-09-05',
     type: 'Form',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 7,
     title: 'Data Protection Policy',
     tag: 'Legal',
-    description: 'Company rules for handling personal data and compliance responsibilities.',
+    description: `
+      <p><strong>Overview</strong> Company rules for handling personal data and compliance with applicable data protection laws. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Scope</strong> This policy applies to all employees, contractors, and third parties processing company personal data. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Responsibilities</strong> Employees must follow data handling procedures, report breaches, and attend required data protection training. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Data Subject Rights</strong> Procedures are in place to respond to access, correction, and deletion requests from data subjects. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'Legal',
     date: '2025-08-12',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 8,
@@ -316,16 +362,23 @@ export const MOCK_RESOURCES = [
     date: '2026-01-20',
     type: 'Template',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 9,
     title: 'Health & Safety Manual',
     tag: 'Operations',
-    description: 'Guidance on workplace safety, emergency procedures and reporting incidents.',
+    description: `
+      <p><strong>Overview</strong> Guidance on workplace safety, emergency procedures, and incident reporting to protect employees and visitors. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Workplace Safety</strong> Employees should follow safe work practices, use protective equipment, and report hazards immediately. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Emergency Procedures</strong> Clear evacuation routes, assembly points, and emergency contacts are maintained and communicated to all staff. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Incident Reporting</strong> All incidents must be reported through the incident management system for investigation and corrective action. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'Operations',
     date: '2024-12-15',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 10,
@@ -336,26 +389,39 @@ export const MOCK_RESOURCES = [
     date: '2025-07-01',
     type: 'Template',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 11,
     title: 'Sick Leave Policy',
     tag: 'HR',
-    description: 'Procedures for reporting sick leave and documentation requirements.',
+    description: `
+      <p><strong>Overview</strong> Procedures for reporting sick leave, notification expectations, and documentation requirements for absences. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Notification</strong> Employees should notify their manager as soon as possible when unable to work due to illness. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Documentation</strong> Medical certificates may be required for extended absences according to local regulations. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Return to Work</strong> Managers should conduct return-to-work discussions for prolonged absences to support reintegration. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'HR Department',
     date: '2025-06-18',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 12,
     title: 'Expense Policy - International Travel',
     tag: 'Finance',
-    description: 'Specific rules for international travel and currency reimbursement.',
+    description: `
+      <p><strong>Overview</strong> Specific rules for international travel, expense limits, and currency reimbursement procedures. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Pre-Approval</strong> International travel must be pre-approved and budgeted through the manager and finance team. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Allowable Expenses</strong> Receipts are required for reimbursement; per-diem rules apply where specified. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Currency & Tax</strong> Reimbursements will be processed in company currency with applicable tax treatments applied. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'Finance',
     date: '2024-11-02',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 13,
@@ -366,6 +432,7 @@ export const MOCK_RESOURCES = [
     date: '2025-05-22',
     type: 'Template',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 14,
@@ -376,16 +443,23 @@ export const MOCK_RESOURCES = [
     date: '2026-01-05',
     type: 'Form',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 15,
     title: 'Equal Opportunity Policy',
     tag: 'People',
-    description: 'Company commitment to equal opportunity and non-discrimination.',
+    description: `
+      <p><strong>Overview</strong> Company commitment to equal opportunity, diversity, and non-discrimination in employment practices. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Scope</strong> Applies to recruitment, promotion, training, and all employment conditions. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Reporting</strong> Concerns about discrimination or harassment should be reported to People & Culture for investigation. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+      <p><strong>Support</strong> The company provides reasonable adjustments and support to ensure equal access and opportunities. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+    `,
     department: 'People & Culture',
     date: '2024-10-01',
     type: 'Policy',
     category: 'policies',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
   {
     id: 16,
@@ -396,6 +470,7 @@ export const MOCK_RESOURCES = [
     date: '2025-03-14',
     type: 'Template',
     category: 'forms',
+    url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
   },
 ];
 
