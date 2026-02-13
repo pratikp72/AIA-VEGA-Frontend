@@ -4,16 +4,30 @@ import { mockDelay, USE_MOCK_DATA } from '@/services/mockData';
 const MOCK_GALLERY = Array.from({ length: 20 }).map((_, i) => {
   const isVideo = i % 3 === 0;
   const company = i % 2 === 0 ? 'AIA' : 'VEGA';
+  
+  // Different sample videos (all under 1 minute)
+  const videoUrls = [
+    'https://www.w3schools.com/html/mov_bbb.mp4', // ~10 seconds
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', // ~15 seconds
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', // ~15 seconds
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', // ~15 seconds
+    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', // ~15 seconds
+  ];
+  
   return {
     id: i + 1,
     title: isVideo ? `Video ${i + 1}` : `Image ${i + 1}`,
     type: isVideo ? 'Video' : 'Image',
     company,
     date: `2025-0${(i % 9) + 1}-0${(i % 27) + 1}`,
+    description: 'This image captures a moment from an internal session or workshop conducted by the organization.',
+    location: i % 2 === 0 ? 'Odhav, Ahmedabad' : 'Mumbai, India',
     thumbnail: isVideo
       ? `https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=800&fit=crop&q=80&auto=format&ixlib=rb-4.0.0&sat=${i}`
       : `https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&fit=crop&q=80&auto=format&ixlib=rb-4.0.0&sat=${i}`,
-    url: 'https://images.unsplash.com',
+    url: isVideo
+      ? videoUrls[i % videoUrls.length]
+      : `https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&fit=crop&q=80&auto=format&ixlib=rb-4.0.0&sat=${i}`,
   };
 });
 

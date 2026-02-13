@@ -40,7 +40,8 @@ export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen =
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-16 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 transition-all duration-300 z-40',
+          'fixed left-0 top-16 h-[calc(100vh-4rem)] bg-[#000000] border-r border-[#EAC6FF] transition-all duration-300 z-40',
+          'shadow-[2px_4px_4px_0_rgba(0,0,0,0.25)]',
           isMobileOpen ? 'w-64 translate-x-0' : 'hidden sm:block',
           !isMobileOpen && (collapsed ? 'w-19' : 'w-60')
         )}
@@ -49,7 +50,7 @@ export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen =
         {isMobileOpen && (
           <button
             onClick={onMobileClose}
-            className="sm:hidden absolute top-4 right-4 p-1 hover:bg-gray-100 rounded"
+            className="sm:hidden absolute top-4 right-4 p-1 hover:bg-white/10 rounded text-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -59,7 +60,7 @@ export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen =
         {!isMobileOpen && (
           <button
             onClick={() => onToggle && onToggle()}
-            className="absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1 hover:bg-gray-50"
+            className="absolute -right-3 top-6 bg-gradient-to-r from-[#E6BAFF]/60 to-[#9C2EDB]/60 border border-[#9C2EDB]/50 rounded-xl p-1 hover:bg-[#9C2EDB]/70 text-white transition-colors"
           >
             {collapsed ? (
               <ChevronRight className="w-4 h-4" />
@@ -80,10 +81,10 @@ export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen =
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors border border-transparent',
                   isActive
-                    ? 'bg-purple-50 text-purple-600 font-medium'
-                    : 'text-gray-700 hover:bg-gray-50',
+                    ? 'bg-gradient-to-r from-[#E6BAFF]/20 to-[#9C2EDB]/20 text-white font-medium border-[#9C2EDB]/50'
+                    : 'text-white/80 hover:bg-white/10 hover:text-white',
                   collapsed && 'justify-center'
                 )}
               >

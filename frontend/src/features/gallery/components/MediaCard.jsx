@@ -3,10 +3,13 @@
 import React from 'react';
 import { Play } from 'lucide-react';
 
-export default function MediaCard({ item }) {
+export default function MediaCard({ item, onClick }) {
   const isVideo = (item.type || '').toLowerCase() === 'video';
   return (
-    <div className="relative rounded-[12px] overflow-hidden bg-gray-100 h-[180px] sm:h-[220px] md:h-[257px]">
+    <div 
+      className="relative rounded-[12px] overflow-hidden bg-gray-100 h-[180px] sm:h-[220px] md:h-[257px] cursor-pointer hover:opacity-90 transition-opacity"
+      onClick={() => onClick && onClick(item)}
+    >
       <div
         className="w-full h-full bg-center bg-cover"
         style={{ backgroundImage: `url(${item.thumbnail})` }}
