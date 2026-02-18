@@ -4,6 +4,7 @@ import newsReducer from '@/features/news/newsSlice';  // ← ADD THIS
 import peopleReducer from '@/features/people/peopleSlice';
 import resourcesReducer from '@/features/resources/resourcesSlice';
 import galleryReducer from '@/features/gallery/gallerySlice';
+import coursesReducer from '@/features/courses/coursesSlice';
 
 // Import your feature slices here as you create them
 // import authReducer from '@/features/auth/authSlice';
@@ -15,6 +16,7 @@ export const store = configureStore({
     people: peopleReducer,
     resources: resourcesReducer,
     gallery: galleryReducer,
+    courses: coursesReducer,
     // auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
