@@ -21,6 +21,7 @@
     "next": "16.1.6",
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
+    "react-circular-progressbar": "^2.2.0",
     "react-dom": "19.2.3",
     "react-hot-toast": "^2.6.0",
     "react-redux": "^9.2.0",

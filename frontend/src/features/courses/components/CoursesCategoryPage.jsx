@@ -1,13 +1,13 @@
 'use client';
-
+import React from 'react';
 import { useMemo } from 'react';
-import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
+import PageHeader from '@/components/common/PageHeader';
 import SurfaceCard from '@/components/common/SurfaceCard';
 import { MOCK_COURSES_CATEGORY_LIST } from '@/services/mockData';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PlayCircle, MoreVertical, ChevronRight, Clock, BookOpen, Users } from 'lucide-react';
+import { PlayCircle, MoreVertical, ChevronRight, Clock, BookOpen, Users, Award } from 'lucide-react';
 import Link from 'next/link';
 
 
@@ -51,7 +51,7 @@ export default function CoursesCategoryPage({ category }) {
               const isCompleted = !!course.completed;
               const courseUrl = `/courses/${category}/${course.id}`;
               const cardContent = (
-                <SurfaceCard className="flex flex-col h-full rounded-2xl p-0 overflow-hidden cursor-pointer">
+                <SurfaceCard key={course.id} className="flex flex-col h-full rounded-2xl p-0 overflow-hidden cursor-pointer">
                   <div className="relative w-full overflow-hidden pt-4 px-4" style={{ height: 220 }}>
                     <img
                       src={course.image}
@@ -59,7 +59,7 @@ export default function CoursesCategoryPage({ category }) {
                       className="w-full h-full object-cover rounded-[20px]"
                       style={{ borderRadius: '18px' }}
                     />
-                    <div className="absolute top-6 left-6">
+                    <div className="absolute top-6 left-6 flex items-center gap-2 w-full pr-4">
                       {course.completed && (
                         <Badge
                           className="inline-flex items-center justify-center rounded-md px-3 py-1 border border-transparent text-white"
@@ -67,6 +67,11 @@ export default function CoursesCategoryPage({ category }) {
                         >
                           Completed
                         </Badge>
+                      )}
+                      {course.completed && course.certificationGenerated && (
+                        <span className="absolute top-0 right-0 mr-12 bg-[#EFBF04] rounded-md p-1 shadow-md flex items-center">
+                          <Award className="w-6 h-6" color='#ffffff' />
+                        </span>
                       )}
                     </div>
                     {course.contentType === 'video' && (
@@ -127,16 +132,12 @@ export default function CoursesCategoryPage({ category }) {
                 </SurfaceCard>
               );
 
-              // For video content, wrap card and button in Link
-              if (course.contentType === 'video') {
-                return (
-                  <Link key={course.id} href={courseUrl} passHref legacyBehavior>
-                    <a style={{ textDecoration: 'none' }}>{cardContent}</a>
-                  </Link>
-                );
-              }
-              // For other content types, just render the card
-              return cardContent;
+              // Wrap all cards in a Link so all types are clickable
+              return (
+                <Link key={course.id} href={courseUrl} style={{ textDecoration: 'none' }}>
+                  {cardContent}
+                </Link>
+              );
             })}
           </div>
         </PageSection>

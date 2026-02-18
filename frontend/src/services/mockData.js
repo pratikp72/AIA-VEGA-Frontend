@@ -1,3 +1,147 @@
+// Mock modules for course detail page
+export const MOCK_COURSE_MODULES = [
+  {
+    id: 1,
+    title: "Performance Optimization",
+    lessons: [
+      { id: 1, title: "Intro to Performance" },
+      { id: 2, title: "React Best Practices" },
+      { id: 3, title: "Profiling Tools" },
+    ],
+  },
+  {
+    id: 2,
+    title: "Advanced Patterns",
+    lessons: [
+      { id: 1, title: "Compound Components" },
+      { id: 2, title: "Render Props" },
+    ],
+  },
+];
+
+// Mock contents for course detail page
+export const MOCK_COURSE_CONTENTS = [
+  {
+    id: 1,
+    moduleNumber: 6,
+    moduleTitle: "Performance Optimization",
+    moduleType: "Video",
+    moduleDuration: "45m",
+    moduleStatus: "active",
+    items: [
+      { id: 1, title: "React Profiler", time: "20m", type: "video", status: "completed" },
+      { id: 2, title: "Memoization Techniques", time: "25m", type: "video", status: "active" },
+      { id: 3, title: "Code Splitting", time: "15m", type: "video", status: "pending" },
+      { id: 4, title: "Virtual Lists", time: "10m", type: "video", status: "pending" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    ],
+  },
+  {
+    id: 2,
+    moduleNumber: 7,
+    moduleTitle: "Introduction to Advanced Patterns",
+    moduleType: "Video",
+    moduleDuration: "45m",
+    moduleStatus: "completed",
+    items: [
+      { id: 1, title: "Compound Components", time: "15m", type: "video", status: "completed" },
+      { id: 2, title: "Render Props", time: "20m", type: "video", status: "completed" },
+      { id: 3, title: "Higher Order Components", time: "25m", type: "video", status: "completed" },
+      { id: 4, title: "Custom Hooks", time: "10m", type: "video", status: "completed" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "completed" },
+    ],
+  },
+  {
+    id: 3,
+    moduleNumber: 8,
+    moduleTitle: "Introduction to Advanced Patterns",
+    moduleType: "Reading",
+    moduleDuration: "45m",
+    moduleStatus: "completed",
+    items: [
+      { id: 1, title: "Observer Pattern", time: "15m", type: "video", status: "completed" },
+      { id: 2, title: "Strategy Pattern", time: "20m", type: "video", status: "completed" },
+      { id: 3, title: "Factory Pattern", time: "15m", type: "video", status: "completed" },
+      { id: 4, title: "Singleton Pattern", time: "10m", type: "video", status: "completed" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "completed" },
+    ],
+  },
+  {
+    id: 4,
+    moduleNumber: 9,
+    moduleTitle: "Introduction to Advanced Patterns",
+    moduleType: "Reading",
+    moduleDuration: "45m",
+    moduleStatus: "pending",
+    items: [
+      { id: 1, title: "State Machines", time: "20m", type: "video", status: "pending" },
+      { id: 2, title: "Finite Automata", time: "15m", type: "video", status: "pending" },
+      { id: 3, title: "Event Driven Architecture", time: "20m", type: "video", status: "pending" },
+      { id: 4, title: "Pub/Sub Model", time: "10m", type: "video", status: "pending" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    ],
+  },
+  {
+    id: 5,
+    moduleNumber: 10,
+    moduleTitle: "Introduction to Advanced Patterns",
+    moduleType: "Video",
+    moduleDuration: "45m",
+    moduleStatus: "pending",
+    items: [
+      { id: 1, title: "Context API Deep Dive", time: "20m", type: "video", status: "pending" },
+      { id: 2, title: "useReducer Patterns", time: "15m", type: "video", status: "pending" },
+      { id: 3, title: "State Composition", time: "15m", type: "video", status: "pending" },
+      { id: 4, title: "Global State Solutions", time: "10m", type: "video", status: "pending" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    ],
+  },
+  {
+    id: 6,
+    moduleNumber: 11,
+    moduleTitle: "Introduction to Advanced Patterns",
+    moduleType: "Video",
+    moduleDuration: "45m",
+    moduleStatus: "pending",
+    items: [
+      { id: 1, title: "Error Boundaries", time: "15m", type: "video", status: "pending" },
+      { id: 2, title: "Suspense & Lazy Loading", time: "20m", type: "video", status: "pending" },
+      { id: 3, title: "Concurrent Features", time: "15m", type: "video", status: "pending" },
+      { id: 4, title: "Streaming SSR", time: "10m", type: "video", status: "pending" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    ],
+  },
+  {
+    id: 7,
+    moduleNumber: 12,
+    moduleTitle: "Testing Advanced Patterns",
+    moduleType: "Video",
+    moduleDuration: "1h 60m",
+    moduleStatus: "locked",
+    items: [
+      { id: 1, title: "Unit Testing Basics", time: "25m", type: "video", status: "pending" },
+      { id: 2, title: "Integration Testing", time: "30m", type: "video", status: "pending" },
+      { id: 3, title: "Mocking Strategies", time: "20m", type: "video", status: "pending" },
+      { id: 4, title: "Test Coverage Analysis", time: "15m", type: "video", status: "pending" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    ],
+  },
+  {
+    id: 8,
+    moduleNumber: 13,
+    moduleTitle: "Testing Advanced Patterns",
+    moduleType: "Reading",
+    moduleDuration: "1h 60m",
+    moduleStatus: "locked",
+    items: [
+      { id: 1, title: "E2E Testing with Cypress", time: "25m", type: "video", status: "pending" },
+      { id: 2, title: "Visual Regression Testing", time: "20m", type: "video", status: "pending" },
+      { id: 3, title: "Performance Testing", time: "20m", type: "video", status: "pending" },
+      { id: 4, title: "CI/CD Test Pipelines", time: "15m", type: "video", status: "pending" },
+      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    ],
+  },
+];
 // Mock courses for each category (for /courses/[category] pages)
 export const MOCK_COURSES_CATEGORY_LIST = {
   mandatory: [
@@ -9,9 +153,11 @@ export const MOCK_COURSES_CATEGORY_LIST = {
       modules: 12,
       learners: 36,
       completed: true,
-      progress: 100,
+      progress: 75,
       time: '36 mins',
       contentType: 'video',
+      content: '',
+      certificationGenerated: true,
     },
     {
       id: 2,
@@ -24,6 +170,7 @@ export const MOCK_COURSES_CATEGORY_LIST = {
       progress: 75,
       time: '36 mins',
       contentType: 'pdf',
+      content: `Structured gripped tape invisible moulded cups for sauppor firm hold strong powermesh front liner sport detail. Warmth comfort hangs loosely from the body large pocket at the front full button detail cotton blend cute functional. Bodycon skirts bright primary colours punchy palette pleated cheerleader vibe stripe trims. Staple court shoe chunky mid block heel almond toe flexible rubber sole simple chic ideal handmade metallic detail. Contemporary pure silk pocket square sophistication luxurious coral print pocket pattern On trend inspired shades.`,
     },
     {
       id: 3,
@@ -60,6 +207,7 @@ export const MOCK_COURSES_CATEGORY_LIST = {
       progress: 0,
       time: '36 mins',
       contentType: 'pdf',
+      content: `Structured gripped tape invisible moulded cups for sauppor firm hold strong powermesh front liner sport detail. Warmth comfort hargo technology from the body.\n\nKicker lining concealed back zip fasten swing style high waisted double layer full pattern floral.\n\nEu ridiculus fringilla aenean.`,
     },
     {
       id: 6,
@@ -72,6 +220,7 @@ export const MOCK_COURSES_CATEGORY_LIST = {
       progress: 0,
       time: '36 mins',
       contentType: 'text',
+      content: `Structured gripped tape invisible moulded cups for sauppor firm hold strong powermesh front liner sport detail. Warmth comfort hargo technology from the body.\n\nKicker lining concealed back zip fasten swing style high waisted double layer full pattern floral.\n\nEu ridiculus fringilla aenean.`,
     },
   ],
   orientation: [
