@@ -5,7 +5,7 @@ import PageSection from "@/components/common/PageSection";
 import CourseStats from "./CourseStats";
 import CourseContentList from "./CourseContentList";
 import FinalAssessment from "./FinalAssessment";
-import { MOCK_COURSE_MODULES, MOCK_COURSE_CONTENTS } from "@/services/mockData";
+import { MOCK_COURSE_MODULES, MOCK_COURSE_CONTENTS, MOCK_COURSE_INSTRUCTIONS } from "@/services/mockData";
 
 export default function CoursesDetailPage({ category, course }) {
   if (!course) return <div className="p-8">Course not found.</div>;
@@ -13,6 +13,10 @@ export default function CoursesDetailPage({ category, course }) {
   // Use imported mock data
   const modules = MOCK_COURSE_MODULES;
   const contents = MOCK_COURSE_CONTENTS;
+  const instructions = MOCK_COURSE_INSTRUCTIONS;
+
+  // Determine if all modules are completed
+  const unlocked = course.completed;
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,18 +75,31 @@ export default function CoursesDetailPage({ category, course }) {
                   </video>
                 </div>
               ) : (
-                <div className="bg-[#F8FAFC] border border-[#D1D5DB] rounded-xl p-4 mt-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-primary/10">
-                      <FolderOpen className="w-5 h-5 text-primary" />
-                    </span>
-                    <span className="font-semibold text-gray-800 text-base">{course.title}</span>
-                  </div>
-                  <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-                    {course.content}
-                  </div>
-                  </div>
-                // </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-8 mt-10 space-y-5">
+                  {instructions.map((block, idx) => {
+                    if (block.type === "heading") {
+                      return (
+                        <h3 key={idx} className="text-lg font-bold text-gray-900 uppercase">
+                          {block.content}
+                        </h3>
+                      );
+                    }
+                    if (block.type === "list") {
+                      return (
+                        <ul key={idx} className="list-disc pl-6 space-y-1">
+                          {block.items.map((item, i) => (
+                            <li key={i} className="text-sm text-gray-700 leading-relaxed">{item}</li>
+                          ))}
+                        </ul>
+                      );
+                    }
+                    return (
+                      <p key={idx} className="text-sm text-gray-700 leading-relaxed">
+                        {block.content}
+                      </p>
+                    );
+                  })}
+                </div>
               )}
 
               {/* Lectures content directly below video */}
@@ -167,8 +184,7 @@ export default function CoursesDetailPage({ category, course }) {
             <div className="lg:col-span-1 mt-14">
               <CourseStats course={course} />
               <CourseContentList contents={contents} current={0} />
-
-              <FinalAssessment />
+              <FinalAssessment unlocked={unlocked} category={category} courseId={course.id} />
             </div>
           </div>
         </PageSection>

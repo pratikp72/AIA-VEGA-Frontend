@@ -142,6 +142,119 @@ export const MOCK_COURSE_CONTENTS = [
     ],
   },
 ];
+// Mock assessment instructions data
+export const MOCK_ASSESSMENT_DATA = {
+  subtitle: "Please read all instructions carefully before starting your assessment",
+  notice: {
+    title: "Important Notice",
+    description: "Once you start the assessment, you must complete it in one sitting. Make sure you have enough time and a stable internet connection before beginning.",
+  },
+  instructionCards: [
+    {
+      icon: "Timer",
+      iconColor: "#9C2EDB",
+      iconBg: "#9C2EDB1A",
+      title: "Time Limit",
+      description: "You have 30 minutes to complete the assessment. The timer will start once you begin.",
+    },
+    {
+      icon: "HelpCircle",
+      iconColor: "#FD8C02",
+      iconBg: "#FD8C021A",
+      title: "Question Format",
+      description: "The assessment contains 20 multiple-choice questions. Each question has only one correct answer.",
+    },
+    {
+      icon: "CheckCircle2",
+      iconColor: "#46BD84",
+      iconBg: "#46BD841A",
+      title: "Passing Score",
+      description: "You need to score at least 70% to pass. This means you must answer 14 or more questions correctly.",
+    },
+    {
+      icon: "Ban",
+      iconColor: "#EF4444",
+      iconBg: "#EF44441A",
+      title: "No Going Back",
+      description: "Once you submit an answer, you cannot go back to change it. Review your answer before proceeding.",
+    },
+    {
+      icon: "ShieldCheck",
+      iconColor: "#3B82F6",
+      iconBg: "#3B82F61A",
+      title: "Integrity Policy",
+      description: "This is a closed-book assessment. External help or resources are not permitted during the test.",
+    },
+    {
+      icon: "Wifi",
+      iconColor: "#9C2EDB",
+      iconBg: "#9C2EDB1A",
+      title: "Technical Requirements",
+      description: "Ensure stable internet connection. Do not refresh or close the browser during the assessment.",
+    },
+  ],
+  checklist: {
+    title: "Pre-Assessment Checklist",
+    subtitle: "Read the instructions carefully before starting the Assessment.",
+    items: [
+      "I have completed all course modules",
+      "I have a stable internet connection",
+      "I will not use any external resources",
+      "I have at least 30 minutes of uninterrupted time",
+      "I understand the assessment rules and guidelines",
+    ],
+  },
+  buttonText: "Start Assessment",
+};
+
+// Mock instructions for PDF/text course content
+export const MOCK_COURSE_INSTRUCTIONS = [
+  {
+    type: "paragraph",
+    content: "Structured gripped tape invisible moulded cups for sauppor firm hold strong powermesh front liner sport detail. Warmth comfort hange loosely from the body large pocket at the front full button detail cotton blend cute functional. Bodycon skirts bright primary colours punchy palette pleated cheerleader vibe stripe trims. Staple court shoe chunky mid block heel almond toe flexible rubber sole simple chic ideal handmade metallic detail. Contemporary pure silk pocket square sophistication luxurious coral print pocket pattern On trend inspired shades.",
+  },
+  {
+    type: "paragraph",
+    content: "Striking pewter studded epaulette silver zips inner drawstring waist channel urban single-breasted jacket. Engraved attention to detail elegant with neutral colours chemo quartz leather strap fastens with a pin a buckle clasp. Workwear bow detailing a slingback buckle strap stiletto heel timeless go-to shoe sophistication elegant sheer. Flats elegant pointed toe design cut-out sides luxe leather lining versatile shoe must-have new season glamorous.",
+  },
+  {
+    type: "heading",
+    content: "KNICKER LINING CONCEALED BACK ZIP FASTEN SWING STYLE HIGH WAISTED DOUBLE LAYER FULL PATTERN FLORAL.",
+  },
+  {
+    type: "paragraph",
+    content: "Foam padding in the insoles leather finest quality staple flat slip-on design pointed toe off-duty shoe. Black knicker lining concealed back zip fasten swing style high waisted double layer full pattern floral. Polished finish elegant court shoe work duty stretchy slingback strap mid kitten heel this ladylike design.",
+  },
+  {
+    type: "paragraph",
+    content: "Eget senatus tellis venomatis. Donec odo tempus. Felis arcu pretium mettis nullam quam aenean sociis quis sem neque viti liberto. Venenatis nullam fringilla pretium magnis aliquam nunc vulputate integer augue ultricies cras. Eget viverra feugiat cras ut. Sit natoque montes tempus ligula eget vitae pede rhoncus maecenas consectetuer commodo condimentum aenean.",
+  },
+  {
+    type: "heading",
+    content: "EU RIDICULUS FRINGILLA AENEAN",
+  },
+  {
+    type: "paragraph",
+    content: "Foam padding in the insoles leather finest quality staple flat slip-on design pointed toe off-duty shoe. Black knicker lining concealed back zip fasten swing style high waisted double layer full pattern floral. Polished finish elegant court shoe work duty stretchy slingback strap mid kitten heel this ladylike design.",
+  },
+  {
+    type: "paragraph",
+    content: "Eget senatus tellis venomatis. Donec odo tempus. Felis arcu pretium mettis nullam quam aenean sociis quis sem neque viti liberto. Venenatis nullam fringilla pretium magnis aliquam nunc vulputate integer augue ultricies cras. Eget viverra feugiat cras ut. Sit natoque montes tempus ligula eget vitae pede rhoncus maecenas consectetuer commodo condimentum aenean.",
+  },
+  {
+    type: "list",
+    items: [
+      "Crisp fresh iconic elegant timeless clean perfume",
+      "Neck straight sharp silhouette and dart detail",
+      "Machine wash cold slim fit premium stretch selvedge denim comfortable low waist",
+    ],
+  },
+  {
+    type: "paragraph",
+    content: "See-through delicate embroidered organza blue lining luxury acetate-mix stretch pleat detailing. Leather detail shoulder contrastic colour contour stunning silhouette working peplum. Statement buttons cover-up tweeds patch pockets perennial lapel collar flap chest pockets topline stitching cropped jacket. Effortless comfortable full leather lining eye-catching unique detail to the toe low 'cut-away' sides clean and sleek. Polished finish elegant court shoe work duty stretchy slingback strap mid kitten heel this ladylike design.",
+  },
+];
+
 // Mock courses for each category (for /courses/[category] pages)
 export const MOCK_COURSES_CATEGORY_LIST = {
   mandatory: [
