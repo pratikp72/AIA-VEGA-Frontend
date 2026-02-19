@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Clock,
   ChevronLeft,
@@ -10,9 +11,27 @@ import {
 import {
   MOCK_ASSESSMENT_QUESTIONS,
   MOCK_ASSESSMENT_RESULTS,
+  getCourseFeedbackConfig,
 } from "@/services/mockData";
+import FeedbackForm from "./FeedbackForm";
+import LayoutShell from "@/components/layout/LayoutShell";
+import PageContainer from "@/components/layout/PageContainer";
 
-function ResultScreen({ passed, score, resultData, onBackToCourses, onTryAgain }) {
+function ResultScreen({
+  passed,
+  score,
+  resultData,
+  onBackToCourses,
+  onTryAgain,
+  feedbackMandatory,
+  feedbackSubmitted,
+  onOpenFeedback,
+}) {
+  const canGoBack = !feedbackMandatory || feedbackSubmitted;
+  const backButtonClass = canGoBack
+    ? "w-full py-3 rounded-xl bg-success text-white hover:bg-success/90 transition cursor-pointer"
+    : "w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed";
+
   if (passed) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
@@ -29,16 +48,36 @@ function ResultScreen({ passed, score, resultData, onBackToCourses, onTryAgain }
           <p className="text-xs font-semibold text-foreground/60 leading-relaxed mb-8">
             {resultData.pass.subMessage}
           </p>
-          <button
-            onClick={onBackToCourses}
-            className="w-full py-3 rounded-xl bg-success text-white hover:bg-success/90 transition cursor-pointer"
-          >
-            {resultData.pass.buttonText}
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={onOpenFeedback}
+              className="w-full py-3 rounded-xl border-2 border-primary bg-white text-primary font-semibold hover:bg-primary/5 transition cursor-pointer"
+            >
+              Submit Feedback
+            </button>
+            <button
+              type="button"
+              onClick={canGoBack ? onBackToCourses : undefined}
+              disabled={!canGoBack}
+              className={backButtonClass}
+            >
+              {resultData.pass.buttonText}
+            </button>
+          </div>
+          {feedbackMandatory && !feedbackSubmitted && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Please submit feedback to continue to courses.
+            </p>
+          )}
         </div>
       </div>
     );
   }
+
+  const failBackClass = canGoBack
+    ? "flex-1 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition cursor-pointer"
+    : "flex-1 py-3 rounded-xl border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed";
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
@@ -61,35 +100,56 @@ function ResultScreen({ passed, score, resultData, onBackToCourses, onTryAgain }
         <p className="text-xs text-gray-400 leading-relaxed mb-8 font-semibold">
           {resultData.fail.subMessage}
         </p>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3">
           <button
-            onClick={onBackToCourses}
-            className="flex-1 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 transition cursor-pointer"
+            type="button"
+            onClick={onOpenFeedback}
+            className="w-full py-3 rounded-xl border-2 border-primary bg-white text-primary font-semibold hover:bg-primary/5 transition cursor-pointer"
           >
-            {resultData.fail.secondaryButtonText}
+            Submit Feedback
           </button>
-          <button
-            onClick={onTryAgain}
-            className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
-          >
-            {resultData.fail.primaryButtonText}
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={canGoBack ? onBackToCourses : undefined}
+              disabled={!canGoBack}
+              className={failBackClass}
+            >
+              {resultData.fail.secondaryButtonText}
+            </button>
+            <button
+              onClick={onTryAgain}
+              className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
+            >
+              {resultData.fail.primaryButtonText}
+            </button>
+          </div>
         </div>
+        {feedbackMandatory && !feedbackSubmitted && (
+          <p className="text-xs text-muted-foreground mt-2">
+            Please submit feedback to continue to courses.
+          </p>
+        )}
       </div>
     </div>
   );
 }
 
-export default function AssessmentQuiz({ onExit }) {
+export default function AssessmentQuiz({ onExit, courseId }) {
+  const router = useRouter();
   const questions = MOCK_ASSESSMENT_QUESTIONS;
   const resultData = MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
+  const { mandatory: feedbackMandatory } = getCourseFeedbackConfig(courseId);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
 
   const currentQuestion = questions[currentIndex];
 
@@ -161,7 +221,53 @@ export default function AssessmentQuiz({ onExit }) {
     if (onExit) onExit();
   };
 
-  // Show result screen after submission
+  const handleFeedbackSubmit = (formData) => {
+    setFeedbackSubmitted(true);
+    setShowFeedbackForm(false);
+    setShowFeedbackSuccess(true);
+    // TODO: send formData to backend when API is ready
+    setTimeout(() => router.push("/courses"), 2000);
+  };
+
+  // Success message after feedback submit, then redirect to courses
+  if (showFeedbackSuccess) {
+    return (
+      <LayoutShell>
+        <PageContainer className="py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-md w-full text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle2 className="w-14 h-14 text-success" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Thank you!
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Your feedback has been submitted successfully.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Redirecting you to courses...
+            </p>
+          </div>
+        </PageContainer>
+      </LayoutShell>
+    );
+  }
+
+  // When user is on feedback screen, show full layout with sidebar
+  if (submitted && showFeedbackForm) {
+    return (
+      <LayoutShell>
+        <PageContainer className="py-8">
+          <FeedbackForm
+            onCancel={() => setShowFeedbackForm(false)}
+            onSubmit={handleFeedbackSubmit}
+          />
+        </PageContainer>
+      </LayoutShell>
+    );
+  }
+
+  // Show result screen after submission (before / after feedback)
   if (submitted) {
     const passed = score >= resultData.passingScore;
     return (
@@ -171,6 +277,9 @@ export default function AssessmentQuiz({ onExit }) {
         resultData={resultData}
         onBackToCourses={handleBackToCourses}
         onTryAgain={handleTryAgain}
+        feedbackMandatory={feedbackMandatory}
+        feedbackSubmitted={feedbackSubmitted}
+        onOpenFeedback={() => setShowFeedbackForm(true)}
       />
     );
   }

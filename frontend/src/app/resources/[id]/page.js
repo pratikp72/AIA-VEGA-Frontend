@@ -24,10 +24,17 @@ export default function ResourceDetailPage() {
     }
   };
 
+  const policiesBgStyle = {
+    backgroundImage: 'url(/policies-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   if (!item) {
     return (
-      <div className="min-h-screen bg-background">
-        <PageHeader title="Resource" breadcrumbs={[{ label: 'Resources' }, { label: 'Not found' }]} containerClassName="pt-xl pb-0 px-xl">
+      <div className="min-h-screen bg-[#fafafa]" style={policiesBgStyle}>
+        <PageHeader title="Resource" breadcrumbs={[{ label: 'Resources' }, { label: 'Not found' }]} containerClassName="pt-xl pb-0 px-xl bg-transparent">
           <p className="text-body text-muted-foreground">Resource not found</p>
         </PageHeader>
         <PageSection>
@@ -38,8 +45,8 @@ export default function ResourceDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader breadcrumbs={[{ label: 'Resources' }, { label: 'Policies' }]} containerClassName="pt-xl pb-0 px-xl">
+    <div className="min-h-screen bg-[#fafafa]" style={policiesBgStyle}>
+      <PageHeader breadcrumbs={[{ label: 'Resources' }, { label: 'Policies' }]} containerClassName="pt-xl pb-0 px-xl bg-transparent">
         <div className="flex items-center gap-4">
           <Link href="/resources" className="text-sm text-primary hover:underline">&larr; Back to Policies</Link>
         </div>

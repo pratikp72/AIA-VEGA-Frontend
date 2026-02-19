@@ -23,13 +23,20 @@ export default function CoursesPage() {
     dispatch(loadCourseCategories());
   }, [dispatch]);
 
+  const courseBgStyle = {
+    backgroundImage: 'url(/course-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fafafa]" style={courseBgStyle}>
       <PageHeader
         title="Courses"
         breadcrumbs={[{ label: 'Courses' }]}
         showBreadcrumbSeparator
-        containerClassName="pt-xl pb-0 px-xl"
+        containerClassName="pt-xl pb-0 px-xl bg-transparent"
       >
         <p className="text-body text-muted-foreground">
           Explore and complete courses to grow your skills.

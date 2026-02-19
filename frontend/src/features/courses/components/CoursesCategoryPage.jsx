@@ -11,7 +11,6 @@ import { PlayCircle, MoreVertical, ChevronRight, Clock, BookOpen, Users, Award }
 import Link from 'next/link';
 
 
-
 const CATEGORY_LABELS = {
   mandatory: 'Mandatory Training',
   orientation: 'Orientation',
@@ -24,11 +23,19 @@ export default function CoursesCategoryPage({ category }) {
   const normalized = (category || '').toLowerCase();
   const courses = useMemo(
     () => (MOCK_COURSES_CATEGORY_LIST[normalized] || []),
+    [normalized]
   );
   const title = CATEGORY_LABELS[normalized] || 'Courses';
 
+  const courseBgStyle = {
+    backgroundImage: 'url(/course-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fafafa]" style={courseBgStyle}>
       <PageHeader
         title={title}
         breadcrumbs={[
@@ -36,7 +43,7 @@ export default function CoursesCategoryPage({ category }) {
           { label: title },
         ]}
         showBreadcrumbSeparator
-        containerClassName="pt-xl pb-0 px-xl"
+        containerClassName="pt-xl pb-0 px-xl bg-transparent"
       >
         <p className="text-body text-muted-foreground">
           Explore and complete courses to grow your skills
@@ -62,14 +69,15 @@ export default function CoursesCategoryPage({ category }) {
                     <div className="absolute top-6 left-6 flex items-center gap-2 w-full pr-4">
                       {course.completed && (
                         <Badge
-                          className="inline-flex items-center justify-center rounded-md px-3 py-1 border border-transparent text-white bg-primary/70"
+                          className="inline-flex items-center justify-center rounded-md px-3 py-1 border border-transparent text-white"
+                          style={{ background: 'rgba(156, 46, 219, 0.7)' }}
                         >
                           Completed
                         </Badge>
                       )}
                       {course.completed && course.certificationGenerated && (
-                        <span className="absolute top-0 right-0 mr-12 rounded-md p-1 shadow-md flex items-center" style={{ backgroundColor: 'var(--color-yellow)' }}>
-                          <Award className="w-6 h-6" color="var(--color-white)" />
+                        <span className="absolute top-0 right-0 mr-12 bg-yellow rounded-md p-1 shadow-md flex items-center">
+                          <Award className="w-6 h-6 text-white" />
                         </span>
                       )}
                     </div>

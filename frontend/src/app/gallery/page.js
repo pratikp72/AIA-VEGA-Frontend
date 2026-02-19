@@ -91,12 +91,19 @@ export default function GalleryPage() {
     return arr;
   })();
 
+  const galleryBgStyle = {
+    backgroundImage: 'url(/gallery-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fafafa]" style={galleryBgStyle}>
       <PageHeader
         title="Gallery"
         breadcrumbs={[{ label: 'Gallery' }]}
-        containerClassName="pt-xl pb-0 px-xl"
+        containerClassName="pt-xl pb-0 px-xl bg-transparent"
         right={
           <div className="flex items-center rounded-[8px] border border-primary">
             <button

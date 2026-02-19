@@ -58,11 +58,23 @@ export default function AssessmentInstructions(props) {
   }, [props.category, props.courseId]);
 
   if (quizStarted) {
-    return <AssessmentQuiz onExit={() => setQuizStarted(false)} />;
+    return (
+      <AssessmentQuiz
+        onExit={() => setQuizStarted(false)}
+        courseId={courseId}
+      />
+    );
   }
 
+  const courseBgStyle = {
+    backgroundImage: "url(/course-page-bg.png)",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fafafa]" style={courseBgStyle}>
       <div className="w-full">
         <PageHeader
           title="Assessment Instructions"
@@ -87,7 +99,7 @@ export default function AssessmentInstructions(props) {
             { label: "Assessment" },
           ]}
           showBreadcrumbSeparator
-          containerClassName="pt-xl pb-0 px-xl"
+          containerClassName="pt-xl pb-0 px-xl bg-transparent"
         />
 
         <div className="px-xl pb-xl">

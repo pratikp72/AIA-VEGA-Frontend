@@ -89,9 +89,16 @@ export default function ResourcesPage() {
 
   const breadcrumbChild = tab === 'policies' ? 'Policy' : 'Forms & Templates';
 
+  const resourcesBgStyle = {
+    backgroundImage: 'url(/policies-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader title="Resources" breadcrumbs={[{ label: 'Resources' }, { label: breadcrumbChild }]} containerClassName="pt-xl pb-0 px-xl">
+    <div className="min-h-screen bg-[#fafafa]" style={resourcesBgStyle}>
+      <PageHeader title="Resources" breadcrumbs={[{ label: 'Resources' }, { label: breadcrumbChild }]} containerClassName="pt-xl pb-0 px-xl bg-transparent">
         <p className="text-body text-muted-foreground">Company policies, forms, and templates.</p>
         <PolicyFilters
           tab={tab}
@@ -109,7 +116,7 @@ export default function ResourcesPage() {
       <main>
         <PageSection>
           {isLoading ? (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-[50vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>
           ) : error ? (

@@ -53,21 +53,32 @@ export default function HomePage() {
     }
   }, [error]);
 
+  const homeBgStyle = {
+    backgroundImage: 'url(/home-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    backgroundAttachment: 'scroll',
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center bg-[#fafafa]"
+        style={homeBgStyle}
+      >
         <Loader size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fafafa]" style={homeBgStyle}>
       {/* Hero Header */}
-      <section className="bg-background">
+      <section className="bg-transparent">
         <PageHeader
-          className="bg-background"
-          containerClassName="pt-xl pb-xl px-xl"
+          className="bg-transparent"
+          containerClassName="pt-xl pb-xl px-xl bg-transparent"
           title="Good Morning, Erin"
           breadcrumbs={[{ label: 'Home' }]}
         >

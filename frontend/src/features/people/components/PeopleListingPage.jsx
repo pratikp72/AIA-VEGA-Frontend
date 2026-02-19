@@ -141,21 +141,31 @@ export default function PeopleListingPage() {
     setSelectedEmployeeId((current) => (current === personId ? null : personId));
   };
 
+  const employeesBgStyle = {
+    backgroundImage: 'url(/feedback-form-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'right center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div
+        className="min-h-screen flex items-center justify-center bg-[#fafafa]"
+        style={employeesBgStyle}
+      >
         <Loader size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#fafafa]" style={employeesBgStyle}>
       <PageHeader
         title="Employees"
         breadcrumbs={[{ label: 'Employee Directory' }]}
         showBreadcrumbSeparator
-        containerClassName="pt-xl pb-xl px-xl"
+        containerClassName="pt-xl pb-xl px-xl bg-transparent"
         right={
           <div className="flex items-center rounded-[8px] border border-primary">
             <Button

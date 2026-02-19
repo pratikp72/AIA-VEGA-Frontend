@@ -28,8 +28,15 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
     return <CourseTextOrPdf course={course} category={category} selectedModule={currentModule} onBack={() => setShowFullReadingView(false)} />;
   }
 
+  const courseBgStyle = {
+    backgroundImage: 'url(/course-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#fafafa]" style={courseBgStyle}>
       <PageHeader
         title={course.title}
         breadcrumbs={[
@@ -45,7 +52,7 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
           { label: course.title },
         ]}
         showBreadcrumbSeparator
-        containerClassName="pt-xl pb-0 px-xl"
+        containerClassName="pt-xl pb-0 px-xl bg-transparent"
       />
       <main>
         <PageSection>
