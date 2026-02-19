@@ -1,50 +1,73 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import {
   PlayCircle,
   CheckCircle2,
   MonitorPlay,
-  BookOpen,
-  FileText,
   ChevronUp,
   ChevronDown,
   SquareCheckBig,
   ChevronRight,
+  Lock,
 } from "lucide-react";
 
-function ContentIcon({ type, status }) {
-  if (status === "completed") {
-    return <CheckCircle2 className="w-5 h-5 text-[#46BD84]" />;
+function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
+  if (isSelected) {
+    return (
+      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-[#9C2EDB33] text-[#9C2EDB]">
+        {moduleNumber}
+      </span>
+    );
   }
-  if (status === "active") {
-    return <PlayCircle className="w-5 h-5 text-[#9C2EDB]" />;
-  }
-  if (type === "quiz") {
-    return <MonitorPlay className="w-5 h-5 text-gray-400" />;
-  }
-  return <PlayCircle className="w-5 h-5 text-gray-400" />;
-}
 
-function ModuleCircle({ moduleNumber, moduleStatus }) {
-  const styles = {
-    active: "bg-[#9C2EDB] text-white",
-    completed: "bg-white border-2 border-[#46BD84] text-[#46BD84]",
-    pending: "bg-white border-2 border-[#9C2EDB] text-[#9C2EDB]",
-    locked: "bg-white border-2 border-gray-300 text-gray-400",
-  };
+  if (moduleStatus === "completed") {
+    return (
+      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-[#29A366]">
+        <CheckCircle2 className="w-5 h-5 text-white" />
+      </span>
+    );
+  }
+
+  if (moduleStatus === "locked") {
+    return (
+      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-[#EDEFF3]">
+        <Lock className="w-5 h-5 text-gray-500" />
+      </span>
+    );
+  }
 
   return (
-    <span
-      className={`inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 ${styles[moduleStatus] || styles.pending}`}
-    >
+    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-white border-2 border-[#9C2EDB] text-[#9C2EDB]">
       {moduleNumber}
     </span>
   );
 }
 
-export default function CourseContentList({ contents, current, onSelect }) {
-  const [openModuleId, setOpenModuleId] = useState(contents?.[0]?.id ?? null);
+export default function CourseContentList({ contents, current, onSelect, courseId, category }) {
+  const router = useRouter();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const currentModuleId = searchParams.get('moduleId');
+  
+  const defaultModuleId = contents?.[0]?.id;
+  const activeModuleId = currentModuleId ? parseInt(currentModuleId) : (typeof current === 'number' ? current : defaultModuleId);
+  const [openModuleId, setOpenModuleId] = useState(activeModuleId || defaultModuleId);
+
+  useEffect(() => {
+    if (activeModuleId) {
+      setOpenModuleId(activeModuleId);
+    } else if (defaultModuleId && !currentModuleId) {
+      const url = `/courses/${category}/${courseId || params.id}?moduleId=${defaultModuleId}`;
+      router.replace(url);
+    }
+  }, [activeModuleId, defaultModuleId, category, courseId, params.id, router, currentModuleId]);
 
   if (!contents || !contents.length) return null;
+
+  const handleModuleClick = (module) => {
+    const url = `/courses/${category}/${courseId || params.id}?moduleId=${module.id}`;
+    router.push(url);
+  };
 
   return (
     <div>
@@ -54,6 +77,13 @@ export default function CourseContentList({ contents, current, onSelect }) {
       <div className="flex flex-col gap-3">
         {contents.map((module) => {
           const isOpen = openModuleId === module.id;
+          const isSelected = activeModuleId === module.id;
+          
+          let displayStatus = module.moduleStatus;
+          
+          if (displayStatus === "active" && !isSelected) {
+            displayStatus = "pending";
+          }
 
           return (
             <div
@@ -62,15 +92,19 @@ export default function CourseContentList({ contents, current, onSelect }) {
             >
               {/* Module Header */}
               <button
-                onClick={() => setOpenModuleId(isOpen ? null : module.id)}
-                className="flex items-center gap-3 w-full text-left px-5 py-4 cursor-pointer"
+                onClick={() => handleModuleClick(module)}
+                disabled={module.moduleStatus === "locked"}
+                className={`flex items-center gap-3 w-full text-left p-4 ${
+                  module.moduleStatus === "locked" ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                }`}
               >
                 <ModuleCircle
                   moduleNumber={module.moduleNumber}
-                  moduleStatus={module.moduleStatus}
+                  moduleStatus={displayStatus}
+                  isSelected={isSelected}
                 />
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-gray-900 truncate">
+                  <span className="text-gray-900 truncate">
                     {module.moduleTitle}
                   </span>
                   <span className="text-xs text-gray-400">
@@ -87,42 +121,13 @@ export default function CourseContentList({ contents, current, onSelect }) {
               {/* Expanded Content */}
               {isOpen && (
                 <>
-                  <ul className="flex flex-col gap-1 px-5 pb-2">
-                    {module.items.map((item) => {
-                      const isActive = item.status === "active";
-                      return (
-                        <li
-                          key={item.id}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition ${
-                            isActive ? "bg-[#9C2EDB0D]" : "hover:bg-gray-50"
-                          }`}
-                          onClick={() => onSelect && onSelect(item.id)}
-                        >
-                          <ContentIcon type={item.type} status={item.status} />
-                          <span
-                            className={`flex-1 text-sm ${
-                              isActive
-                                ? "font-semibold text-[#9C2EDB]"
-                                : "text-gray-700"
-                            }`}
-                          >
-                            {item.title}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {item.time}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-4 border-t border-t-[#E6E6E6] bg-[#F3ECFB] rounded-b-2xl p-3">
-                    <button className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white border border-[#9C2EDB] text-[#9C2EDB] text-sm font-semibold hover:bg-gray-50 transition cursor-pointer">
+                  <div className="flex items-center gap-4 rounded-b-2xl px-4 pb-4">
+                    <button className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white border border-[#9C2EDB] text-[#9C2EDB] h-10 text-sm font-semibold hover:bg-gray-50 transition cursor-pointer">
                       Mark as read
                       <SquareCheckBig className="w-4 h-4" />
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#9C2EDB] text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer">
+                    <button className="flex-1 flex items-center justify-center h-10 gap-2 p-3 rounded-xl bg-[#9C2EDB] text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer">
                       Next Lecture
                       <ChevronRight className="w-4 h-4" />
                     </button>

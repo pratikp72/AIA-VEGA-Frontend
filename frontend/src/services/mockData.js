@@ -27,14 +27,14 @@ export const MOCK_COURSE_CONTENTS = [
     moduleTitle: "Performance Optimization",
     moduleType: "Video",
     moduleDuration: "45m",
-    moduleStatus: "active",
-    items: [
-      { id: 1, title: "React Profiler", time: "20m", type: "video", status: "completed" },
-      { id: 2, title: "Memoization Techniques", time: "25m", type: "video", status: "active" },
-      { id: 3, title: "Code Splitting", time: "15m", type: "video", status: "pending" },
-      { id: 4, title: "Virtual Lists", time: "10m", type: "video", status: "pending" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
-    ],
+    moduleStatus: "completed",
+    // items: [
+    //   { id: 1, title: "React Profiler", time: "20m", type: "video", status: "completed" },
+    //   { id: 2, title: "Memoization Techniques", time: "25m", type: "video", status: "active" },
+    //   { id: 3, title: "Code Splitting", time: "15m", type: "video", status: "pending" },
+    //   { id: 4, title: "Virtual Lists", time: "10m", type: "video", status: "pending" },
+    //   { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
+    // ],
   },
   {
     id: 2,
@@ -43,13 +43,6 @@ export const MOCK_COURSE_CONTENTS = [
     moduleType: "Video",
     moduleDuration: "45m",
     moduleStatus: "completed",
-    items: [
-      { id: 1, title: "Compound Components", time: "15m", type: "video", status: "completed" },
-      { id: 2, title: "Render Props", time: "20m", type: "video", status: "completed" },
-      { id: 3, title: "Higher Order Components", time: "25m", type: "video", status: "completed" },
-      { id: 4, title: "Custom Hooks", time: "10m", type: "video", status: "completed" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "completed" },
-    ],
   },
   {
     id: 3,
@@ -58,13 +51,15 @@ export const MOCK_COURSE_CONTENTS = [
     moduleType: "Reading",
     moduleDuration: "45m",
     moduleStatus: "completed",
-    items: [
-      { id: 1, title: "Observer Pattern", time: "15m", type: "video", status: "completed" },
-      { id: 2, title: "Strategy Pattern", time: "20m", type: "video", status: "completed" },
-      { id: 3, title: "Factory Pattern", time: "15m", type: "video", status: "completed" },
-      { id: 4, title: "Singleton Pattern", time: "10m", type: "video", status: "completed" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "completed" },
-    ],
+    content: `Structured gripped tape invisible moulded cups for sauppor firm hold strong powermesh front liner sport detail. Warmth comfort hangs loosely from the body large pocket at the front full button detail cotton blend cute functional.
+
+Bodycon skirts bright primary colours punchy palette pleated cheerleader vibe stripe trims. Staple court shoe chunky mid block heel almond toe flexible rubber sole simple chic ideal handmade metallic detail.
+
+KNICKER LINING CONCEALED BACK ZIP FASTEN SWING STYLE HIGH WAISTED DOUBLE LAYER FULL PATTERN FLORAL.
+
+Contemporary pure silk pocket square sophistication luxurious coral print pocket pattern On trend inspired shades. Striking pewter studded epaulette silver zips inner drawstring waist channel urban single-breasted jacket.
+
+Engraved attention to detail elegant with neutral colours chemo quartz leather strap fastens with a pin a buckle clasp. Workwear bow detailing a slingback buckle strap stiletto heel timeless go-to shoe sophistication elegant sheer.`,
   },
   {
     id: 4,
@@ -72,14 +67,18 @@ export const MOCK_COURSE_CONTENTS = [
     moduleTitle: "Introduction to Advanced Patterns",
     moduleType: "Reading",
     moduleDuration: "45m",
-    moduleStatus: "pending",
-    items: [
-      { id: 1, title: "State Machines", time: "20m", type: "video", status: "pending" },
-      { id: 2, title: "Finite Automata", time: "15m", type: "video", status: "pending" },
-      { id: 3, title: "Event Driven Architecture", time: "20m", type: "video", status: "pending" },
-      { id: 4, title: "Pub/Sub Model", time: "10m", type: "video", status: "pending" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
-    ],
+    moduleStatus: "completed",
+    content: `Foam padding in the insoles leather finest quality staple flat slip-on design pointed toe off-duty shoe. Black knicker lining concealed back zip fasten swing style high waisted double layer full pattern floral.
+
+Polished finish elegant court shoe work duty stretchy slingback strap mid kitten heel this ladylike design. Eget senatus tellis venomatis. Donec odo tempus. Felis arcu pretium mettis nullam quam aenean sociis quis sem neque viti liberto.
+
+EU RIDICULUS FRINGILLA AENEAN
+
+Venenatis nullam fringilla pretium magnis aliquam nunc vulputate integer augue ultricies cras. Eget viverra feugiat cras ut. Sit natoque montes tempus ligula eget vitae pede rhoncus maecenas consectetuer commodo condimentum aenean.
+
+State Machines are powerful tools for managing complex application states. They provide a structured approach to handling state transitions and ensure predictable behavior in your applications.
+
+Finite Automata help model computational processes and are fundamental to understanding how state machines work in practice.`,
   },
   {
     id: 5,
@@ -87,14 +86,7 @@ export const MOCK_COURSE_CONTENTS = [
     moduleTitle: "Introduction to Advanced Patterns",
     moduleType: "Video",
     moduleDuration: "45m",
-    moduleStatus: "pending",
-    items: [
-      { id: 1, title: "Context API Deep Dive", time: "20m", type: "video", status: "pending" },
-      { id: 2, title: "useReducer Patterns", time: "15m", type: "video", status: "pending" },
-      { id: 3, title: "State Composition", time: "15m", type: "video", status: "pending" },
-      { id: 4, title: "Global State Solutions", time: "10m", type: "video", status: "pending" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
-    ],
+    moduleStatus: "completed",
   },
   {
     id: 6,
@@ -102,14 +94,7 @@ export const MOCK_COURSE_CONTENTS = [
     moduleTitle: "Introduction to Advanced Patterns",
     moduleType: "Video",
     moduleDuration: "45m",
-    moduleStatus: "pending",
-    items: [
-      { id: 1, title: "Error Boundaries", time: "15m", type: "video", status: "pending" },
-      { id: 2, title: "Suspense & Lazy Loading", time: "20m", type: "video", status: "pending" },
-      { id: 3, title: "Concurrent Features", time: "15m", type: "video", status: "pending" },
-      { id: 4, title: "Streaming SSR", time: "10m", type: "video", status: "pending" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
-    ],
+    moduleStatus: "completed",
   },
   {
     id: 7,
@@ -117,14 +102,7 @@ export const MOCK_COURSE_CONTENTS = [
     moduleTitle: "Testing Advanced Patterns",
     moduleType: "Video",
     moduleDuration: "1h 60m",
-    moduleStatus: "locked",
-    items: [
-      { id: 1, title: "Unit Testing Basics", time: "25m", type: "video", status: "pending" },
-      { id: 2, title: "Integration Testing", time: "30m", type: "video", status: "pending" },
-      { id: 3, title: "Mocking Strategies", time: "20m", type: "video", status: "pending" },
-      { id: 4, title: "Test Coverage Analysis", time: "15m", type: "video", status: "pending" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
-    ],
+    moduleStatus: "locked",  
   },
   {
     id: 8,
@@ -133,13 +111,17 @@ export const MOCK_COURSE_CONTENTS = [
     moduleType: "Reading",
     moduleDuration: "1h 60m",
     moduleStatus: "locked",
-    items: [
-      { id: 1, title: "E2E Testing with Cypress", time: "25m", type: "video", status: "pending" },
-      { id: 2, title: "Visual Regression Testing", time: "20m", type: "video", status: "pending" },
-      { id: 3, title: "Performance Testing", time: "20m", type: "video", status: "pending" },
-      { id: 4, title: "CI/CD Test Pipelines", time: "15m", type: "video", status: "pending" },
-      { id: 5, title: "Module Quiz", time: "5m", type: "quiz", status: "pending" },
-    ],
+    content: `See-through delicate embroidered organza blue lining luxury acetate-mix stretch pleat detailing. Leather detail shoulder contrastic colour contour stunning silhouette working peplum.
+
+Statement buttons cover-up tweeds patch pockets perennial lapel collar flap chest pockets topline stitching cropped jacket. Effortless comfortable full leather lining eye-catching unique detail to the toe low 'cut-away' sides clean and sleek.
+
+E2E Testing with Cypress provides comprehensive end-to-end testing capabilities. It allows you to test your entire application flow from the user's perspective, ensuring that all components work together seamlessly.
+
+Visual Regression Testing helps catch unintended visual changes in your UI. By comparing screenshots of your application before and after changes, you can ensure visual consistency across updates.
+
+Performance Testing is crucial for ensuring your application meets performance requirements. It helps identify bottlenecks and optimize critical paths in your application.
+
+CI/CD Test Pipelines automate the testing process, ensuring that tests run automatically on every code change. This helps catch issues early and maintain code quality throughout the development lifecycle.`,   
   },
 ];
 // Mock assessment instructions data
@@ -205,6 +187,55 @@ export const MOCK_ASSESSMENT_DATA = {
     ],
   },
   buttonText: "Start Assessment",
+};
+
+// Mock assessment quiz questions
+export const MOCK_ASSESSMENT_QUESTIONS = [
+  { id: 1, question: "What is the primary purpose of workplace safety training?", options: ["To meet the legal requirements only", "To prevent accidents and ensure employee well-being", "To reduce company insurance costs", "To fulfill HR documentation requirements"], correctAnswer: 1 },
+  // { id: 2, question: "Which of the following is a key benefit of continuous learning in the workplace?", options: ["It guarantees immediate promotion", "It helps employees adapt to changing industry trends", "It replaces the need for formal education", "It eliminates the need for performance reviews"], correctAnswer: 1 },
+  // { id: 3, question: "What does 'ergonomics' refer to in a workplace setting?", options: ["The study of workplace politics", "Designing workspaces to fit the user's needs", "A type of management strategy", "The process of hiring new employees"], correctAnswer: 1 },
+  // { id: 4, question: "Which communication style is most effective in a professional environment?", options: ["Passive communication", "Aggressive communication", "Assertive communication", "Passive-aggressive communication"], correctAnswer: 2 },
+  // { id: 5, question: "What is the recommended approach when encountering a workplace hazard?", options: ["Ignore it if it doesn't affect you directly", "Report it immediately to the appropriate authority", "Wait for someone else to report it", "Try to fix it yourself without training"], correctAnswer: 1 },
+  // { id: 6, question: "What is the purpose of a fire evacuation plan?", options: ["To assign blame in case of fire", "To ensure orderly and safe evacuation during emergencies", "To reduce insurance premiums", "To satisfy building inspection requirements only"], correctAnswer: 1 },
+  // { id: 7, question: "Which of the following best describes 'active listening'?", options: ["Hearing words without processing them", "Fully concentrating, understanding, and responding to a speaker", "Interrupting to share your own thoughts", "Listening only to information that benefits you"], correctAnswer: 1 },
+  // { id: 8, question: "What is the main goal of diversity and inclusion training?", options: ["To enforce strict quotas in hiring", "To foster a respectful and equitable work environment", "To eliminate all differences among employees", "To comply with government mandates only"], correctAnswer: 1 },
+  // { id: 9, question: "What should you do if you witness harassment in the workplace?", options: ["Ignore it as it's not your concern", "Report it through the proper channels", "Confront the harasser publicly", "Discuss it only with coworkers"], correctAnswer: 1 },
+  // { id: 10, question: "What is the purpose of a performance review?", options: ["To find reasons to terminate employees", "To provide feedback and set goals for improvement", "To compare employees against each other", "To fulfill a bureaucratic requirement"], correctAnswer: 1 },
+  // { id: 11, question: "Which of the following is an example of professional development?", options: ["Watching entertainment videos at work", "Attending industry conferences and workshops", "Taking extended lunch breaks", "Socializing exclusively with colleagues"], correctAnswer: 1 },
+  // { id: 12, question: "What does 'time management' primarily involve?", options: ["Working longer hours to complete tasks", "Planning and prioritizing tasks effectively", "Delegating all work to others", "Multitasking on every project simultaneously"], correctAnswer: 1 },
+  // { id: 13, question: "What is the significance of data privacy in the workplace?", options: ["It only matters for IT departments", "It protects sensitive information from unauthorized access", "It slows down business operations", "It is optional for small companies"], correctAnswer: 1 },
+  // { id: 14, question: "Which leadership style encourages team participation in decision-making?", options: ["Autocratic leadership", "Democratic leadership", "Laissez-faire leadership", "Transactional leadership"], correctAnswer: 1 },
+  // { id: 15, question: "What is the first step in conflict resolution?", options: ["Assigning blame to one party", "Identifying and understanding the issue", "Ignoring the conflict until it resolves itself", "Escalating immediately to upper management"], correctAnswer: 1 },
+  // { id: 16, question: "Why is feedback important in a professional setting?", options: ["It allows managers to assert dominance", "It helps individuals and teams improve performance", "It is only necessary during annual reviews", "It creates competition among employees"], correctAnswer: 1 },
+  // { id: 17, question: "What is a key characteristic of effective teamwork?", options: ["Individual members working in isolation", "Open communication and mutual respect", "One person making all the decisions", "Avoiding disagreements at all costs"], correctAnswer: 1 },
+  // { id: 18, question: "What does 'compliance training' typically cover?", options: ["Personal hobbies of employees", "Laws, regulations, and company policies employees must follow", "Advanced technical skills only", "Social media marketing strategies"], correctAnswer: 1 },
+  // { id: 19, question: "What is the benefit of setting SMART goals?", options: ["They are vague enough to be easily achieved", "They provide clear, measurable, and achievable objectives", "They eliminate the need for deadlines", "They focus only on long-term outcomes"], correctAnswer: 1 },
+  // { id: 20, question: "Which of the following is a sign of a healthy workplace culture?", options: ["High employee turnover", "Open communication and employee recognition", "Frequent conflicts without resolution", "Rigid hierarchies with no flexibility"], correctAnswer: 1 },
+  // { id: 21, question: "What is the role of a mentor in professional development?", options: ["To do the mentee's work for them", "To guide, support, and share knowledge with the mentee", "To evaluate the mentee's salary", "To replace formal training programs"], correctAnswer: 1 },
+  // { id: 22, question: "Why is it important to document workplace incidents?", options: ["To create unnecessary paperwork", "To maintain records for analysis, prevention, and legal purposes", "To embarrass the employees involved", "Documentation is not important"], correctAnswer: 1 },
+  // { id: 23, question: "What is 'emotional intelligence' in the workplace?", options: ["The ability to suppress all emotions", "The ability to recognize, understand, and manage emotions effectively", "A measure of IQ score", "A personality trait that cannot be developed"], correctAnswer: 1 },
+  // { id: 24, question: "What is the purpose of onboarding for new employees?", options: ["To overwhelm them with information on day one", "To help them integrate smoothly into the organization", "To test their ability to handle pressure", "To assign them the most difficult tasks immediately"], correctAnswer: 1 },
+  // { id: 25, question: "Which of the following promotes a safe digital workspace?", options: ["Sharing passwords with trusted colleagues", "Using strong passwords and enabling two-factor authentication", "Clicking on all email links to stay informed", "Disabling antivirus software for faster performance"], correctAnswer: 1 },
+];
+
+// Mock assessment result screens
+export const MOCK_ASSESSMENT_RESULTS = {
+  pass: {
+    title: "Your Score:",
+    message: "Congratulations! You have met the required passing criteria. Well done on completing the assessment successfully. Your effort and dedication have paid off, and you've demonstrated a strong understanding of the course content.",
+    subMessage: "Your course has now been marked as completed, and your certificate is available for download. You can continue exploring more courses to keep building your skills.",
+    buttonText: "Back to Courses",
+  },
+  fail: {
+    title: "Your Score:",
+    message: "Unfortunately, you did not meet the required passing criteria this time.",
+    attemptsInfo: "You can make up to 3 attempts within 24 hours.",
+    contactInfo: "If you're still unsuccessful after these attempts, please contact the admin for approval of reattempts",
+    subMessage: "Until then, we recommend reviewing the course content or exploring other available courses to strengthen your understanding.",
+    primaryButtonText: "Try Again",
+    secondaryButtonText: "Back to Courses",
+  },
+  passingScore: 0,
 };
 
 // Mock instructions for PDF/text course content

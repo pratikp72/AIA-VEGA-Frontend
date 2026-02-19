@@ -15,6 +15,7 @@ import {
   MOCK_COURSES_CATEGORY_LIST,
   MOCK_ASSESSMENT_DATA,
 } from "@/services/mockData";
+import AssessmentQuiz from "./AssessmentQuiz";
 
 const ICON_MAP = {
   Timer,
@@ -29,6 +30,7 @@ export default function AssessmentInstructions(props) {
   const [category, setCategory] = useState(props.category || "");
   const [courseId, setCourseId] = useState(props.courseId || "");
   const [courseName, setCourseName] = useState("");
+  const [quizStarted, setQuizStarted] = useState(false);
 
   const { subtitle, notice, instructionCards, checklist, buttonText } =
     MOCK_ASSESSMENT_DATA;
@@ -53,6 +55,10 @@ export default function AssessmentInstructions(props) {
       setCourseName(courseObj ? courseObj.title : _courseId);
     }
   }, [props.category, props.courseId]);
+
+  if (quizStarted) {
+    return <AssessmentQuiz onExit={() => setQuizStarted(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -149,7 +155,10 @@ export default function AssessmentInstructions(props) {
 
           {/* Start Assessment Button */}
           <div className="flex justify-center">
-            <button className="bg-[#9C2EDB] hover:bg-[#8a28c5] text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer">
+            <button
+              onClick={() => setQuizStarted(true)}
+              className="bg-[#9C2EDB] hover:bg-[#8a28c5] text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
+            >
               {buttonText}
             </button>
           </div>
