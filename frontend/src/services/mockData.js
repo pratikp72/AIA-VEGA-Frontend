@@ -1356,3 +1356,32 @@ export const MOCK_NEWS_DATA = [
     category: 'Events',
   },
 ];
+
+// Calendar feature: events and holidays (categories match legend)
+export const CALENDAR_EVENT_CATEGORIES = {
+  conferences: { label: 'Conferences', color: '#2563EB' },
+  birthdays: { label: 'Birthdays', color: '#FD8C02' },
+  work_anniversaries: { label: 'Work Anniversaries', color: '#9C2EDB' },
+  training: { label: 'Training Sessions', color: '#00F078' },
+  loreum: { label: 'Loreum ipsum', color: '#F0C51A' },
+  loreum_blue: { label: 'Loreum ipsum', color: '#2563EB' },
+  holidays: { label: 'Holidays', color: '#EF4444' },
+};
+
+export const MOCK_CALENDAR_EVENTS = [
+  { id: 1, title: 'Sarah Johnson...', date: '2024-01-19', category: 'birthdays', color: '#FD8C02', fullTitle: 'Sarah Johnson', description: '', time: '', location: '', icon: 'gift' },
+  { id: 2, title: 'Tech Talk, Al...', date: '2024-01-20', category: 'conferences', color: '#2563EB', fullTitle: 'Tech Talk: AI in 2024', description: 'A concise overview of how AI is evolving in 2024, covering key trends, real-world applications, and what they mean for businesses and professionals. The session highlights practical use cases, emerging technologies, and how organizations can prepare for what\'s next in AI.', time: '2:00 PM', location: 'Main Auditorium', icon: 'calendar' },
+  { id: 3, title: 'Michael Chen...', date: '2024-01-20', category: 'work_anniversaries', color: '#9C2EDB', fullTitle: 'Michael Chen - 5 Years', description: '', time: '', location: '', icon: 'gift' },
+  { id: 4, title: 'Leadership Wo...', date: '2024-01-20', category: 'training', color: '#00F078', fullTitle: 'Leadership Workshop', description: 'Develop essential leadership skills to effectively guide teams, make informed decisions, and drive organizational success.', time: '2:00 PM', location: 'Gandhinagar', icon: 'graduation-cap' },
+  { id: 5, title: 'Quarterly All...', date: '2024-01-22', category: 'conferences', color: '#2563EB', fullTitle: 'Quarterly All Hands', description: '', time: '', location: '', icon: 'calendar' },
+  { id: 6, title: 'Emily Rodrig...', date: '2024-01-22', category: 'birthdays', color: '#FD8C02', fullTitle: 'Emily Rodriguez', description: '', time: '', location: '', icon: 'gift' },
+  { id: 7, title: 'Loreum ipsum', date: '2024-01-25', category: 'loreum_blue', color: '#2563EB', fullTitle: 'Loreum ipsum', description: '', time: '', location: '', icon: 'calendar' },
+  { id: 8, title: 'Product Launc...', date: '2024-01-25', category: 'conferences', color: '#1d4ed8', fullTitle: 'Product Launch', description: '', time: '', location: '', icon: 'calendar' },
+  { id: 9, title: 'Republic Day', date: '2024-01-26', category: 'holidays', color: '#EF4444', fullTitle: 'Republic Day', description: '', time: '', location: '', icon: 'calendar' },
+  { id: 10, title: 'Leadership Wo...', date: '2024-01-28', category: 'training', color: '#00F078', fullTitle: 'Leadership Workshop', description: '', time: '', location: '', icon: 'graduation-cap' },
+  { id: 11, title: 'Loreum ipsum', date: '2024-01-30', category: 'loreum_blue', color: '#2563EB', fullTitle: 'Loreum ipsum', description: '', time: '', location: '', icon: 'calendar' },
+];
+
+export const MOCK_CALENDAR_HOLIDAYS = [
+  { id: 1, title: 'Republic Day', date: '2024-01-26' },
+];
