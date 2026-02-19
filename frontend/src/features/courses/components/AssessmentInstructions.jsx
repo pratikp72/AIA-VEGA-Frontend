@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { COLORS } from "@/lib/constants";
+
 import {
   Info,
   Timer,
@@ -91,18 +91,18 @@ export default function AssessmentInstructions(props) {
         />
 
         <div className="px-xl pb-xl">
-          <p className="text-gray-500 mb-6">{subtitle}</p>
+          <p className="text-muted-foreground mb-6">{subtitle}</p>
 
           {/* Important Notice */}
-          <div className="rounded-xl p-5 mb-8 flex items-start gap-3 border" style={{ backgroundColor: COLORS.WARNING_LIGHT_BG, borderColor: COLORS.WARNING }}>
-            <div className="p-1.5 rounded-lg shrink-0 mt-0.5" style={{ backgroundColor: COLORS.WARNING_LIGHTER_BG }}>
-              <Info className="w-4 h-4" color={COLORS.WARNING} />
+          <div className="rounded-xl p-5 mb-8 flex items-start gap-3 border border-warning bg-orange-light">
+            <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-warning-light-bg">
+              <Info className="w-4 h-4 text-warning" />
             </div>
             <div>
-              <span className="font-semibold text-xl" style={{ color: COLORS.WARNING }}>
+              <span className="font-semibold text-xl text-warning">
                 {notice.title}
               </span>
-              <p className="text-gray-500 mt-1">{notice.description}</p>
+              <p className="text-gray mt-1">{notice.description}</p>
             </div>
           </div>
 
@@ -113,22 +113,20 @@ export default function AssessmentInstructions(props) {
               return (
                 <div
                   key={idx}
-                  className="border border-gray-200 rounded-xl p-5 flex items-start gap-2.5"
-                  style={{ backgroundColor: COLORS.GRAY_LIGHT_BG }}
+                  className="bg-gray-50 border border-gray-200 rounded-xl p-5 flex items-start gap-2.5"
                 >
                   <span
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 mt-0.5"
-                    style={{ backgroundColor: card.iconBg }}
+                    className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 mt-0.5 bg-primary-light"
                   >
                     {IconComp && (
-                      <IconComp className="w-4 h-4" color={card.iconColor} />
+                      <IconComp className="w-4 h-4 text-primary-purple" />
                     )}
                   </span>
                   <div className="flex flex-col gap-1">
-                    <span className="font-semibold text-gray-900 text-xl">
+                    <span className="font-semibold text-gray-dark text-xl">
                       {card.title}
                     </span>
-                    <p className="text-base text-gray-500 leading-relaxed">
+                    <p className="text-base text-gray leading-relaxed">
                       {card.description}
                     </p>
                   </div>
@@ -148,7 +146,7 @@ export default function AssessmentInstructions(props) {
                 {checklist.items.map((item, idx) => (
                   <li key={idx} className="flex items-center gap-2.5">
                     <ArrowRight className="w-4 h-4 shrink-0" />
-                    <span className="">{item}</span>
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
@@ -159,10 +157,7 @@ export default function AssessmentInstructions(props) {
           <div className="flex justify-center">
             <button
               onClick={() => setQuizStarted(true)}
-              className="text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
-              style={{ backgroundColor: COLORS.PRIMARY }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.PRIMARY_DARK}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.PRIMARY}
+              className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
             >
               {buttonText}
             </button>

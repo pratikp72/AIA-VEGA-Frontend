@@ -3,7 +3,7 @@ import React from "react";
 import { User, CheckCircle2, AlarmClock } from "lucide-react";
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { COLORS } from "@/lib/constants";
+
 export default function CourseStats({ course }) {
   if (!course) return null;
   return (
@@ -15,8 +15,8 @@ export default function CourseStats({ course }) {
       <div className="flex flex-row gap-2 items-center">
         <div className="flex flex-col gap-6 flex-1">
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full" style={{ backgroundColor: COLORS.PRIMARY_OPACITY_10 }}>
-              <User className="w-5 h-5" color={COLORS.PRIMARY} />
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-primary/10">
+              <User className="w-5 h-5 text-primary" />
             </span>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-400">Modules Completed</span>
@@ -24,8 +24,8 @@ export default function CourseStats({ course }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full" style={{ backgroundColor: COLORS.INFO_TEAL_OPACITY }}>
-              <CheckCircle2 className="w-5 h-5" color={COLORS.INFO_TEAL} />
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-teal/10">
+              <CheckCircle2 className="w-5 h-5 text-teal" />
             </span>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-400">Tasks & Exam</span>
@@ -33,8 +33,8 @@ export default function CourseStats({ course }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full" style={{ backgroundColor: COLORS.ORANGE_OPACITY }}>
-              <AlarmClock className="w-5 h-5" color={COLORS.ORANGE} />
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-warning-light">
+              <AlarmClock className="w-5 h-5 text-warning" />
             </span>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-400">Time</span>
@@ -43,19 +43,19 @@ export default function CourseStats({ course }) {
           </div>
         </div>
         {/* Circular Progress */}
-        <div className="relative shrink-0 w-[142px] max-w-[40%] aspect-square">
+        <div className="relative shrink-0 w-36 max-w-[40%] aspect-square">
           <CircularProgressbar
             value={course.progress}
             strokeWidth={8}
             styles={buildStyles({
-              pathColor: COLORS.SUCCESS_LIGHT,
-              trailColor: COLORS.BLUE_LIGHT,
+              pathColor: 'var(--color-success)',
+              trailColor: 'var(--color-primary-light)',
               pathTransitionDuration: 0.5,
               strokeLinecap: 'round',
             })}
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[22px] font-bold leading-tight" style={{ color: COLORS.SUCCESS_LIGHT }}>{course.progress}%</span>
+            <span className="text-[22px] font-bold leading-tight text-success">{course.progress}%</span>
             <span className="text-[11px] text-gray-400 leading-tight">Grades Completed</span>
           </div>
         </div>

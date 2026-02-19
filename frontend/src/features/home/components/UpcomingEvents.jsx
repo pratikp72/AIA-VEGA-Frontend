@@ -6,10 +6,8 @@ import { Clock, MapPin, Monitor } from 'lucide-react';
 const defaultDescription = 'Annual Tech Conference 2024 brings together industry leaders and teams for a day of insights, innovation, and collaboration shaping the future of technology.';
 
 /* Selection colors – per-card vertical bar (orange, purple, green, purple, blue, yellow) */
-import { COLORS } from "@/lib/constants";
 
-const CARD_BAR_COLORS = ['#FD8C02', COLORS.PRIMARY, '#00F078','#F0C51A', COLORS.PRIMARY, '#2563EB'];
-
+const CARD_BAR_COLORS = ['#FD8C02', '#9C2EDB', '#00F078','#F0C51A', '#9C2EDB', '#2563EB'];
 export default function UpcomingEvents({ events = [] }) {
   if (events.length === 0) return null;
 
@@ -67,14 +65,14 @@ export default function UpcomingEvents({ events = [] }) {
                 </p>
                 <div className="flex flex-col gap-1.5 text-small text-[#78909E]">
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 flex-shrink-0" style={{ color: COLORS.PRIMARY }} />
+                    <Clock className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
                     <span>{event.time}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {isVirtual(event.location) ? (
-                      <Monitor className="w-4 h-4 flex-shrink-0" style={{ color: COLORS.PRIMARY }} />
+                      <Monitor className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
                     ) : (
-                      <MapPin className="w-4 h-4 flex-shrink-0" style={{ color: COLORS.PRIMARY }} />
+                      <MapPin className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
                     )}
                     <span>{event.location}</span>
                   </div>

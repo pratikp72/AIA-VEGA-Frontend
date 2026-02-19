@@ -28,10 +28,10 @@ export default function CourseCategoryCard({
       <div className="relative z-10 flex min-h-[170px] flex-col gap-6 p-6 sm:min-h-[190px] sm:p-6">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="text-h2 text-white">{title}</h3>
-          <Badge className="rounded-md px-2 bg-[rgba(156,46,219,0.5)] text-white border border-transparent">
+          <Badge className="rounded-md px-2 bg-primary/50 text-white border border-transparent">
             {modules} modules
           </Badge>
-          <Badge className="rounded-md px-2 bg-[rgba(156,46,219,0.5)] text-white border border-transparent">
+          <Badge className="rounded-md px-2 bg-primary/50 text-white border border-transparent">
             {hours} hours
           </Badge>
         </div>

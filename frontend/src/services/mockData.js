@@ -1,4 +1,3 @@
-import { COLORS } from "@/lib/constants";
 
 // Mock modules for course detail page
 export const MOCK_COURSE_MODULES = [
@@ -136,8 +135,8 @@ export const MOCK_ASSESSMENT_DATA = {
   instructionCards: [
     {
       icon: "Timer",
-      iconColor: COLORS.PRIMARY,
-      iconBg: COLORS.PRIMARY_OPACITY_10,
+      iconColor: "#9C2EDB",
+      iconBg: "#9C2EDB1A",
       title: "Time Limit",
       description: "You have 30 minutes to complete the assessment. The timer will start once you begin.",
     },
@@ -171,8 +170,8 @@ export const MOCK_ASSESSMENT_DATA = {
     },
     {
       icon: "Wifi",
-      iconColor: COLORS.PRIMARY,
-      iconBg: COLORS.PRIMARY_OPACITY_10,
+      iconColor: "#9C2EDB",
+      iconBg: "#9C2EDB1A",
       title: "Technical Requirements",
       description: "Ensure stable internet connection. Do not refresh or close the browser during the assessment.",
     },

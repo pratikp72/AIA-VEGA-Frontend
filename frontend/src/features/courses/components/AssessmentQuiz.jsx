@@ -7,7 +7,6 @@ import {
   XCircle,
   CheckCircle2,
 } from "lucide-react";
-import { COLORS } from "@/lib/constants";
 import {
   MOCK_ASSESSMENT_QUESTIONS,
   MOCK_ASSESSMENT_RESULTS,
@@ -16,26 +15,23 @@ import {
 function ResultScreen({ passed, score, resultData, onBackToCourses, onTryAgain }) {
   if (passed) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: COLORS.GRAY_BG }}>
+      <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-lg w-full max-w-[591px] p-4 text-center">
           <div className="flex justify-center mb-4">
-            <CheckCircle2 className="w-12 h-12" style={{ color: COLORS.SUCCESS_GREEN }} />
+            <CheckCircle2 className="w-12 h-12 text-success" />
           </div>
-          <h2 className="text-2xl font-semibold mb-4" style={{ color: COLORS.SUCCESS_GREEN }}>
+          <h2 className="text-2xl font-semibold text-success mb-4">
             {resultData.pass.title} {score}%
           </h2>
-          <p className="font-semibold leading-relaxed mb-4" style={{ color: COLORS.BLACK_OPACITY }}>
+          <p className="font-semibold text-foreground/60 leading-relaxed mb-4">
             {resultData.pass.message}
           </p>
-          <p className="text-xs font-semibold leading-relaxed mb-8" style={{ color: COLORS.BLACK_OPACITY }}>
+          <p className="text-xs font-semibold text-foreground/60 leading-relaxed mb-8">
             {resultData.pass.subMessage}
           </p>
           <button
             onClick={onBackToCourses}
-            className="w-full py-3 rounded-xl text-white transition cursor-pointer"
-            style={{ backgroundColor: COLORS.SUCCESS_GREEN }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.SUCCESS_GREEN_DARK}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.SUCCESS_GREEN}
+            className="w-full py-3 rounded-xl bg-success text-white hover:bg-success/90 transition cursor-pointer"
           >
             {resultData.pass.buttonText}
           </button>
@@ -45,15 +41,15 @@ function ResultScreen({ passed, score, resultData, onBackToCourses, onTryAgain }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor: COLORS.GRAY_BG }}>
+    <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-[591px] p-10 text-center">
         <div className="flex justify-center mb-4">
-          <XCircle className="w-12 h-12" style={{ color: COLORS.ERROR }} />
+          <XCircle className="w-12 h-12 text-destructive" />
         </div>
-        <h2 className="text-xl font-bold mb-4" style={{ color: COLORS.ERROR }}>
+        <h2 className="text-xl font-bold text-destructive mb-4">
           {resultData.fail.title} {score}%
         </h2>
-        <p className="text-sm font-medium leading-relaxed mb-4" style={{ color: COLORS.ERROR }}>
+        <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
           {resultData.fail.message}
         </p>
         <p className="text-gray-600 mb-3 font-semibold">
@@ -74,14 +70,7 @@ function ResultScreen({ passed, score, resultData, onBackToCourses, onTryAgain }
           </button>
           <button
             onClick={onTryAgain}
-            className="flex-1 py-3 rounded-xl border font-semibold transition cursor-pointer"
-            style={{ 
-              backgroundColor: COLORS.ERROR_LIGHT_BG,
-              borderColor: COLORS.ERROR,
-              color: COLORS.ERROR
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.ERROR_LIGHTER_BG}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.ERROR_LIGHT_BG}
+            className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
           >
             {resultData.fail.primaryButtonText}
           </button>
@@ -189,12 +178,12 @@ export default function AssessmentQuiz({ onExit }) {
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ backgroundColor: COLORS.GRAY_BG }}>
+    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col">
       {/* Top Bar — floating card */}
       <div className="px-6 pt-6">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2" style={{ color: COLORS.PRIMARY }}>
+            <div className="flex items-center gap-2 text-primary">
               <Clock className="w-4 h-4" />
               <span className="font-semibold text-sm">
                 {formatTime(timeLeft)}
@@ -206,8 +195,8 @@ export default function AssessmentQuiz({ onExit }) {
           </div>
           <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
-              className="h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%`, backgroundColor: COLORS.PRIMARY }}
+              className="h-2 bg-primary rounded-full transition-all duration-300"
+              style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
@@ -217,7 +206,7 @@ export default function AssessmentQuiz({ onExit }) {
       <div className="flex-1 flex items-start justify-center pt-8 pb-6 px-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-3xl p-4">
           <div className="text-center mb-4">
-            <span style={{ color: COLORS.PRIMARY }}>
+            <span className="text-primary">
               Question {currentIndex + 1}
             </span>
           </div>
@@ -238,12 +227,11 @@ export default function AssessmentQuiz({ onExit }) {
                   >
                     <span
                       className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                        isSelected ? "" : "border-gray-300"
+                        isSelected ? "border-primary" : "border-gray-300"
                       }`}
-                      style={isSelected ? { borderColor: COLORS.PRIMARY } : {}}
                     >
                       {isSelected && (
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS.PRIMARY }} />
+                        <span className="w-2 h-2 rounded-full bg-primary" />
                       )}
                     </span>
                     <span className="text-xs text-gray-700">{option}</span>
@@ -264,11 +252,8 @@ export default function AssessmentQuiz({ onExit }) {
             className={`flex items-center gap-1.5 px-7 py-2.5 rounded-full text-sm font-semibold transition cursor-pointer ${
               currentIndex === 0
                 ? "bg-gray-300 text-white cursor-not-allowed"
-                : "text-white"
+                : "bg-primary text-white hover:bg-primary/90"
             }`}
-            style={currentIndex !== 0 ? { backgroundColor: COLORS.PRIMARY } : {}}
-            onMouseEnter={(e) => currentIndex !== 0 && (e.currentTarget.style.backgroundColor = COLORS.PRIMARY_DARK)}
-            onMouseLeave={(e) => currentIndex !== 0 && (e.currentTarget.style.backgroundColor = COLORS.PRIMARY)}
           >
             <ChevronLeft className="w-4 h-4" />
             Previous
@@ -278,12 +263,9 @@ export default function AssessmentQuiz({ onExit }) {
             disabled={!hasAnswered}
             className={`flex items-center gap-1.5 px-7 py-2.5 rounded-full text-sm font-semibold transition ${
               hasAnswered
-                ? "text-white cursor-pointer"
+                ? "bg-primary text-white hover:bg-primary/90 cursor-pointer"
                 : "bg-gray-300 text-white cursor-not-allowed"
             }`}
-            style={hasAnswered ? { backgroundColor: COLORS.PRIMARY } : {}}
-            onMouseEnter={(e) => hasAnswered && (e.currentTarget.style.backgroundColor = COLORS.PRIMARY_DARK)}
-            onMouseLeave={(e) => hasAnswered && (e.currentTarget.style.backgroundColor = COLORS.PRIMARY)}
           >
             {isLastQuestion ? "Submit" : "Next"}
             <ChevronRight className="w-4 h-4" />

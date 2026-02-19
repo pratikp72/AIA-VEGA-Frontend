@@ -22,12 +22,40 @@
   /* Style Guide Colors */
   --color-primary: #9C2EDB;
   --color-primary-light: #F4E2FF;
+  --color-primary-dark: #7a1fa8;
+  --color-primary-opacity-20: #9C2EDB33;
+  --color-primary-opacity-10: #9C2EDB1A;
   --color-secondary-purple: #F4E2FF;
   --color-dark: #080808;
   --color-gray-medium: #585858;
   --color-gray-light: #D8D8D8;
+  --color-gray-500: #6B7280;
   --color-success: #22C55E;
+  --color-success-dark: #1aad50;
+  --color-success-light: #46BD84;
+  --color-success-alt: #29A366;
+  --color-error: #EF4444;
+  --color-error-light-bg: #FEE2E2;
+  --color-error-lighter-bg: #FECACA;
+  --color-warning: #FD8C02;
+  --color-warning-light-bg: #FFF8EB;
+  --color-warning-lighter-bg: #F7E4C1;
+  --color-info-teal: #3DD598;
+  --color-info-teal-opacity: #3DD5981A;
+  --color-orange: #FFA412;
+  --color-orange-light: #FFFAE7;
+  --color-orange-opacity: #FFA4121A;
+  --color-yellow: #EFBF04;
+  --color-locked-bg: #EDEFF3;
+  --color-gray-bg: #F3F4F6;
+  --color-gray-light-bg: #F9FAFB;
+  --color-gray-very-light-bg: #FAFAFA;
+  --color-black-opacity: #00000099;
+  --color-blue-light: #ECF3FE;
+  --color-destructive: #FF0000;
+  --color-teal: #5DC983;
   --color-white: #FFFFFF;
+  --color-gray: #2E2E2E99;
   
   /* Background & Foreground */
   --color-background: var(--background);
@@ -235,6 +263,14 @@
     background-color: var(--color-primary-light);
   }
   
+  .bg-primary-opacity-20 {
+    background-color: var(--color-primary-opacity-20);
+  }
+  
+  .bg-primary-opacity-10 {
+    background-color: var(--color-primary-opacity-10);
+  }
+  
   .text-primary-purple {
     color: var(--color-primary);
   }
@@ -249,6 +285,146 @@
   
   .border-primary-purple {
     border-color: var(--color-primary);
+  }
+  
+  /* Success colors */
+  .bg-success {
+    background-color: var(--color-success);
+  }
+  
+  .bg-success-dark {
+    background-color: var(--color-success-dark);
+  }
+  
+  .bg-success-light {
+    background-color: var(--color-success-light);
+  }
+  
+  .bg-success-alt {
+    background-color: var(--color-success-alt);
+  }
+  
+  .text-success {
+    color: var(--color-success);
+  }
+  
+  .text-success-light {
+    color: var(--color-success-light);
+  }
+
+  .text-destructive {
+    color: var(--color-destructive);
+  }
+
+  .bg-orange-light {
+    background-color: var(--color-orange-light);
+  }
+  
+  /* Error colors */
+  .bg-error {
+    background-color: var(--color-error);
+  }
+  
+  .bg-error-light {
+    background-color: var(--color-error-light-bg);
+  }
+  
+  .bg-error-lighter {
+    background-color: var(--color-error-lighter-bg);
+  }
+  
+  .text-error {
+    color: var(--color-error);
+  }
+  
+  .border-error {
+    border-color: var(--color-error);
+  }
+  
+  /* Warning colors */
+  .bg-warning {
+    background-color: var(--color-warning);
+  }
+  
+  .bg-warning-light {
+    background-color: var(--color-warning-light-bg);
+  }
+  
+  .bg-warning-lighter {
+    background-color: var(--color-warning-lighter-bg);
+  }
+  
+  .text-warning {
+    color: var(--color-warning);
+  }
+  
+  .border-warning {
+    border-color: var(--color-warning);
+  }
+  
+  /* Info colors */
+  .bg-info-teal {
+    background-color: var(--color-info-teal);
+  }
+  
+  .bg-info-teal-opacity {
+    background-color: var(--color-info-teal-opacity);
+  }
+  
+  .text-info-teal {
+    color: var(--color-info-teal);
+  }
+  
+  /* Orange colors */
+  .bg-orange {
+    background-color: var(--color-orange);
+  }
+  
+  .bg-orange-opacity {
+    background-color: var(--color-orange-opacity);
+  }
+  
+  .text-orange {
+    color: var(--color-orange);
+  }
+
+  .bg-teal {
+    background-color: var(--color-teal);
+  }
+  
+  /* Yellow */
+  .bg-yellow {
+    background-color: var(--color-yellow);
+  }
+  
+  /* Gray backgrounds */
+  .bg-gray-bg {
+    background-color: var(--color-gray-bg);
+  }
+  
+  .bg-gray-light-bg {
+    background-color: var(--color-gray-light-bg);
+  }
+  
+  .bg-gray-very-light-bg {
+    background-color: var(--color-gray-very-light-bg);
+  }
+  
+  .bg-locked {
+    background-color: var(--color-locked-bg);
+  }
+  
+  /* Other colors */
+  .text-gray-500 {
+    color: var(--color-gray-500);
+  }
+  
+  .text-black-opacity {
+    color: var(--color-black-opacity);
+  }
+  
+  .bg-blue-light {
+    background-color: var(--color-blue-light);
   }
   
   /* Spacing utilities - 8px grid */
