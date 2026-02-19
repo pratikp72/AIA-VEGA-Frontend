@@ -1,6 +1,7 @@
 import React from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft } from "lucide-react";
+import { COLORS } from "@/lib/constants";
 
 export default function CourseTextOrPdf({ course, category, selectedModule, onBack }) {
   if (!course) return null;
@@ -14,7 +15,10 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
           {onBack && (
             <button
               onClick={onBack}
-              className="flex items-center gap-2 mb-4 text-[#9C2EDB] hover:text-[#7a1fa8] transition"
+              className="flex items-center gap-2 mb-4 transition"
+              style={{ color: COLORS.PRIMARY }}
+              onMouseEnter={(e) => e.currentTarget.style.color = COLORS.PRIMARY_DARK}
+              onMouseLeave={(e) => e.currentTarget.style.color = COLORS.PRIMARY}
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm font-medium">Back to Preview</span>
@@ -41,11 +45,11 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
         </div>
         {/* Action Buttons */}
         <div className="flex gap-4 mt-4 lg:mt-0">
-          <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-[#9C2EDB] text-[#9C2EDB] text-sm font-semibold hover:bg-gray-50 transition cursor-pointer">
+          <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border text-sm font-semibold hover:bg-gray-50 transition cursor-pointer" style={{ borderColor: COLORS.PRIMARY, color: COLORS.PRIMARY }}>
             Mark as read
             <SquareCheckBig className="w-4 h-4" />
           </button>
-          <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#9C2EDB] text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer">
+          <button className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer" style={{ backgroundColor: COLORS.PRIMARY }}>
             Next Lecture
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -53,13 +57,13 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
       </div>
       <div className="flex items-center gap-6 mb-2 px-xl mt-4">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <FolderOpen className="w-5 h-5" color="#9C2EDB" />
+          <FolderOpen className="w-5 h-5" color={COLORS.PRIMARY} />
           <span className="text-sm">
             6 sections
           </span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Clock className="w-5 h-5" color="#9C2EDB" />
+          <Clock className="w-5 h-5" color={COLORS.PRIMARY} />
           <span className="text-sm">{selectedModule?.moduleDuration || "Duration"}</span>
         </div>
       </div>

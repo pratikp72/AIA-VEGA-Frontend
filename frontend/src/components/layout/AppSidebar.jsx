@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { COLORS } from "@/lib/constants";
 import {
   Home01Icon,
   BookOpen01Icon,
@@ -60,7 +61,13 @@ export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen =
         {!isMobileOpen && (
           <button
             onClick={() => onToggle && onToggle()}
-            className="absolute -right-3 top-6 bg-gradient-to-r from-[#E6BAFF]/60 to-[#9C2EDB]/60 border border-[#9C2EDB]/50 rounded-xl p-1 hover:bg-[#9C2EDB]/70 text-white transition-colors"
+            className="absolute -right-3 top-6 bg-gradient-to-r from-[#E6BAFF]/60 rounded-xl p-1 text-white transition-colors"
+            style={{ 
+              background: `linear-gradient(to right, #E6BAFF60, ${COLORS.PRIMARY}60)`,
+              borderColor: `${COLORS.PRIMARY}50`,
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = `linear-gradient(to right, #E6BAFF60, ${COLORS.PRIMARY}70)`}
+            onMouseLeave={(e) => e.currentTarget.style.background = `linear-gradient(to right, #E6BAFF60, ${COLORS.PRIMARY}60)`}
           >
             {collapsed ? (
               <ChevronRight className="w-4 h-4" />
@@ -83,10 +90,14 @@ export default function AppSidebar({ collapsed = false, onToggle, isMobileOpen =
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors border border-transparent',
                   isActive
-                    ? 'bg-gradient-to-r from-[#E6BAFF]/20 to-[#9C2EDB]/20 text-white font-medium border-[#9C2EDB]/50'
+                    ? 'text-white font-medium'
                     : 'text-white/80 hover:bg-white/10 hover:text-white',
                   collapsed && 'justify-center'
                 )}
+                style={isActive ? { 
+                  background: `linear-gradient(to right, #E6BAFF20, ${COLORS.PRIMARY}20)`,
+                  borderColor: `${COLORS.PRIMARY}50`
+                } : {}}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 {!collapsed && <span>{item.label}</span>}

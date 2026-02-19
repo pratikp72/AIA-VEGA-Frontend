@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import PageSection from "@/components/common/PageSection";
@@ -7,7 +7,8 @@ import CourseStats from "./CourseStats";
 import CourseContentList from "./CourseContentList";
 import FinalAssessment from "./FinalAssessment";
 import CourseTextOrPdf from "./CourseTextOrPdf";
-import { MOCK_COURSE_MODULES, MOCK_COURSE_CONTENTS, MOCK_COURSE_INSTRUCTIONS } from "@/services/mockData";
+import { MOCK_COURSE_CONTENTS, MOCK_COURSE_INSTRUCTIONS } from "@/services/mockData";
+import { COLORS } from "@/lib/constants";
 
 export default function CoursesDetailPage({ category, course, selectedModule }) {
   const searchParams = useSearchParams();
@@ -54,13 +55,13 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
               {/* Icons row above video */}
               <div className="flex items-center gap-6 mb-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <FolderOpen className="w-5 h-5" color="#9C2EDB" />
+                  <FolderOpen className="w-5 h-5" color={COLORS.PRIMARY} />
                   <span className="text-sm">
                     6 sections
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="w-5 h-5" color="#9C2EDB" />
+                  <Clock className="w-5 h-5" color={COLORS.PRIMARY} />
                   <span className="text-sm">{currentModule?.moduleDuration || "Duration"}</span>
                 </div>
               </div>
@@ -73,7 +74,7 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
 
               {/* Show content based on moduleType */}
               {currentModule?.moduleType === 'Video' ? (
-                <div className="relative h-[467px] overflow-hidden rounded-xl mt-2">
+                <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
                   <video
                     controls
                     poster={course.image}
@@ -137,7 +138,8 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
                   <div className="p-4">
                     <button
                       onClick={() => setShowFullReadingView(true)}
-                      className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#9C2EDB] text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer"
+                      style={{ backgroundColor: COLORS.PRIMARY }}
                     >
                       <Maximize2 className="w-4 h-4" />
                       View Full Content

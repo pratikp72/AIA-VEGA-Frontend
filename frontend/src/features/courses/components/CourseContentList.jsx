@@ -10,11 +10,12 @@ import {
   ChevronRight,
   Lock,
 } from "lucide-react";
+import { COLORS } from "@/lib/constants";
 
 function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
   if (isSelected) {
     return (
-      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-[#9C2EDB33] text-[#9C2EDB]">
+      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0" style={{ backgroundColor: COLORS.PRIMARY_OPACITY_20, color: COLORS.PRIMARY }}>
         {moduleNumber}
       </span>
     );
@@ -22,7 +23,7 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
 
   if (moduleStatus === "completed") {
     return (
-      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-[#29A366]">
+      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0" style={{ backgroundColor: COLORS.SUCCESS }}>
         <CheckCircle2 className="w-5 h-5 text-white" />
       </span>
     );
@@ -30,14 +31,14 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
 
   if (moduleStatus === "locked") {
     return (
-      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-[#EDEFF3]">
-        <Lock className="w-5 h-5 text-gray-500" />
+      <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0" style={{ backgroundColor: COLORS.LOCKED_BG }}>
+        <Lock className="w-5 h-5" style={{ color: COLORS.GRAY_500 }} />
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-white border-2 border-[#9C2EDB] text-[#9C2EDB]">
+    <span className="inline-flex items-center justify-center w-9 h-9 rounded-full text-sm font-bold shrink-0 bg-white border-2" style={{ borderColor: COLORS.PRIMARY, color: COLORS.PRIMARY }}>
       {moduleNumber}
     </span>
   );
@@ -60,7 +61,9 @@ export default function CourseContentList({ contents, current, onSelect, courseI
       const url = `/courses/${category}/${courseId || params.id}?moduleId=${defaultModuleId}`;
       router.replace(url);
     }
-  }, [activeModuleId, defaultModuleId, category, courseId, params.id, router, currentModuleId]);
+    // router is stable and doesn't need to be in dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeModuleId, defaultModuleId, category, courseId, params.id, currentModuleId]);
 
   if (!contents || !contents.length) return null;
 
@@ -123,11 +126,11 @@ export default function CourseContentList({ contents, current, onSelect, courseI
                 <>
                   {/* Action Buttons */}
                   <div className="flex items-center gap-4 rounded-b-2xl px-4 pb-4">
-                    <button className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white border border-[#9C2EDB] text-[#9C2EDB] h-10 text-sm font-semibold hover:bg-gray-50 transition cursor-pointer">
+                    <button className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white border h-10 text-sm font-semibold hover:bg-gray-50 transition cursor-pointer" style={{ borderColor: COLORS.PRIMARY, color: COLORS.PRIMARY }}>
                       Mark as read
                       <SquareCheckBig className="w-4 h-4" />
                     </button>
-                    <button className="flex-1 flex items-center justify-center h-10 gap-2 p-3 rounded-xl bg-[#9C2EDB] text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer">
+                    <button className="flex-1 flex items-center justify-center h-10 gap-2 p-3 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition cursor-pointer" style={{ backgroundColor: COLORS.PRIMARY }}>
                       Next Lecture
                       <ChevronRight className="w-4 h-4" />
                     </button>

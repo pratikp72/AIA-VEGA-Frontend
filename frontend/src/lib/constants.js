@@ -1,5 +1,37 @@
 // Application Constants
 
+// Colors
+export const COLORS = {
+  PRIMARY: '#9C2EDB',
+  PRIMARY_LIGHT: '#F4E2FF',
+  PRIMARY_DARK: '#7a1fa8',
+  PRIMARY_OPACITY_20: '#9C2EDB33',
+  PRIMARY_OPACITY_10: '#9C2EDB1A',
+  SUCCESS: '#29A366',
+  SUCCESS_LIGHT: '#46BD84',
+  SUCCESS_GREEN: '#22C55E',
+  SUCCESS_GREEN_DARK: '#1aad50',
+  ERROR: '#EF4444',
+  ERROR_LIGHT_BG: '#FEE2E2',
+  ERROR_LIGHTER_BG: '#FECACA',
+  WARNING: '#FD8C02',
+  WARNING_LIGHT_BG: '#FFF8EB',
+  WARNING_LIGHTER_BG: '#F7E4C1',
+  INFO_TEAL: '#3DD598',
+  INFO_TEAL_OPACITY: '#3DD5981A',
+  ORANGE: '#FFA412',
+  ORANGE_OPACITY: '#FFA4121A',
+  YELLOW: '#EFBF04',
+  LOCKED_BG: '#EDEFF3',
+  GRAY_500: '#6B7280',
+  GRAY_BG: '#F3F4F6',
+  GRAY_LIGHT_BG: '#F9FAFB',
+  GRAY_VERY_LIGHT_BG: '#FAFAFA',
+  BLACK_OPACITY: '#00000099',
+  BLUE_LIGHT: '#ECF3FE',
+  WHITE: '#FFFFFF',
+};
+
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
@@ -56,6 +88,7 @@ export const VALIDATION = {
 
 // Export all constants
 export default {
+  COLORS,
   API_CONFIG,
   STORAGE_KEYS,
   ROUTES,

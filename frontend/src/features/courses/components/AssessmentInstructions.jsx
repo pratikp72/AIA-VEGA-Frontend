@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
+import { COLORS } from "@/lib/constants";
 import {
   Info,
   Timer,
@@ -93,12 +94,12 @@ export default function AssessmentInstructions(props) {
           <p className="text-gray-500 mb-6">{subtitle}</p>
 
           {/* Important Notice */}
-          <div className="bg-[#FFF8EB] border border-[#FD8C02] rounded-xl p-5 mb-8 flex items-start gap-3">
-            <div className="bg-[#F7E4C1] p-1.5 rounded-lg shrink-0 mt-0.5">
-              <Info className="w-4 h-4" color="#FD8C02" />
+          <div className="rounded-xl p-5 mb-8 flex items-start gap-3 border" style={{ backgroundColor: COLORS.WARNING_LIGHT_BG, borderColor: COLORS.WARNING }}>
+            <div className="p-1.5 rounded-lg shrink-0 mt-0.5" style={{ backgroundColor: COLORS.WARNING_LIGHTER_BG }}>
+              <Info className="w-4 h-4" color={COLORS.WARNING} />
             </div>
             <div>
-              <span className="font-semibold text-[#FD8C02] text-xl">
+              <span className="font-semibold text-xl" style={{ color: COLORS.WARNING }}>
                 {notice.title}
               </span>
               <p className="text-gray-500 mt-1">{notice.description}</p>
@@ -112,7 +113,8 @@ export default function AssessmentInstructions(props) {
               return (
                 <div
                   key={idx}
-                  className="bg-[#F9FAFB] border border-gray-200 rounded-xl p-5 flex items-start gap-2.5"
+                  className="border border-gray-200 rounded-xl p-5 flex items-start gap-2.5"
+                  style={{ backgroundColor: COLORS.GRAY_LIGHT_BG }}
                 >
                   <span
                     className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 mt-0.5"
@@ -157,7 +159,10 @@ export default function AssessmentInstructions(props) {
           <div className="flex justify-center">
             <button
               onClick={() => setQuizStarted(true)}
-              className="bg-[#9C2EDB] hover:bg-[#8a28c5] text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
+              className="text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
+              style={{ backgroundColor: COLORS.PRIMARY }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = COLORS.PRIMARY_DARK}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = COLORS.PRIMARY}
             >
               {buttonText}
             </button>
