@@ -36,7 +36,7 @@ export default function LayoutShell({ children }) {
       <main
         className="pt-16 transition-all duration-300"
         style={{
-          paddingLeft: isMobile ? '0' : collapsed ? '4rem' : '16rem',
+          paddingLeft: isMobile ? '0' : collapsed ? '4rem' : '15rem',
         }}
       >
         {children}

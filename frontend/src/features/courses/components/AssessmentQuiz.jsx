@@ -226,7 +226,7 @@ export default function AssessmentQuiz({ onExit, courseId }) {
     setShowFeedbackForm(false);
     setShowFeedbackSuccess(true);
     // TODO: send formData to backend when API is ready
-    setTimeout(() => router.push("/courses"), 2000);
+    setTimeout(() => router.push("/courses"), 5000);
   };
 
   // Success message after feedback submit, then redirect to courses
@@ -234,7 +234,7 @@ export default function AssessmentQuiz({ onExit, courseId }) {
     return (
       <LayoutShell>
         <PageContainer className="py-8 flex items-center justify-center min-h-[60vh]">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-md w-full text-center">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-2xl w-full text-center">
             <div className="flex justify-center mb-4">
               <CheckCircle2 className="w-14 h-14 text-success" />
             </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Calendar from 'react-calendar';
-import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap, Info } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
 import {
@@ -100,7 +100,7 @@ export default function CalendarPage() {
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <span className="text-base font-bold text-gray-900 min-w-[120px] text-center">
+                  <span className="text-xl font-bold text-gray-900 min-w-[120px] text-center">
                     {monthYearLabel}
                   </span>
                   <button
@@ -114,7 +114,7 @@ export default function CalendarPage() {
                 </div>
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-gray-100 text-gray-800 text-sm font-medium hover:bg-gray-200 border border-gray-200 transition"
+                  className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
                 >
                   Month
                   <ChevronDown className="w-4 h-4 text-gray-600" />
@@ -187,7 +187,7 @@ export default function CalendarPage() {
                     date.getDate() === activeDate.getDate() &&
                     date.getMonth() === activeDate.getMonth() &&
                     date.getFullYear() === activeDate.getFullYear();
-                  const classes = ['rounded-lg min-h-[80px]'];
+                  const classes = ['rounded-lg h-[120px]'];
                   if (isSelected) classes.push('!bg-primary/10 !border-2 !border-primary');
                   if (isHoliday) classes.push('text-[#EF4444] font-semibold');
                   return classes.join(' ');
@@ -205,17 +205,17 @@ export default function CalendarPage() {
                   <h3 className="text-lg font-bold text-gray-900 p-4 pb-0">Events</h3>
                   <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                     <div
-                      className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-2"
+                      className="w-8 h-8 rounded-md flex items-center justify-center text-2xl font-bold text-white mb-2"
                       style={{ backgroundColor: '#9C2EDB' }}
                     >
-                      0
+                      <Info className="w-4 h-4" />
                     </div>
                     <p className="text-sm text-gray-500">No Current Events</p>
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4">
-                  <p className="text-lg font-bold text-gray-900 mb-4">
+                  <p className="text-xl font-bold text-gray-900 mb-4">
                     {activeDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                   </p>
                   <ul className="space-y-3">
@@ -233,7 +233,7 @@ export default function CalendarPage() {
                             <EventIcon className="w-5 h-5" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="font-bold text-gray-900 text-sm leading-tight">
+                            <p className="text-gray-900 text-base leading-tight">
                               {ev.fullTitle || ev.title}
                             </p>
                             {ev.description ? (
@@ -266,13 +266,13 @@ export default function CalendarPage() {
               )}
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Holidays</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Holidays</h3>
               {currentHolidays.length === 0 ? (
                 <p className="text-sm text-gray-500">No holidays this month</p>
               ) : (
                 <ul className="space-y-2">
                   {currentHolidays.map((h) => (
-                    <li key={h.id} className="flex items-center gap-2 text-sm">
+                    <li key={h.id} className="flex items-center gap-2 text-sm bg-gray-50 p-4 rounded-2xl">
                       <span className="w-6 h-6 rounded flex items-center justify-center bg-[#EF4444] text-white shrink-0">
                         <CalendarDays className="w-3.5 h-3.5" />
                       </span>
@@ -311,6 +311,11 @@ export default function CalendarPage() {
         .calendar-card .react-calendar__navigation {
           display: none;
         }
+        .calendar-card .react-calendar__month-view__weekdays,
+        .calendar-card .react-calendar__month-view__days {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+        }
         .calendar-card .react-calendar__month-view__weekdays {
           text-align: center;
           font-size: 0.8125rem;
@@ -319,6 +324,7 @@ export default function CalendarPage() {
           text-transform: none;
           padding: 0.625rem 0;
           border-bottom: 1px solid #e5e7eb;
+          background: #fff;
         }
         .calendar-card .react-calendar__month-view__weekdays__weekday abbr {
           text-decoration: none;
@@ -326,23 +332,18 @@ export default function CalendarPage() {
         .calendar-card .react-calendar__month-view__days {
           gap: 0;
         }
-        .calendar-card .react-calendar__month-view__days__day {
-          border: 1px solid #e5e7eb;
-          width: 132.86px;
-          min-width: 132.86px;
-        }
+        .calendar-card .react-calendar__month-view__days__day,
         .calendar-card .react-calendar__tile {
-          display: flex;
-          width: 132.86px;
+          border: 1px solid #e5e7eb;
+          min-width: 0;
           min-height: 100px;
           padding: 8px 8px 63px 8px;
+          display: flex;
           flex-direction: column;
           align-items: flex-start;
-          max-width: none;
           font-size: 0.875rem;
           font-weight: normal;
           color: #1f2937;
-          border: 1px solid #e5e7eb;
           border-radius: 0;
           background: white;
           box-sizing: border-box;
