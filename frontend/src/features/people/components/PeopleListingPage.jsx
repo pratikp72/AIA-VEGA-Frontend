@@ -36,15 +36,6 @@ import {
 
 const PER_PAGE = 9;
 
-function formatJoinDate(dateString) {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
   const people = useAppSelector(selectPeopleList);
@@ -167,7 +158,7 @@ export default function PeopleListingPage() {
         showBreadcrumbSeparator
         containerClassName="pt-xl pb-xl px-xl bg-transparent"
         right={
-          <div className="flex items-center rounded-[8px] border border-primary">
+          <div className="flex items-center rounded-xl border border-primary">
             <Button
               type="button"
               onClick={() => {
@@ -176,7 +167,7 @@ export default function PeopleListingPage() {
                 setLocationFilter('');
               }}
               className={cn(
-                'h-[34px] px-4 text-small font-medium rounded-r-none rounded-l-[8px] shadow-none',
+                'h-8.5 px-4 text-small font-medium rounded-r-none rounded-l-xl shadow-none',
                 companyFilter === 'AIA'
                   ? 'bg-primary text-white hover:bg-primary'
                   : 'bg-white text-primary hover:bg-white'
@@ -192,7 +183,7 @@ export default function PeopleListingPage() {
                 setLocationFilter('');
               }}
               className={cn(
-                'h-[34px] px-4 text-small font-medium rounded-l-none rounded-r-[8px] shadow-none',
+                'h-8.5 px-4 text-small font-medium rounded-l-none rounded-r-xl shadow-none',
                 companyFilter === 'VEGA'
                   ? 'bg-primary text-white hover:bg-primary'
                   : 'bg-white text-primary hover:bg-white'

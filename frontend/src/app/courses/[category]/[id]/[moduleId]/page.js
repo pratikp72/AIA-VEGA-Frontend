@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import CoursesDetailPage from '@/features/courses/components/CoursesDetailPage';
 import Loader from '@/components/common/Loader';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -11,11 +11,9 @@ import {
   selectCourseDetailError,
 } from '@/features/courses/coursesSelectors';
 
-export default function CourseDetailPage() {
+export default function CourseDetailModulePage() {
   const params = useParams();
-  const searchParams = useSearchParams();
-  const { category, id } = params;
-  const moduleId = searchParams.get('moduleId');
+  const { category, id, moduleId } = params;
 
   const dispatch = useAppDispatch();
   const course = useAppSelector(selectCurrentCourse);

@@ -7,16 +7,16 @@ import CourseStats from "./CourseStats";
 import CourseContentList from "./CourseContentList";
 import FinalAssessment from "./FinalAssessment";
 import CourseTextOrPdf from "./CourseTextOrPdf";
-import { MOCK_COURSE_CONTENTS, MOCK_COURSE_INSTRUCTIONS } from "@/services/mockData";
+import { MOCK_COURSE_INSTRUCTIONS } from "@/services/mockData";
 
 
 export default function CoursesDetailPage({ category, course, selectedModule }) {
   const searchParams = useSearchParams();
   const [showFullReadingView, setShowFullReadingView] = useState(false);
-  
+
   if (!course) return <div className="p-8">Course not found.</div>;
 
-  const contents = MOCK_COURSE_CONTENTS;
+  const contents = course.modulesList || [];
   const instructions = MOCK_COURSE_INSTRUCTIONS;
 
   const moduleId = searchParams.get('moduleId');
@@ -263,7 +263,7 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
             {/* Right Column: Stats + Course Contents */}
             <div className="lg:col-span-1 mt-18">
               <CourseStats course={course} />
-              <CourseContentList contents={contents} current={currentModule?.id || 0} courseId={course.id} category={category} />
+              <CourseContentList contents={contents} current={currentModule?.id || 0} courseId={course.id} category={category} course={course} />
               <FinalAssessment unlocked={unlocked} category={category} courseId={course.id} />
             </div>
           </div>

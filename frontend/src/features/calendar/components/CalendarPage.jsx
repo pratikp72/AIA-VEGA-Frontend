@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap, Info } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
-import {
-  MOCK_CALENDAR_EVENTS,
-  MOCK_CALENDAR_HOLIDAYS,
-} from '@/services/mockData';
+import { fetchEvents, fetchEventById, fetchHolidays } from '@/features/calendar/calendarAPI';
+import Loader from '@/components/common/Loader';
 import 'react-calendar/dist/Calendar.css';
 
 const CATEGORY_LEGEND = [
@@ -28,21 +26,68 @@ function toDateKey(d) {
 }
 
 export default function CalendarPage() {
-  const [activeDate, setActiveDate] = useState(new Date(2024, 0, 3)); // Jan 3, 2024 (selected in image)
-  const [activeStartDate, setActiveStartDate] = useState(new Date(2024, 0, 1)); // displayed month
+  const [activeDate, setActiveDate] = useState(() => new Date());
+  const [activeStartDate, setActiveStartDate] = useState(() => new Date());
+  const [eventsList, setEventsList] = useState([]);
+  const [holidaysList, setHolidaysList] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [holidaysLoading, setHolidaysLoading] = useState(true);
+  const [expandedEventId, setExpandedEventId] = useState(null);
+  const [expandedEvent, setExpandedEvent] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setEventsLoading(true);
+    fetchEvents()
+      .then((list) => {
+        if (!cancelled) setEventsList(list ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setEventsList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setEventsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setHolidaysLoading(true);
+    fetchHolidays()
+      .then((list) => {
+        if (!cancelled) setHolidaysList(list ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setHolidaysList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setHolidaysLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    setExpandedEventId(null);
+    setExpandedEvent(null);
+    setDetailLoading(false);
+  }, [activeDate]);
+
   const eventsByDate = useMemo(() => {
     const map = {};
-    MOCK_CALENDAR_EVENTS.forEach((ev) => {
+    (eventsList || []).forEach((ev) => {
       const key = ev.date;
+      if (!key) return;
       if (!map[key]) map[key] = [];
       map[key].push(ev);
     });
     return map;
-  }, []);
+  }, [eventsList]);
 
   const holidayDates = useMemo(
-    () => new Set(MOCK_CALENDAR_HOLIDAYS.map((h) => h.date)),
-    []
+    () => new Set((holidaysList || []).map((h) => h.date).filter(Boolean)),
+    [holidaysList]
   );
 
   const currentEvents = useMemo(() => {
@@ -51,7 +96,8 @@ export default function CalendarPage() {
   }, [activeDate, eventsByDate]);
 
   const currentHolidays = useMemo(() => {
-    return MOCK_CALENDAR_HOLIDAYS.filter((h) => {
+    return (holidaysList || []).filter((h) => {
+      if (!h.date) return false;
       const d = new Date(h.date);
       const ay = d.getFullYear();
       const am = d.getMonth();
@@ -59,7 +105,7 @@ export default function CalendarPage() {
       const bm = activeDate.getMonth();
       return ay === ad && am === bm;
     });
-  }, [activeDate]);
+  }, [activeDate, holidaysList]);
 
   const monthYearLabel = activeStartDate
     ? activeStartDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -70,6 +116,24 @@ export default function CalendarPage() {
   };
   const goNextMonth = () => {
     setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  };
+
+  const handleToggleEvent = (ev) => {
+    const id = ev.documentId ?? ev.id;
+    if (!id) return;
+    if (String(expandedEventId) === String(id)) {
+      setExpandedEventId(null);
+      setExpandedEvent(null);
+      setDetailLoading(false);
+      return;
+    }
+    setExpandedEventId(id);
+    setExpandedEvent(null);
+    setDetailLoading(true);
+    fetchEventById(id)
+      .then((data) => setExpandedEvent(data))
+      .catch(() => setExpandedEvent(null))
+      .finally(() => setDetailLoading(false));
   };
 
   return (
@@ -87,8 +151,13 @@ export default function CalendarPage() {
 
       <PageContainer className="pb-xl px-xl">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left: Calendar - match second image exactly */}
+          {/* Left: Calendar */}
           <div className="flex-1 min-w-0">
+            {eventsLoading ? (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px]">
+                <Loader size="lg" />
+              </div>
+            ) : (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden calendar-card">
               <div className="calendar-custom-header flex items-center justify-between px-4 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-1">
@@ -144,16 +213,16 @@ export default function CalendarPage() {
                           {dayEvents.slice(0, 3).map((ev) => (
                             <div
                               key={ev.id}
-                              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium truncate"
+                              className="w-full flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium truncate text-left"
                               style={{
-                                backgroundColor: `${ev.color}22`,
-                                color: ev.color,
-                                borderLeft: `3px solid ${ev.color}`,
+                                backgroundColor: `${ev.color ?? '#2563EB'}22`,
+                                color: ev.color ?? '#2563EB',
+                                borderLeft: `3px solid ${ev.color ?? '#2563EB'}`,
                               }}
                             >
                               <span
                                 className="shrink-0 w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: ev.color }}
+                                style={{ backgroundColor: ev.color ?? '#2563EB' }}
                               />
                               <span className="truncate">{ev.title}</span>
                             </div>
@@ -195,6 +264,7 @@ export default function CalendarPage() {
                 className="calendar-widget border-0 w-full"
               />
             </div>
+            )}
           </div>
 
           {/* Right: Sidebar - Events & Holidays */}
@@ -221,43 +291,76 @@ export default function CalendarPage() {
                   <ul className="space-y-3">
                     {currentEvents.map((ev) => {
                       const EventIcon = ev.icon === 'gift' ? Gift : ev.icon === 'graduation-cap' ? GraduationCap : CalendarDays;
+                      const id = ev.documentId ?? ev.id;
+                      const isExpanded = String(expandedEventId) === String(id);
+                      const detail = isExpanded ? (expandedEvent || ev) : null;
                       return (
-                        <li
-                          key={ev.id}
-                          className="bg-gray-50 rounded-xl p-4 flex gap-3"
-                        >
-                          <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white"
-                            style={{ backgroundColor: ev.color }}
+                        <li key={ev.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleEvent(ev)}
+                            className="w-full text-left bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition"
                           >
-                            <EventIcon className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-gray-900 text-base leading-tight">
-                              {ev.fullTitle || ev.title}
-                            </p>
-                            {ev.description ? (
-                              <p className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
-                                {ev.description}
-                              </p>
-                            ) : null}
-                            {(ev.time || ev.location) ? (
-                              <div className="mt-2 space-y-0.5 text-sm text-gray-500">
-                                {ev.time ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <Clock className="w-3.5 h-3.5 shrink-0" />
-                                    <span>{ev.time}</span>
-                                  </div>
+                            <div className="flex gap-3">
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white"
+                                style={{ backgroundColor: ev.color ?? '#2563EB' }}
+                              >
+                                <EventIcon className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-gray-900 text-base leading-tight">
+                                  {ev.fullTitle || ev.title}
+                                </p>
+                                {ev.description ? (
+                                  <p className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
+                                    {ev.description}
+                                  </p>
                                 ) : null}
-                                {ev.location ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                    <span>{ev.location}</span>
+                                {(ev.time || ev.location) ? (
+                                  <div className="mt-2 space-y-0.5 text-sm text-gray-500">
+                                    {ev.time ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <Clock className="w-3.5 h-3.5 shrink-0" />
+                                        <span>{ev.time}</span>
+                                      </div>
+                                    ) : null}
+                                    {ev.location ? (
+                                      <div className="flex items-center gap-1.5">
+                                        <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                        <span>{ev.location}</span>
+                                      </div>
+                                    ) : null}
                                   </div>
                                 ) : null}
                               </div>
+                            </div>
+                            {isExpanded ? (
+                              <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
+                                {detailLoading ? (
+                                  <div className="flex justify-center py-2">
+                                    <Loader />
+                                  </div>
+                                ) : detail ? (
+                                  <div className="space-y-2">
+                                    {detail.event_type ? (
+                                      <p className="text-gray-500">{detail.event_type}</p>
+                                    ) : null}
+                                    {detail.description ? (
+                                      <p className="leading-relaxed">{detail.description}</p>
+                                    ) : null}
+                                    {(detail.start_date || detail.end_date) ? (
+                                      <p className="text-gray-500">
+                                        {detail.start_date ? new Date(detail.start_date).toLocaleString() : ''}{detail.end_date ? ` → ${new Date(detail.end_date).toLocaleString()}` : ''}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-500">No details available.</p>
+                                )}
+                              </div>
                             ) : null}
-                          </div>
+                          </button>
                         </li>
                       );
                     })}
@@ -267,7 +370,11 @@ export default function CalendarPage() {
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Holidays</h3>
-              {currentHolidays.length === 0 ? (
+              {holidaysLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader />
+                </div>
+              ) : currentHolidays.length === 0 ? (
                 <p className="text-sm text-gray-500">No holidays this month</p>
               ) : (
                 <ul className="space-y-2">
@@ -277,7 +384,8 @@ export default function CalendarPage() {
                         <CalendarDays className="w-3.5 h-3.5" />
                       </span>
                       <span>
-                        {h.title} – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                        {h.title}
+                        {h.holiday_for ? ` (${h.holiday_for})` : ''} – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
                       </span>
                     </li>
                   ))}

@@ -43,7 +43,7 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
   );
 }
 
-export default function CourseContentList({ contents, current, onSelect, courseId, category }) {
+export default function CourseContentList({ contents, current, onSelect, courseId, category, course }) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -56,18 +56,19 @@ export default function CourseContentList({ contents, current, onSelect, courseI
   useEffect(() => {
     if (activeModuleId) {
       setOpenModuleId(activeModuleId);
-    } else if (defaultModuleId && !currentModuleId) {
-      const url = `/courses/${category}/${courseId || params.id}?moduleId=${defaultModuleId}`;
+    } else if (defaultModuleId && !currentModuleId && course?.documentId) {
+      const url = `/courses/${category}/${course.documentId}${courseId || params.id}`;
       router.replace(url);
     }
     // router is stable and doesn't need to be in dependencies
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeModuleId, defaultModuleId, category, courseId, params.id, currentModuleId]);
+  }, [activeModuleId, defaultModuleId, category, courseId, params.id, currentModuleId, course]);
 
   if (!contents || !contents.length) return null;
 
   const handleModuleClick = (module) => {
-    const url = `/courses/${category}/${courseId || params.id}?moduleId=${module.id}`;
+    if (!course?.documentId) return;
+    const url = `/courses/${category}/${course.documentId}/${module.id}`;
     router.push(url);
   };
 

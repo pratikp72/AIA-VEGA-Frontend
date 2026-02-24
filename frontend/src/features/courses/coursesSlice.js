@@ -1,21 +1,38 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchCourseCategories } from './coursesAPI';
+import { fetchAllCourses, fetchCourseById } from './coursesAPI';
 
-export const loadCourseCategories = createAsyncThunk(
-  'courses/loadCourseCategories',
+export const loadAllCourses = createAsyncThunk(
+  'courses/loadAllCourses',
   async (_, { rejectWithValue }) => {
     try {
-      return await fetchCourseCategories();
+      return await fetchAllCourses();
     } catch (error) {
       return rejectWithValue(error.message);
     }
   }
 );
 
+export const loadCourseById = createAsyncThunk(
+  'courses/loadCourseById',
+  async (documentId, { rejectWithValue }) => {
+    try {
+      return await fetchCourseById(documentId);
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Alias for backwards compatibility
+export const loadCourseCategories = loadAllCourses;
+
 const initialState = {
-  categories: [],
+  coursesList: [],
   loading: false,
   error: null,
+  currentCourse: null,
+  courseDetailLoading: false,
+  courseDetailError: null,
 };
 
 const coursesSlice = createSlice({
@@ -26,23 +43,40 @@ const coursesSlice = createSlice({
       state.error = null;
     },
     resetCoursesState: () => initialState,
+    clearCurrentCourse: (state) => {
+      state.currentCourse = null;
+      state.courseDetailError = null;
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loadCourseCategories.pending, (state) => {
+      .addCase(loadAllCourses.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(loadCourseCategories.fulfilled, (state, action) => {
+      .addCase(loadAllCourses.fulfilled, (state, action) => {
         state.loading = false;
-        state.categories = action.payload || [];
+        state.coursesList = action.payload || [];
       })
-      .addCase(loadCourseCategories.rejected, (state, action) => {
+      .addCase(loadAllCourses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(loadCourseById.pending, (state) => {
+        state.courseDetailLoading = true;
+        state.courseDetailError = null;
+        state.currentCourse = null;
+      })
+      .addCase(loadCourseById.fulfilled, (state, action) => {
+        state.courseDetailLoading = false;
+        state.currentCourse = action.payload;
+      })
+      .addCase(loadCourseById.rejected, (state, action) => {
+        state.courseDetailLoading = false;
+        state.courseDetailError = action.payload;
       });
   },
 });
 
-export const { clearError, resetCoursesState } = coursesSlice.actions;
+export const { clearError, resetCoursesState, clearCurrentCourse } = coursesSlice.actions;
 export default coursesSlice.reducer;
