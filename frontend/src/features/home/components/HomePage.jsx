@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import { loadDashboardData } from '@/features/home/homeSlice';
+import { loadAllNews } from '@/features/news/newsSlice';
 import {
   selectNewsCarousel,
   selectQuickLinks,
@@ -41,9 +42,10 @@ export default function HomePage() {
   const isLoading = useAppSelector(selectIsDashboardLoading);
   const error = useAppSelector(selectHomeError);
 
-  // Load dashboard data on mount
+  // Load dashboard data and news (carousel reads from news slice)
   useEffect(() => {
     dispatch(loadDashboardData());
+    dispatch(loadAllNews());
   }, [dispatch]);
 
   // Show error toast

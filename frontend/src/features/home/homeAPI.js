@@ -2,30 +2,14 @@ import api from '@/services/api';
 import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
 
+// News is loaded via news slice (loadAllNews). Carousel reads from state.news via selector.
+
 // ==================== DASHBOARD DATA ====================
 export const fetchDashboardData = async () => {
-  if (USE_MOCK_DATA) {
-    await mockDelay();
-    return MOCK_HOME_DATA.dashboard;
-  }
-  
-  // 🔌 BACKEND INTEGRATION: Uncomment when ready
-  // return await api.get(API_ENDPOINTS.HOME.DASHBOARD);
-  
-  return MOCK_HOME_DATA.dashboard;
-};
-
-// ==================== NEWS CAROUSEL ====================
-export const fetchNewsCarousel = async () => {
-  if (USE_MOCK_DATA) {
-    await mockDelay(500);
-    return MOCK_HOME_DATA.news;
-  }
-  
-  // 🔌 BACKEND INTEGRATION: Uncomment when ready
-  // return await api.get(API_ENDPOINTS.HOME.NEWS);
-  
-  return MOCK_HOME_DATA.news;
+  const rest = USE_MOCK_DATA
+    ? await mockDelay().then(() => MOCK_HOME_DATA.dashboard)
+    : await Promise.resolve(MOCK_HOME_DATA.dashboard);
+  return { ...rest };
 };
 
 // ==================== QUICK LINKS ====================
@@ -108,7 +92,6 @@ export const fetchWorkAnniversaries = async () => {
 
 export default {
   fetchDashboardData,
-  fetchNewsCarousel,
   fetchQuickLinks,
   fetchUpcomingEvents,
   fetchNewJoinees,

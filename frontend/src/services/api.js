@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api';
+
+// Fallback token when login is not implemented (remove once auth is in place)
+const FALLBACK_AUTH_TOKEN =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NywiaWF0IjoxNzcxODMxNDYxLCJleHAiOjE3NzQ0MjM0NjF9.AWc1VDjXN8B1WZXjZ2HTdWB27sqH7T5OvBO972cTB1I';
 
 // Create axios instance
 const api = axios.create({
@@ -15,13 +19,12 @@ const api = axios.create({
 // Request Interceptor - Add auth token to all requests
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage (or your preferred storage)
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    
+    const stored =
+      typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const token = stored || FALLBACK_AUTH_TOKEN;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
@@ -73,6 +76,28 @@ api.interceptors.response.use(
     }
   }
 );
+
+// Deduplicate GET requests: same url+params within a short window = one request (fixes double calls from Strict Mode / double mount)
+const DEDUPE_MS = 300;
+const inFlight = new Map();
+const recentCache = new Map(); // key -> { promise, at }
+const originalGet = api.get.bind(api);
+api.get = function (url, config) {
+  const params = config?.params ?? {};
+  const key = `${url}?${JSON.stringify(params)}`;
+  const now = Date.now();
+  const cached = recentCache.get(key);
+  if (cached && now - cached.at < DEDUPE_MS) return cached.promise;
+  if (inFlight.has(key)) return inFlight.get(key);
+  const promise = originalGet(url, config);
+  inFlight.set(key, promise);
+  promise.finally(() => {
+    inFlight.delete(key);
+    recentCache.set(key, { promise, at: Date.now() });
+    setTimeout(() => recentCache.delete(key), DEDUPE_MS);
+  });
+  return promise;
+};
 
 export default api;
 

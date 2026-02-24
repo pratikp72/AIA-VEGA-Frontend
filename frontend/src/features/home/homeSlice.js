@@ -1,14 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { 
-  fetchDashboardData, 
-  fetchNewsCarousel, 
+import {
+  fetchDashboardData,
   fetchQuickLinks,
   fetchUpcomingEvents,
   fetchNewJoinees,
   fetchMyCourses,
   fetchBirthdaysToday,
-  fetchWorkAnniversaries 
+  fetchWorkAnniversaries,
 } from './homeAPI';
+
+// News is loaded via news slice (loadAllNews). Carousel reads from state.news.
 
 // Async Thunks
 export const loadDashboardData = createAsyncThunk(
@@ -20,11 +21,6 @@ export const loadDashboardData = createAsyncThunk(
       return rejectWithValue(error.message);
     }
   }
-);
-
-export const loadNewsCarousel = createAsyncThunk(
-  'home/loadNewsCarousel',
-  async () => await fetchNewsCarousel()
 );
 
 export const loadQuickLinks = createAsyncThunk(
@@ -57,26 +53,24 @@ export const loadWorkAnniversaries = createAsyncThunk(
   async () => await fetchWorkAnniversaries()
 );
 
-// Initial State
+// Initial State (news carousel comes from news slice)
 const initialState = {
-  newsCarousel: [],
   quickLinks: [],
   upcomingEvents: [],
   newJoinees: [],
   myCourses: [],
   birthdaysToday: [],
   workAnniversaries: [],
-  
+
   loading: {
     dashboard: false,
-    news: false,
     events: false,
     joinees: false,
     courses: false,
     birthdays: false,
     anniversaries: false,
   },
-  
+
   error: null,
 };
 
@@ -99,8 +93,6 @@ const homeSlice = createSlice({
       })
       .addCase(loadDashboardData.fulfilled, (state, action) => {
         state.loading.dashboard = false;
-        // Populate all dashboard data
-        state.newsCarousel = action.payload.news || [];
         state.quickLinks = action.payload.quickLinks || [];
         state.upcomingEvents = action.payload.events || [];
         state.newJoinees = action.payload.newJoinees || [];
@@ -111,19 +103,6 @@ const homeSlice = createSlice({
       .addCase(loadDashboardData.rejected, (state, action) => {
         state.loading.dashboard = false;
         state.error = action.payload;
-      });
-
-    // News Carousel
-    builder
-      .addCase(loadNewsCarousel.pending, (state) => {
-        state.loading.news = true;
-      })
-      .addCase(loadNewsCarousel.fulfilled, (state, action) => {
-        state.loading.news = false;
-        state.newsCarousel = action.payload;
-      })
-      .addCase(loadNewsCarousel.rejected, (state) => {
-        state.loading.news = false;
       });
 
     // Quick Links

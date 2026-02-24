@@ -1,78 +1,94 @@
+/**
+ * News API – only API calls (Axios). No Redux.
+ * Slice (newsSlice) uses these and updates the store.
+ */
 import api from '@/services/api';
-import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_NEWS_DATA } from '@/services/mockData';
 
-// ==================== FETCH ALL NEWS ====================
-export const fetchAllNews = async (page = 1, limit = 10) => {
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
+
+// Helpers: normalize Strapi v4 response (unwrap media, resolve image URL)
+function unwrapMedia(attrs) {
+  if (!attrs) return attrs;
+  const cov = attrs.cover_image;
+  if (!cov) return attrs;
+  const data = cov.data;
+  if (data == null) return { ...attrs, cover_image: null };
+  const mediaAttrs = Array.isArray(data) ? data[0]?.attributes : data?.attributes;
+  return mediaAttrs ? { ...attrs, cover_image: mediaAttrs } : attrs;
+}
+
+function withImageUrl(item, preferSize = 'medium') {
+  if (!item) return item;
+  const cov = item.cover_image;
+  const url = cov?.formats?.[preferSize]?.url || cov?.url;
+  const imageUrl = url
+    ? url.startsWith('http')
+      ? url
+      : BASE_URL + (url.startsWith('/') ? url : `/${url}`)
+    : null;
+  return { ...item, imageUrl };
+}
+
+function normalizeItem(item) {
+  const { id, attributes } = item;
+  const flat = attributes ? { id, ...unwrapMedia(attributes) } : item;
+  return withImageUrl(flat, 'small');
+}
+
+function normalizeDetail(item) {
+  const { id, attributes } = item;
+  const flat = attributes ? { id, ...unwrapMedia(attributes) } : item;
+  return withImageUrl(flat, 'medium');
+}
+
+// 3. Clean API calls (no pagination)
+async function fetchNewsInternal(params = {}) {
+  const res = await api.get('/news-items', {
+    params: { populate: '*', ...params },
+  });
+  const raw = Array.isArray(res?.data) ? res.data : [];
+  const news = raw.map(normalizeItem);
+  return { news };
+}
+
+export async function fetchAllNews() {
   if (USE_MOCK_DATA) {
     await mockDelay();
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    return {
-      news: MOCK_NEWS_DATA.slice(start, end),
-      totalPages: Math.ceil(MOCK_NEWS_DATA.length / limit),
-      totalItems: MOCK_NEWS_DATA.length,
-      currentPage: page,
-    };
+    return { news: MOCK_NEWS_DATA.map((item) => withImageUrl(item)) };
   }
-  
-  // 🔌 BACKEND INTEGRATION: Uncomment when ready
-  // return await api.get(`${API_ENDPOINTS.NEWS.LIST}?page=${page}&limit=${limit}`);
-  
-  return {
-    news: MOCK_NEWS_DATA,
-    totalPages: 1,
-    totalItems: MOCK_NEWS_DATA.length,
-    currentPage: page,
-  };
-};
+  return fetchNewsInternal();
+}
 
-// ==================== FETCH BY CATEGORY ====================
-export const fetchNewsByCategory = async (category, page = 1, limit = 10) => {
-  if (USE_MOCK_DATA) {
-    await mockDelay(500);
-    let filtered = MOCK_NEWS_DATA;
-    
-    if (category !== 'all') {
-      filtered = MOCK_NEWS_DATA.filter(
-        (news) => news.category.toLowerCase() === category.toLowerCase()
-      );
-    }
-    
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    
-    return {
-      news: filtered.slice(start, end),
-      totalPages: Math.ceil(filtered.length / limit),
-      totalItems: filtered.length,
-      currentPage: page,
-    };
-  }
-  
-  // 🔌 BACKEND INTEGRATION: Uncomment when ready
-  // return await api.get(`${API_ENDPOINTS.NEWS.LIST}?category=${category}&page=${page}&limit=${limit}`);
-  
-  return {
-    news: MOCK_NEWS_DATA,
-    totalPages: 1,
-    totalItems: MOCK_NEWS_DATA.length,
-    currentPage: page,
-  };
-};
-
-// ==================== FETCH SINGLE NEWS ====================
-export const fetchNewsById = async (id) => {
+export async function fetchNewsByCategory(category) {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
-    return MOCK_NEWS_DATA.find((news) => news.id === parseInt(id));
+    const filtered =
+      category === 'all'
+        ? MOCK_NEWS_DATA
+        : MOCK_NEWS_DATA.filter(
+            (n) => n.category?.toLowerCase() === category.toLowerCase()
+          );
+    return { news: filtered.map((item) => withImageUrl(item)) };
   }
-  
-  // 🔌 BACKEND INTEGRATION: Uncomment when ready
-  // return await api.get(API_ENDPOINTS.NEWS.GET(id));
-  
-  return MOCK_NEWS_DATA[0];
-};
+  const params = category !== 'all' ? { 'filters[category][$eq]': category } : {};
+  return fetchNewsInternal(params);
+}
+
+export async function fetchNewsById(id) {
+  if (USE_MOCK_DATA) {
+    await mockDelay(300);
+    const found = MOCK_NEWS_DATA.find((n) => n.id === parseInt(id, 10));
+    return found ? withImageUrl(found, 'medium') : null;
+  }
+
+  const res = await api.get(`/news-items/${id}`, {
+    params: { populate: '*' },
+  });
+  const data = res?.data;
+  if (!data) return null;
+  return normalizeDetail(data);
+}
 
 export default {
   fetchAllNews,

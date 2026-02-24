@@ -1,21 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import SurfaceCard from '@/components/common/SurfaceCard';
-import { fetchNewsById, fetchAllNews } from '@/features/news/newsAPI';
+import { fetchNewsById } from '@/features/news/newsAPI';
+import { loadAllNews } from '@/features/news/newsSlice';
+import { selectNewsList } from '@/features/news/newsSelectors';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Loader from '@/components/common/Loader';
 
 export default function NewsDetailPage() {
   const params = useParams();
   const id = params?.id;
+  const dispatch = useAppDispatch();
+  const newsList = useAppSelector(selectNewsList);
   const [article, setArticle] = useState(null);
-  const [latestNews, setLatestNews] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const latestNews = useMemo(() => {
+    return (newsList || [])
+      .filter((n) => (n.documentId ?? String(n.id)) !== String(id))
+      .slice(0, 8);
+  }, [newsList, id]);
+
+  useEffect(() => {
+    dispatch(loadAllNews());
+  }, [dispatch]);
 
   useEffect(() => {
     if (!id) return;
@@ -32,13 +46,6 @@ export default function NewsDetailPage() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [id]);
-
-  useEffect(() => {
-    fetchAllNews(1, 12).then((res) => {
-      const list = (res.news || []).filter((n) => n.id !== parseInt(id, 10)).slice(0, 8);
-      setLatestNews(list);
-    });
   }, [id]);
 
   if (loading) {
@@ -87,12 +94,14 @@ export default function NewsDetailPage() {
             <h1 className="text-h1 text-gray-900">
               {article.title}
             </h1>
-            <div className="relative w-full h-[440px] overflow-hidden rounded-xl">
-              <img
-                src={article.image}
-                alt={article.title}
-                className="w-full h-440px object-cover"
-              />
+            <div className="relative w-full h-[440px] overflow-hidden rounded-xl bg-gray-100">
+              {article.imageUrl && (
+                <img
+                  src={article.imageUrl}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                />
+              )}
             </div>
             <p className="text-body font-medium text-gray-700 mt-6">
               {article.description}
@@ -116,14 +125,16 @@ export default function NewsDetailPage() {
               <ul className="divide-y divide-gray-300 px-4">
                 {latestNews.map((item) => (
                   <li key={item.id}>
-                    <Link href={`/news/${item.id}`} className="block">
+                    <Link href={`/news/${item.documentId ?? item.id}`} className="block">
                       <div className="flex gap-3 py-3">
-                        <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg">
-                          <img
-                            src={item.image}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
+                        <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                          {item.imageUrl ? (
+                            <img
+                              src={item.imageUrl}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : null}
                         </div>
                         <div className="min-w-0 flex-1 space-y-2">
                           <h3 className="text-h3 text-gray-900 line-clamp-2">
@@ -133,11 +144,16 @@ export default function NewsDetailPage() {
                             {item.description}
                           </p>
                           <p className="text-small text-gray-400">
-                            {new Date(item.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
+                            {(() => {
+                              const date = item.createdAt || item.date;
+                              if (!date) return '';
+                              const d = new Date(date);
+                              return d.toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: '2-digit',
+                                year: 'numeric',
+                              });
+                            })()}
                           </p>
                         </div>
                       </div>

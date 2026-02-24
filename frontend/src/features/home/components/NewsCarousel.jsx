@@ -23,13 +23,17 @@ export default function NewsCarousel({ news = [] }) {
 
   return (
     <div className="relative rounded-2xl overflow-hidden min-h-[360px] w-full">
-      {/* Full-bleed background image (blurred) */}
-      <img
-        src={currentNews.image}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover blur-[2px] scale-105"
-        aria-hidden
-      />
+      {/* Full-bleed background image (blurred) or fallback gradient */}
+      {(currentNews.imageUrl || currentNews.image) ? (
+        <img
+          src={currentNews.imageUrl || currentNews.image}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover blur-[2px] scale-105"
+          aria-hidden
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary" aria-hidden />
+      )}
       {/* Dark semi-transparent overlay */}
       <div
         className="absolute inset-0 bg-[#1a0a2e]/85"
@@ -45,7 +49,7 @@ export default function NewsCarousel({ news = [] }) {
               {currentNews.category}
             </span>
             <span className="text-white text-body">
-              {new Date(currentNews.date).toLocaleDateString('en-US', {
+              {new Date(currentNews.createdAt || currentNews.date).toLocaleDateString('en-US', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
@@ -77,7 +81,7 @@ export default function NewsCarousel({ news = [] }) {
             size="default"
             className="rounded-lg bg-primary hover:bg-primary/90 text-white font-bold gap-1.5 h-10 px-5"
           >
-            <Link href={`/news/${currentNews.id}`}>
+            <Link href={`/news/${currentNews.documentId ?? currentNews.id}`}>
               Read More
               <ChevronRight className="w-4 h-4" />
             </Link>
