@@ -43,13 +43,20 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
   );
 }
 
-export default function CourseContentList({ contents, current, onSelect, courseId, category, course }) {
+export default function CourseContentList({ current, onSelect, courseId, category, course }) {
+  // Debug: log modules array
+  console.log('CourseContentList course:', course);
+  // Prefer modulesList if present and is array, else fallback to modules
+  const modules = Array.isArray(course?.modulesList)
+    ? course.modulesList
+    : (Array.isArray(course?.modules) ? course.modules : []);
+  console.log('CourseContentList modules:', modules);
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const currentModuleId = searchParams.get('moduleId');
 
-  const defaultModuleId = contents?.[0]?.id;
+  const defaultModuleId = modules?.[0]?.id;
   const activeModuleId = currentModuleId ? parseInt(currentModuleId) : (typeof current === 'number' ? current : defaultModuleId);
   const [openModuleId, setOpenModuleId] = useState(activeModuleId || defaultModuleId);
 
@@ -57,14 +64,14 @@ export default function CourseContentList({ contents, current, onSelect, courseI
     if (activeModuleId) {
       setOpenModuleId(activeModuleId);
     } else if (defaultModuleId && !currentModuleId && course?.documentId) {
-      const url = `/courses/${category}/${course.documentId}${courseId || params.id}`;
+      const url = `/courses/${category}/${course.documentId}`;
       router.replace(url);
     }
     // router is stable and doesn't need to be in dependencies
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeModuleId, defaultModuleId, category, courseId, params.id, currentModuleId, course]);
 
-  if (!contents || !contents.length) return null;
+  if (!modules.length) return <div className="text-gray-500 italic">No modules found for this course.</div>;
 
   const handleModuleClick = (module) => {
     if (!course?.documentId) return;
@@ -78,16 +85,10 @@ export default function CourseContentList({ contents, current, onSelect, courseI
         Course Contents
       </h3>
       <div className="flex flex-col gap-3">
-        {contents.map((module) => {
+        {modules.map((module, idx) => {
           const isOpen = openModuleId === module.id;
           const isSelected = activeModuleId === module.id;
-
-          let displayStatus = module.moduleStatus;
-
-          if (displayStatus === "active" && !isSelected) {
-            displayStatus = "pending";
-          }
-
+          let displayStatus = module.mark_as_read ? "completed" : "active";
           return (
             <div
               key={module.id}
@@ -96,22 +97,22 @@ export default function CourseContentList({ contents, current, onSelect, courseI
               {/* Module Header */}
               <button
                 onClick={() => handleModuleClick(module)}
-                disabled={module.moduleStatus === "locked"}
-                className={`flex items-center gap-3 w-full text-left p-4 ${
-                  module.moduleStatus === "locked" ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-                }`}
+                className={`flex items-center gap-3 w-full text-left p-4 cursor-pointer`}
               >
                 <ModuleCircle
-                  moduleNumber={module.moduleNumber}
+                  moduleNumber={idx + 1}
                   moduleStatus={displayStatus}
                   isSelected={isSelected}
                 />
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-gray-900 truncate">
-                    {module.moduleTitle}
+                  <span className="text-gray-900 truncate font-semibold">
+                    {module.moduleTitle || 'Untitled Module'}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {module.moduleType} &bull; {module.moduleDuration}
+                    {module.moduleType || 'Unknown'}
+                    {typeof module.moduleDuration === 'number' && module.moduleDuration > 0
+                      ? ` • ${module.moduleDuration} min`
+                      : ''}
                   </span>
                 </div>
                 {isOpen ? (

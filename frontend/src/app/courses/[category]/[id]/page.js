@@ -45,11 +45,12 @@ export default function CourseDetailPage() {
 
   if (!course) return <div className="p-8">Course not found.</div>;
 
-  const modulesList = course.modulesList || [];
+  // Use raw modules array for selection
+  const modules = Array.isArray(course.modules) ? course.modules : [];
   const selectedModule = moduleId
-    ? modulesList.find(m => String(m.id) === String(moduleId))
+    ? modules.find(m => String(m.id) === String(moduleId))
     : null;
-  const defaultModule = selectedModule || modulesList[0];
+  const defaultModule = selectedModule || modules[0];
 
   return <CoursesDetailPage category={category} course={course} selectedModule={defaultModule} />;
 }

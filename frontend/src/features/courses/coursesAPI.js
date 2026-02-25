@@ -38,7 +38,7 @@ function normalizeModule(module, index) {
     moduleNumber: index + 1,
     moduleTitle: module.title || '',
     moduleType: module.module_content_type || 'Text',
-    moduleDuration: '',
+    moduleDuration: typeof module.module_duration_min === 'number' ? module.module_duration_min : '',
     moduleStatus: 'active',
     content: extractTextContent(module.text_content),
   };
@@ -55,8 +55,7 @@ function normalizeCourse(course) {
     category: course.course_category || 'Other',
     // UI fields expected by CoursesCategoryPage (original card design)
     image: withImageUrl(course.thumbnail),
-    duration: durationMin > 0 ? Math.round(durationMin / 60 * 10) / 10 : 0,
-    modules: rawModules.length || 0,
+    moduleDuration: durationMin || '',    modules: rawModules.length || 0,
     modulesList: rawModules.map(normalizeModule),
     learners: 0,
     progress: 0,

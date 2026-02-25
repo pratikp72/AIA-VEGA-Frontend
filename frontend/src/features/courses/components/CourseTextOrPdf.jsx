@@ -63,22 +63,14 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
           <span className="text-sm">{selectedModule?.moduleDuration || "Duration"}</span>
         </div>
       </div>
+
+      
       <div className="mx-auto px-xl py-8">
+        
         <div className="space-y-6">
-          {lines.length > 0 ? (
-            lines.map((line, idx) => {
-              if (!line.trim()) return null;
-              return (
-                <div key={idx} className="text-lg text-gray-700 leading-relaxed">
-                  {line}
-                </div>
-              );
-            })
-          ) : (
-            <div className="text-lg text-gray-700 leading-relaxed">
-              <p>No content available for this reading module.</p>
-            </div>
-          )}
+             <div className="text-lg text-gray-700 leading-relaxed">
+             {contentToDisplay || "No content available for this reading module."}
+             </div>
         </div>
       </div>
     </div>
