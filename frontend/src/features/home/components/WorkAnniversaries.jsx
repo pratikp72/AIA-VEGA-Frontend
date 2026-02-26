@@ -5,10 +5,6 @@ import { Trophy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export default function WorkAnniversaries({ anniversaries = [] }) {
-  if (anniversaries.length === 0) {
-    return null;
-  }
-
   return (
     <section className="w-full h-full min-h-0 flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -20,37 +16,44 @@ export default function WorkAnniversaries({ anniversaries = [] }) {
           View Calendar →
         </Link>
       </div>
-
       <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col items-center gap-4 self-stretch p-4 flex-1 min-h-[320px]">
-        {anniversaries.slice(0, 2).map((person) => (
+        {anniversaries.length === 0 ? (
+          <div className="text-gray-500 text-center w-full py-6">No anniversary today</div>
+        ) : (
           <div
-            key={person.id}
-            className="flex flex-col items-start gap-4  w-full h-[130px]"
+            className={anniversaries.length > 2 ? "max-h-[280px] overflow-y-auto w-full pr-2" : "w-full"}
           >
-            <div className="relative flex items-center gap-4 py-4 px-5 w-full">
-              <img
-                src={person.avatar}
-                alt={person.name}
-                className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>
-                <p className="text-small text-gray-500 leading-tight mt-0.5">
-                  {person.department} · {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                </p>
+            {anniversaries.map((person) => (
+              <div
+                key={person.id}
+                className="flex flex-col items-start gap-4  w-full h-[130px]"
+              >
+                <div className="relative flex items-center gap-4 py-4 px-5 w-full">
+                  <img
+                    src={person.avatar}
+                    alt={person.name}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>
+                    <p className="text-small text-gray-500 leading-tight mt-0.5">
+                      {person.department} · {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 bg-green-500 text-white text-small font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+                    {person.yearsCompleted} year{person.yearsCompleted > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <div className="bg-purple-100 px-4 py-2 flex items-center gap-2 flex-shrink-0 rounded w-full">
+                  <Trophy className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                  <span className="text-small text-purple-700 font-medium leading-tight">
+                    {person.yearsCompleted} Year{person.yearsCompleted > 1 ? 's' : ''} Completion Celebration
+                  </span>
+                </div>
               </div>
-              <span className="absolute right-5 top-1/2 -translate-y-1/2 bg-green-500 text-white text-small font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                {person.yearsCompleted} year{person.yearsCompleted > 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="bg-purple-100 px-4 py-2 flex items-center gap-2 flex-shrink-0 rounded w-full">
-              <Trophy className="w-4 h-4 text-purple-600 flex-shrink-0" />
-              <span className="text-small text-purple-700 font-medium leading-tight">
-                {person.yearsCompleted} Year{person.yearsCompleted > 1 ? 's' : ''} Completion Celebration
-              </span>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
       </Card>
     </section>
   );

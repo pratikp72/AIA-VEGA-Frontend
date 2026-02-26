@@ -45,8 +45,8 @@ export default function CourseDetailPage() {
 
   if (!course) return <div className="p-8">Course not found.</div>;
 
-  // Use raw modules array for selection
-  const modules = Array.isArray(course.modules) ? course.modules : [];
+  // Use normalized modulesList (normalizeModule maps modules → modulesList)
+  const modules = Array.isArray(course.modulesList) ? course.modulesList : [];
   const selectedModule = moduleId
     ? modules.find(m => String(m.id) === String(moduleId))
     : null;

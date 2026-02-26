@@ -47,6 +47,18 @@ const coursesSlice = createSlice({
       state.currentCourse = null;
       state.courseDetailError = null;
     },
+    markModuleAsRead: (state, action) => {
+      const { moduleId } = action.payload;
+      if (state.currentCourse?.modulesList) {
+        const mod = state.currentCourse.modulesList.find(m => m.id === moduleId);
+        if (mod) mod.mark_as_read = true;
+      }
+      // Keep rawModules in sync so the next PUT sends the correct payload
+      if (state.currentCourse?.rawModules) {
+        const raw = state.currentCourse.rawModules.find(m => m.id === moduleId);
+        if (raw) raw.mark_as_read = true;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -78,5 +90,5 @@ const coursesSlice = createSlice({
   },
 });
 
-export const { clearError, resetCoursesState, clearCurrentCourse } = coursesSlice.actions;
+export const { clearError, resetCoursesState, clearCurrentCourse, markModuleAsRead } = coursesSlice.actions;
 export default coursesSlice.reducer;

@@ -33,14 +33,26 @@ function extractTextContent(blocks) {
 }
 
 function normalizeModule(module, index) {
+  // Strapi returns video_file as an array for media fields — take the first item
+  const videoFile = Array.isArray(module.video_file) ? module.video_file[0] : module.video_file;
+  const rawUrl = videoFile?.url;
+  const videoUrl = rawUrl
+    ? (rawUrl.startsWith('http') ? rawUrl : BASE_URL + (rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`))
+    : null;
+
   return {
     id: module.id,
+    moduleId: module.module_id || '',
     moduleNumber: index + 1,
     moduleTitle: module.title || '',
     moduleType: module.module_content_type || 'Text',
     moduleDuration: typeof module.module_duration_min === 'number' ? module.module_duration_min : '',
     moduleStatus: 'active',
     content: extractTextContent(module.text_content),
+    text_content: module.text_content || null,
+    video_file: videoFile && videoUrl ? { ...videoFile, url: videoUrl } : null,
+    mark_as_read: module.mark_as_read || false,
+    language: module.language || '',
   };
 }
 
@@ -55,8 +67,11 @@ function normalizeCourse(course) {
     category: course.course_category || 'Other',
     // UI fields expected by CoursesCategoryPage (original card design)
     image: withImageUrl(course.thumbnail),
-    moduleDuration: durationMin || '',    modules: rawModules.length || 0,
+    moduleDuration: durationMin || '',
+    modules: rawModules.length || 0,
+    rawModules,                              // raw Strapi format — needed for PUT updates
     modulesList: rawModules.map(normalizeModule),
+    quiz: Array.isArray(course.quiz) ? course.quiz : [],
     learners: 0,
     progress: 0,
     completed: false,
@@ -82,9 +97,49 @@ export const fetchAllCourses = async () => {
 };
 
 export const fetchCourseById = async (documentId) => {
-  const response = await api.get(API_ENDPOINTS.COURSES.GET(documentId), { params: { populate: '*' } });
+  const response = await api.get(API_ENDPOINTS.COURSES.GET(documentId), {
+    params: {
+      'populate[modules][populate]': '*',
+      'populate[thumbnail]': true,
+      'populate[quiz][populate]': '*',
+      'populate[feedback]': true,
+      'populate[orientation_detail]': true,
+      'populate[prerequisite_courses]': true,
+    },
+  });
   const raw = response?.data || response;
   return normalizeCourse(raw);
+};
+
+export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModules) => {
+  // Build the full modules payload in Strapi write format.
+  // - Do NOT include 'id' — Strapi v5 rejects it for component arrays in PUT body.
+  // - Media fields must be sent as IDs (not full objects).
+  // - text_content is a Blocks (rich text) field — send as-is from the raw data.
+  const updatedModules = rawModules.map((module) => {
+    let videoFile = null;
+    if (Array.isArray(module.video_file) && module.video_file.length > 0) {
+      videoFile = module.video_file.map((f) => f.id);
+    } else if (module.video_file?.id) {
+      videoFile = module.video_file.id;
+    }
+    return {
+      module_id: module.module_id,
+      language: module.language,
+      title: module.title,
+      module_content_type: module.module_content_type,
+      text_content: module.text_content ?? null,
+      mark_as_read: module.id === moduleId ? true : module.mark_as_read,
+      module_duration_min: module.module_duration_min ?? null,
+      video_file: videoFile,
+    };
+  });
+
+  console.log('[updateModuleMarkAsRead] PUT payload:', JSON.stringify({ data: { modules: updatedModules } }, null, 2));
+
+  await api.put(API_ENDPOINTS.COURSES.GET(courseDocumentId), {
+    data: { modules: updatedModules },
+  }, { timeout: 30000 });
 };
 
 export const fetchCourseCategories = fetchAllCourses;

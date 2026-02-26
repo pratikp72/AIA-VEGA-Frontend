@@ -12,10 +12,12 @@ import { loadAllNews } from '@/features/news/newsSlice';
 import { selectNewsList } from '@/features/news/newsSelectors';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Loader from '@/components/common/Loader';
+import MarkdownIt from 'markdown-it';
 
 export default function NewsDetailPage() {
   const params = useParams();
   const id = params?.id;
+  const md = new MarkdownIt({ html: true });
   const dispatch = useAppDispatch();
   const newsList = useAppSelector(selectNewsList);
   const [article, setArticle] = useState(null);
@@ -103,16 +105,8 @@ export default function NewsDetailPage() {
                 />
               )}
             </div>
-            <p className="text-body font-medium text-gray-700 mt-6">
-              {article.description}
-            </p>
             <div className="prose prose-gray max-w-none text-gray-600">
-              <p>
-                {article.description}
-              </p>
-              <p>
-                We are committed to keeping our employees and stakeholders informed. For more updates, visit the News section regularly.
-              </p>
+              <p dangerouslySetInnerHTML={{ __html: md.render(article.description || '') }} />
             </div>
           </article>
 
@@ -140,9 +134,7 @@ export default function NewsDetailPage() {
                           <h3 className="text-h3 text-gray-900 line-clamp-2">
                             {item.title}
                           </h3>
-                          <p className="text-body text-gray-500 line-clamp-2">
-                            {item.description}
-                          </p>
+                          <p className="text-body text-gray-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: md.render(item.description || '') }} />
                           <p className="text-small text-gray-400">
                             {(() => {
                               const date = item.createdAt || item.date;

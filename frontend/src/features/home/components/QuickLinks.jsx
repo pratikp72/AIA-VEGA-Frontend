@@ -26,7 +26,7 @@ export default function QuickLinks({ links = [] }) {
       <h2 className="text-h2 mb-6">Quick Links</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {links.slice(0, 12).map((link, index) => (
-          <Link key={link.id} href={link.link}>
+          <Link key={link.id} href={link.url || '#'}>
             <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-gray-200">
               <div className="flex flex-col items-center text-center gap-3">
                 <div
@@ -34,10 +34,12 @@ export default function QuickLinks({ links = [] }) {
                     iconColors[index % iconColors.length]
                   } flex items-center justify-center text-h2`}
                 >
-                  {link.icon}
+                  {link.icon && link.icon.iconData ? (
+                    <span dangerouslySetInnerHTML={{ __html: link.icon.iconData }} />
+                  ) : null}
                 </div>
                 <span className="text-body font-medium text-gray-700">
-                  {link.name}
+                  {link.title || link.name}
                 </span>
               </div>
             </Card>

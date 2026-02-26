@@ -1,6 +1,6 @@
 // Selectors for Home feature (news carousel comes from news slice)
 export const selectNewsCarousel = (state) =>
-  (state.news?.newsList ?? []).slice(0, 4);
+  (state.news?.newsList ?? []);
 export const selectQuickLinks = (state) => state.home.quickLinks;
 export const selectUpcomingEvents = (state) => state.home.upcomingEvents;
 export const selectNewJoinees = (state) => state.home.newJoinees;

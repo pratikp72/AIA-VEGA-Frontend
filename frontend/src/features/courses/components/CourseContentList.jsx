@@ -43,14 +43,11 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
   );
 }
 
-export default function CourseContentList({ current, onSelect, courseId, category, course }) {
-  // Debug: log modules array
-  console.log('CourseContentList course:', course);
+export default function CourseContentList({ current, onSelect, courseId, category, course, canMarkAsRead, onMarkAsRead }) {
   // Prefer modulesList if present and is array, else fallback to modules
   const modules = Array.isArray(course?.modulesList)
     ? course.modulesList
     : (Array.isArray(course?.modules) ? course.modules : []);
-  console.log('CourseContentList modules:', modules);
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -79,6 +76,12 @@ export default function CourseContentList({ current, onSelect, courseId, categor
     router.push(url);
   };
 
+  const handleNextLecture = (nextModule) => {
+    if (!nextModule || !course?.documentId) return;
+    const url = `/courses/${category}/${course.documentId}/${nextModule.id}`;
+    router.push(url);
+  };
+
   return (
     <div>
       <h3 className="mt-10 mb-6 text-2xl font-bold text-gray-900">
@@ -88,7 +91,13 @@ export default function CourseContentList({ current, onSelect, courseId, categor
         {modules.map((module, idx) => {
           const isOpen = openModuleId === module.id;
           const isSelected = activeModuleId === module.id;
-          let displayStatus = module.mark_as_read ? "completed" : "active";
+          const isRead = module.mark_as_read;
+          const nextModule = modules[idx + 1] || null;
+          // "Mark as Read" is clickable only for the active module after 50% time spent
+          const markEnabled = isSelected && canMarkAsRead && !isRead;
+          // "Next Lecture" is enabled only after this module is marked as read
+          const nextEnabled = isRead && !!nextModule;
+          let displayStatus = isRead ? "completed" : "active";
           return (
             <div
               key={module.id}
@@ -127,12 +136,33 @@ export default function CourseContentList({ current, onSelect, courseId, categor
                 <>
                   {/* Action Buttons */}
                   <div className="flex items-center gap-4 rounded-b-2xl px-4 pb-4">
-                    <button className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl bg-white border border-primary text-primary h-10 text-sm font-semibold hover:bg-gray-50 transition cursor-pointer">
-                      Mark as read
+                    {/* Mark as Read — enabled after spending 50% of module duration */}
+                    <button
+                      onClick={() => markEnabled && onMarkAsRead(module.id)}
+                      disabled={!markEnabled}
+                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl h-10 text-sm font-semibold transition
+                        ${isRead
+                          ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                          : markEnabled
+                            ? 'bg-white border border-primary text-primary hover:bg-gray-50 cursor-pointer'
+                            : 'bg-gray-50 border border-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                    >
+                      {isRead ? 'Marked as Read' : 'Mark as Read'}
                       <SquareCheckBig className="w-4 h-4" />
                     </button>
-                    <button className="flex-1 flex items-center justify-center h-10 gap-2 p-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer">
-                      Next Lecture
+
+                    {/* Next Lecture — enabled only after marking as read */}
+                    <button
+                      onClick={() => nextEnabled && handleNextLecture(nextModule)}
+                      disabled={!nextEnabled}
+                      className={`flex-1 flex items-center justify-center h-10 gap-2 p-3 rounded-xl text-sm font-semibold transition
+                        ${nextEnabled
+                          ? 'bg-primary text-white hover:bg-primary/90 cursor-pointer'
+                          : 'bg-primary/40 text-white cursor-not-allowed'
+                        }`}
+                    >
+                      {nextModule ? 'Next Lecture' : 'Last Module'}
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>

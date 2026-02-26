@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
@@ -7,20 +7,22 @@ import CourseStats from "./CourseStats";
 import CourseContentList from "./CourseContentList";
 import FinalAssessment from "./FinalAssessment";
 import CourseTextOrPdf from "./CourseTextOrPdf";
-
+import { useAppDispatch } from "@/store/hooks";
+import { markModuleAsRead } from "@/features/courses/coursesSlice";
+import { updateModuleMarkAsRead } from "@/features/courses/coursesAPI";
 
 export default function CoursesDetailPage({ category, course, selectedModule }) {
-  // Debug: log course object
-  console.log('CoursesDetailPage course:', course);
+  const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const [showFullReadingView, setShowFullReadingView] = useState(false);
+  const [canMarkAsRead, setCanMarkAsRead] = useState(false);
 
   if (!course) return <div className="p-8">Course not found.</div>;
 
 
 
-  // Use raw Strapi modules array directly
-  const contents = Array.isArray(course.modules) ? course.modules : [];
+  // Use normalized modulesList (normalizeModule maps modules → modulesList)
+  const contents = Array.isArray(course.modulesList) ? course.modulesList : [];
   const quizzes = course.quiz || [];
   const feedbacks = course.feedback || [];
   const description = course.description || [];
@@ -30,6 +32,29 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
 
   const moduleId = searchParams.get('moduleId');
   const currentModule = selectedModule || (moduleId ? contents.find(m => String(m.id) === String(moduleId)) : contents[0]) || contents[0];
+
+  // Reset canMarkAsRead and start a 50%-duration timer whenever the module changes.
+  // If the module has no duration, enable immediately.
+  useEffect(() => {
+    setCanMarkAsRead(false);
+    const durationMin = currentModule?.moduleDuration;
+    if (!durationMin || durationMin <= 0) {
+      setCanMarkAsRead(true);
+      return;
+    }
+    const thresholdMs = durationMin * 60 * 1000 * 0.5; // 50% of duration in ms
+    const timer = setTimeout(() => setCanMarkAsRead(true), thresholdMs);
+    return () => clearTimeout(timer);
+  }, [currentModule?.id]); // re-run only when module changes
+
+  const handleMarkAsRead = async (moduleId) => {
+    dispatch(markModuleAsRead({ moduleId })); // instant UI update
+    try {
+      await updateModuleMarkAsRead(course.documentId, moduleId, course.rawModules); // persist to Strapi
+    } catch (err) {
+      console.error('Failed to mark module as read:', err);
+    }
+  };
 
   if (showFullReadingView) {
     return <CourseTextOrPdf course={course} category={category} selectedModule={currentModule} onBack={() => setShowFullReadingView(false)} />;
@@ -71,23 +96,23 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
                 <div className="flex items-center gap-2 text-gray-700">
                   <FolderOpen className="w-5 h-5 text-primary" />
                   <span className="text-sm">
-                    6 sections
+                      {contents.length} {contents.length === 1 ? "section" : "sections"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-700">
                   <Clock className="w-5 h-5 text-primary" />
-                  <span className="text-sm">{currentModule?.moduleDuration || "Duration"}</span>
+                  <span className="text-sm">{currentModule?.moduleDuration || "Duration"} mins</span>
                 </div>
               </div>
 
               {currentModule && (
                 <h2 className="text-lg font-semibold text-gray-900 mt-10">
-                  {currentModule.title}
+                  {currentModule.moduleTitle || currentModule.title}
                 </h2>
               )}
 
               {/* Show content based on moduleType */}
-              {currentModule?.module_content_type === 'Video' ? (
+              {currentModule?.moduleType === 'Video' ? (
                 <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
                   <video
                     controls
@@ -100,20 +125,20 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
                     Your browser does not support the video tag.
                   </video>
                 </div>
-              ) : currentModule?.module_content_type === 'Text' ? (
+              ) : currentModule?.moduleType === 'Text' ? (
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {/* Reading Content Preview Container */}
                   <div className="p-4 space-y-5 max-h-[467px] overflow-y-auto">
-                    {currentModule.text_content ? (
+                    {currentModule.content ? (
                       <div className="space-y-4">
-                        {currentModule.text_content.split(/\n+/).slice(0, 5).map((line, idx) => (
+                        {currentModule.content.split(/\n+/).slice(0, 5).map((line, idx) => (
                           line.trim() && (
                             <p key={idx} className="text-sm text-gray-700 leading-relaxed">
                               {line}
                             </p>
                           )
                         ))}
-                        {currentModule.text_content.split(/\n+/).length > 5 && (
+                        {currentModule.content.split(/\n+/).length > 5 && (
                           <p className="text-sm text-gray-500 italic">
                             ... (content truncated, click "View Full Content" to read more)
                           </p>
@@ -163,8 +188,16 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
             {/* Right Column: Stats + Course Contents */}
             <div className="lg:col-span-1 mt-18">
               <CourseStats course={course} />
-              <CourseContentList contents={contents} current={currentModule?.id || 0} courseId={course.id} category={category} course={course} />
-              <FinalAssessment unlocked={unlocked} category={category} courseId={course.id} />
+              <CourseContentList
+                contents={contents}
+                current={currentModule?.id || 0}
+                courseId={course.documentId}
+                category={category}
+                course={course}
+                canMarkAsRead={canMarkAsRead}
+                onMarkAsRead={handleMarkAsRead}
+              />
+              <FinalAssessment unlocked={unlocked} category={category} courseId={course.documentId} />
             </div>
           </div>
         </PageSection>

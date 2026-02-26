@@ -2,19 +2,20 @@ import api from '@/services/api';
 import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
 
-// News is loaded via news slice (loadAllNews). Carousel reads from state.news via selector.
-
 export const fetchDashboardData = async () => {
   const rest = USE_MOCK_DATA
     ? await mockDelay().then(() => MOCK_HOME_DATA.dashboard)
     : await Promise.resolve(MOCK_HOME_DATA.dashboard);
   if (!USE_MOCK_DATA) {
-    const [events, newJoinees, courses] = await Promise.all([
+    const [events, newJoinees, courses, quickLinks, birthdays, anniversaries] = await Promise.all([
       fetchUpcomingEvents(),
       fetchNewJoinees(),
       fetchMyCourses(),
+      fetchQuickLinks(),
+      fetchBirthdaysToday(),
+      fetchWorkAnniversaries(),
     ]);
-    return { ...rest, events, newJoinees, courses };
+    return { ...rest, events, newJoinees, courses, quickLinks, birthdays, anniversaries };
   }
   return { ...rest };
 };
@@ -24,7 +25,19 @@ export const fetchQuickLinks = async () => {
     await mockDelay(300);
     return MOCK_HOME_DATA.quickLinks;
   }
-  return MOCK_HOME_DATA.quickLinks;
+
+  const response = await api.get('/important-links');
+  // The API returns { data: [...] }
+  const links = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+  // Map to expected frontend format if needed
+  return links.map(link => ({
+    id: link.id,
+    documentId: link.documentId,
+    title: link.title,
+    url: link.url,
+    icon: link.icon,
+    active: link.active,
+  }));
 };
 
 function formatEventTime(isoDate) {
@@ -135,22 +148,59 @@ export const fetchMyCourses = async () => {
     }));
 };
 
+
 export const fetchBirthdaysToday = async () => {
-  if (USE_MOCK_DATA) {
-    await mockDelay(300);
-    return MOCK_HOME_DATA.birthdays;
-  }
-  
-  return MOCK_HOME_DATA.birthdays;
+  // Fetch all users
+  const response = await api.get(API_ENDPOINTS.USERS.LIST);
+  const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+  const today = new Date();
+  const todayMonth = today.getMonth() + 1;
+  const todayDate = today.getDate();
+  // Filter users whose date_of_birth matches today (ignore year)
+  return users
+    .filter(u => {
+      if (!u.date_of_birth) return false;
+      const [year, month, day] = u.date_of_birth.split('-').map(Number);
+      return month === todayMonth && day === todayDate;
+    })
+    .map(u => ({
+      id: u.id,
+      name: u.employee_name || u.username || 'Unknown',
+      position: u.designation || '',
+      department: u.department || '',
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.employee_name || u.username || 'Unknown')}`,
+      date: u.date_of_birth,
+    }));
 };
 
+
 export const fetchWorkAnniversaries = async () => {
-  if (USE_MOCK_DATA) {
-    await mockDelay(300);
-    return MOCK_HOME_DATA.anniversaries;
-  }
-  
-  return MOCK_HOME_DATA.anniversaries;
+  // Fetch all users
+  const response = await api.get(API_ENDPOINTS.USERS.LIST);
+  const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+  const today = new Date();
+  const todayMonth = today.getMonth() + 1;
+  const todayDate = today.getDate();
+  // Filter users whose joining_date matches today (ignore year)
+  return users
+    .filter(u => {
+      if (!u.joining_date) return false;
+      const [year, month, day] = u.joining_date.split('-').map(Number);
+      return month === todayMonth && day === todayDate;
+    })
+    .map(u => {
+      const [year, month, day] = u.joining_date.split('-').map(Number);
+      const yearsCompleted = today.getFullYear() - year;
+      return {
+        id: u.id,
+        name: u.employee_name || u.username || 'Unknown',
+        position: u.designation || '',
+        department: u.department || '',
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.employee_name || u.username || 'Unknown')}`,
+        yearsCompleted,
+        joinDate: u.joining_date,
+      };
+    });
 };
 
 export default {

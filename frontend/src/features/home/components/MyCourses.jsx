@@ -22,7 +22,7 @@ export default function MyCourses({ courses = [] }) {
 
       <div className="flex flex-col items-start gap-6 h-[677px] flex-1 w-full">
         {courses.slice(0, 4).map((course) => (
-          <Link key={course.id} href={`/courses/${course.id}`} className="flex-1 min-h-0 flex w-full min-w-0">
+          <Link key={course.id} href={`/courses/${(course.category || 'courses').toLowerCase().replace(/\s+/g, '-')}/${course.documentId || course.id}`} className="flex-1 min-h-0 flex w-full min-w-0">
             <Card className="w-full min-w-0 p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 bg-white rounded-[20px] h-[140px] flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
               <div className="flex gap-4 flex-1 min-h-0 min-w-0 w-full">
                 {/* Course Thumbnail - fixed size, same for all */}

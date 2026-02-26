@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import MarkdownIt from 'markdown-it';
 
 export default function NewsCarousel({ news = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  
+  const md = new MarkdownIt({ html: true });
 
   useEffect(() => {
     if (!isAutoPlaying || news.length === 0) return;
@@ -32,7 +35,7 @@ export default function NewsCarousel({ news = [] }) {
           aria-hidden
         />
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary" aria-hidden />
+        <div className="absolute inset-0 bg-primary-opacity-10" aria-hidden />
       )}
       {/* Dark semi-transparent overlay */}
       <div
@@ -45,8 +48,8 @@ export default function NewsCarousel({ news = [] }) {
         {/* Top bar: tag + date | View All News */}
         <div className="flex items-start justify-between gap-4 mb-10">
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-normal text-white bg-primary">
-              {currentNews.category}
+            <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-normal text-white bg-primary-opacity-20">
+              Important
             </span>
             <span className="text-white text-body">
               {new Date(currentNews.createdAt || currentNews.date).toLocaleDateString('en-US', {
@@ -70,9 +73,7 @@ export default function NewsCarousel({ news = [] }) {
         </h2>
 
         {/* Description */}
-        <p className="text-white text-body leading-relaxed max-w-3xl mb-8 pr-24">
-          {currentNews.description}
-        </p>
+        <p className="text-white text-body leading-relaxed mb-8" dangerouslySetInnerHTML={{ __html: md.render(currentNews.description || '') }} />
 
         {/* Read More button */}
         <div className="mt-auto">

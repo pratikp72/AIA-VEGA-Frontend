@@ -67,6 +67,7 @@ export const API_ENDPOINTS = {
     GET: (id) => `/courses/${id}`,
     MY_COURSES: '/courses/my-courses',
   },
+
 };
 
 export default API_ENDPOINTS;

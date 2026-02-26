@@ -52,13 +52,20 @@ async function fetchNewsInternal(params = {}) {
   return { news };
 }
 
+
 export async function fetchAllNews() {
   if (USE_MOCK_DATA) {
     await mockDelay();
-    return { news: MOCK_NEWS_DATA.map((item) => withImageUrl(item)) };
+    return { news: MOCK_NEWS_DATA.filter(item => item.visible_on_homepage).map((item) => withImageUrl(item)) };
   }
-  return fetchNewsInternal();
+  // Fetch from API and filter for visible_on_homepage
+  const res = await api.get('/news-items', { params: { populate: '*' } });
+  const raw = Array.isArray(res?.data) ? res.data : [];
+  // If API returns { data: [...] }, use res.data
+  const filtered = raw.filter(item => item.visible_on_homepage === true || item.visible_on_homepage === 1);
+  return { news: filtered.map(normalizeItem) };
 }
+
 
 export async function fetchNewsByCategory(category) {
   if (USE_MOCK_DATA) {
