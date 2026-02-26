@@ -35,9 +35,9 @@ export default function AssessmentInstructionsRoutePage() {
     );
   }
 
-  // Use the first quiz's instructions (courses typically have one quiz per language)
-  const quiz = course?.quiz?.[0] || null;
-
+  // Map instructions from the quiz object to quiz_instruction for compatibility
+  let quiz = course?.quiz?.[0] || null;
+  
   return (
     <AssessmentInstructions
       category={category}

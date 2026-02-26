@@ -135,10 +135,10 @@ function ResultScreen({
   );
 }
 
-export default function AssessmentQuiz({ onExit, courseId }) {
+export default function AssessmentQuiz({ onExit, courseId, quizQuestions, resultData: resultDataProp }) {
   const router = useRouter();
-  const questions = MOCK_ASSESSMENT_QUESTIONS;
-  const resultData = MOCK_ASSESSMENT_RESULTS;
+  const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
+  const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
   const { mandatory: feedbackMandatory } = getCourseFeedbackConfig(courseId);
 
@@ -322,12 +322,19 @@ export default function AssessmentQuiz({ onExit, courseId }) {
 
           <div className="h-[330px]">
             <h2 className="text-base font-medium text-gray-900 mb-6">
-              {currentQuestion.question}
+              {currentQuestion.question_text || currentQuestion.question}
             </h2>
 
             <div className="flex flex-col">
-              {currentQuestion.options.map((option, idx) => {
+              {(currentQuestion.options || currentQuestion.choices || []).map((option, idx) => {
                 const isSelected = answers[currentQuestion.id] === idx;
+                // Support object or string option
+                let label = '';
+                if (typeof option === 'object' && option !== null) {
+                  label = option.option_label || option.text || option.label || '';
+                } else {
+                  label = option;
+                }
                 return (
                   <label
                     key={idx}
@@ -343,7 +350,7 @@ export default function AssessmentQuiz({ onExit, courseId }) {
                         <span className="w-2 h-2 rounded-full bg-primary" />
                       )}
                     </span>
-                    <span className="text-xs text-gray-700">{option}</span>
+                    <span className="text-xs text-gray-700">{label}</span>
                   </label>
                 );
               })}

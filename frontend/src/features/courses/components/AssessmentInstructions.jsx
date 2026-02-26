@@ -28,34 +28,51 @@ const ICON_MAP = {
 };
 
 export default function AssessmentInstructions(props) {
+  // Debug: log the received quiz prop
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("AssessmentInstructions quiz prop:", props.quiz);
+  }
   const [category, setCategory] = useState(props.category || "");
   const [courseId, setCourseId] = useState(props.courseId || "");
   const [courseName, setCourseName] = useState(props.courseName || "");
   const [quizStarted, setQuizStarted] = useState(false);
 
-
-  const { subtitle, notice, instructionCards: mockInstructionCards, checklist: mockChecklist, buttonText } =
-    MOCK_ASSESSMENT_DATA;
+  const {
+    subtitle,
+    notice,
+    instructionCards: mockInstructionCards,
+    checklist: mockChecklist,
+    buttonText,
+  } = MOCK_ASSESSMENT_DATA;
 
   // Build instruction cards: prefer API quiz_instruction, fall back to mock
   const apiInstructions = props.quiz?.quiz_instruction;
-  const instructionCards = Array.isArray(apiInstructions) && apiInstructions.length > 0
-    ? apiInstructions.map((instr, idx) => ({
-        title: instr.name,
-        description: instr.description,
-        icon: instr.icon,
-      }))
-    : mockInstructionCards;
+  const instructionCards =
+    Array.isArray(apiInstructions) && apiInstructions.length > 0
+      ? apiInstructions.map((instr, idx) => ({
+          title: instr.name,
+          description: instr.description,
+          icon: instr.icon,
+        }))
+      : mockInstructionCards && mockInstructionCards.length > 0
+        ? mockInstructionCards
+        : [
+            {
+              title: "No instructions available",
+              description: "No assessment instructions found for this course.",
+              icon: "HelpCircle",
+            },
+          ];
 
-  // Build checklist: prefer API quiz_instruction_checklist, fall back to mock
   const apiChecklist = props.quiz?.quiz_instruction_checklist;
-  const checklist = Array.isArray(apiChecklist) && apiChecklist.length > 0
-    ? {
-        title: 'Checklist',
-        subtitle: '',
-        items: apiChecklist.map(item => item.discription || item.description || ''),
-      }
-    : mockChecklist;
+  const checklist =
+    Array.isArray(apiChecklist) && apiChecklist.length > 0
+      ? {
+          subtitle: mockChecklist?.subtitle || "",
+          items: apiChecklist.map((item) => item.discription), // note: Strapi has typo "discription"
+        }
+      : mockChecklist;
 
   useEffect(() => {
     let _category = props.category;
@@ -80,11 +97,29 @@ export default function AssessmentInstructions(props) {
     }
   }, [props.category, props.courseId, props.courseName]);
 
+  // Prepare quiz questions and result data for AssessmentQuiz
+  // Support both quiz_questions (from API) and questions (legacy/mock)
+  let quizQuestions = undefined;
+  if (
+    Array.isArray(props.quiz?.quiz_questions) &&
+    props.quiz.quiz_questions.length > 0
+  ) {
+    quizQuestions = props.quiz.quiz_questions;
+  } else if (
+    Array.isArray(props.quiz?.questions) &&
+    props.quiz.questions.length > 0
+  ) {
+    quizQuestions = props.quiz.questions;
+  }
+  const resultData = props.quiz?.resultData; // optional, fallback to mock in AssessmentQuiz
+
   if (quizStarted) {
     return (
       <AssessmentQuiz
         onExit={() => setQuizStarted(false)}
         courseId={courseId}
+        quizQuestions={quizQuestions}
+        resultData={resultData}
       />
     );
   }
@@ -145,7 +180,11 @@ export default function AssessmentInstructions(props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
             {instructionCards.map((card, idx) => {
               let iconElement = null;
-              if (card.icon && typeof card.icon === 'object' && card.icon.iconData) {
+              if (
+                card.icon &&
+                typeof card.icon === "object" &&
+                card.icon.iconData
+              ) {
                 // Render SVG from API
                 iconElement = (
                   <svg
@@ -158,19 +197,23 @@ export default function AssessmentInstructions(props) {
                     dangerouslySetInnerHTML={{ __html: card.icon.iconData }}
                   />
                 );
-              } else if (card.icon && typeof card.icon === 'string' && ICON_MAP[card.icon]) {
+              } else if (
+                card.icon &&
+                typeof card.icon === "string" &&
+                ICON_MAP[card.icon]
+              ) {
                 // Render default icon from ICON_MAP
                 const IconComp = ICON_MAP[card.icon];
-                iconElement = <IconComp className="w-4 h-4 text-primary-purple" />;
+                iconElement = (
+                  <IconComp className="w-4 h-4 text-primary-purple" />
+                );
               }
               return (
                 <div
                   key={idx}
                   className="bg-gray-50 border border-gray-200 rounded-xl p-5 flex items-start gap-2.5"
                 >
-                  <span
-                    className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 mt-0.5 bg-primary-light"
-                  >
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full shrink-0 mt-0.5 bg-primary-light">
                     {iconElement}
                   </span>
                   <div className="flex flex-col gap-1">
@@ -192,7 +235,9 @@ export default function AssessmentInstructions(props) {
               Pre-Assessment Checklist
             </h2>
             <div className="bg-white border border-gray-200 rounded-xl p-6">
-              {checklist.subtitle && <p className="mb-4">{checklist.subtitle}</p>}
+              {checklist.subtitle && (
+                <p className="mb-4">{checklist.subtitle}</p>
+              )}
               <ul className="flex flex-col gap-3">
                 {checklist.items.map((item, idx) => (
                   <li key={idx} className="flex items-center gap-2.5">

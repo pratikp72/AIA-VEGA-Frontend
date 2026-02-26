@@ -59,6 +59,13 @@ function normalizeModule(module, index) {
 function normalizeCourse(course) {
   const durationMin = course.course_duration_min || 0;
   const rawModules = Array.isArray(course.modules) ? course.modules : [];
+  // Normalize quiz array to always include quiz_questions if present
+  const quiz = Array.isArray(course.quiz)
+    ? course.quiz.map(q => ({
+        ...q,
+        quiz_questions: Array.isArray(q.quiz_questions) ? q.quiz_questions : [],
+      }))
+    : [];
   return {
     id: course.id,
     documentId: course.documentId,
@@ -71,7 +78,7 @@ function normalizeCourse(course) {
     modules: rawModules.length || 0,
     rawModules,                              // raw Strapi format — needed for PUT updates
     modulesList: rawModules.map(normalizeModule),
-    quiz: Array.isArray(course.quiz) ? course.quiz : [],
+    quiz,
     learners: 0,
     progress: 0,
     completed: false,
@@ -91,20 +98,28 @@ export const fetchAllCourses = async () => {
     await mockDelay(300);
     return MOCK_COURSE_CATEGORIES;
   }
-  const response = await api.get(API_ENDPOINTS.COURSES.LIST, { params: { populate: '*' } });
+const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
+  params: {
+    'populate[thumbnail]': true,
+    'populate[quiz][populate][quiz_questions][populate][options]': true,
+    'populate[modules]': true,
+  }
+});
   const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   return raw.filter(c => c.active !== false).map(normalizeCourse);
 };
 
 export const fetchCourseById = async (documentId) => {
   const response = await api.get(API_ENDPOINTS.COURSES.GET(documentId), {
-    params: {
+     params: {
       'populate[modules][populate]': '*',
       'populate[thumbnail]': true,
-      'populate[quiz][populate]': '*',
       'populate[feedback]': true,
       'populate[orientation_detail]': true,
       'populate[prerequisite_courses]': true,
+      'populate[quiz][populate][quiz_questions][populate][options]': true,
+      'populate[quiz][populate][quiz_instruction]': true,
+      'populate[quiz][populate][quiz_instruction_checklist][populate]': '*',
     },
   });
   const raw = response?.data || response;
@@ -112,10 +127,6 @@ export const fetchCourseById = async (documentId) => {
 };
 
 export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModules) => {
-  // Build the full modules payload in Strapi write format.
-  // - Do NOT include 'id' — Strapi v5 rejects it for component arrays in PUT body.
-  // - Media fields must be sent as IDs (not full objects).
-  // - text_content is a Blocks (rich text) field — send as-is from the raw data.
   const updatedModules = rawModules.map((module) => {
     let videoFile = null;
     if (Array.isArray(module.video_file) && module.video_file.length > 0) {
