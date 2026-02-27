@@ -13,6 +13,7 @@ import {
   MOCK_ASSESSMENT_RESULTS,
   getCourseFeedbackConfig,
 } from "@/services/mockData";
+import { submitQuiz, getLatestSubmission } from "../quizSubmissionAPI";
 import FeedbackForm from "./FeedbackForm";
 import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
@@ -26,6 +27,8 @@ function ResultScreen({
   feedbackMandatory,
   feedbackSubmitted,
   onOpenFeedback,
+  attemptNumber,
+  maxAttempt,
 }) {
   const canGoBack = !feedbackMandatory || feedbackSubmitted;
   const backButtonClass = canGoBack
@@ -35,7 +38,7 @@ function ResultScreen({
   if (passed) {
     return (
       <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl shadow-lg w-full max-w-[591px] p-4 text-center">
+        <div className="bg-white rounded-2xl shadow-lg w-full max-w-147.75 p-4 text-center">
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="w-12 h-12 text-success" />
           </div>
@@ -45,6 +48,11 @@ function ResultScreen({
           <p className="font-semibold text-foreground/60 leading-relaxed mb-4">
             {resultData.pass.message}
           </p>
+          {attemptNumber !== undefined && maxAttempt !== undefined && (
+            <p className="text-sm font-semibold text-foreground/60 mb-2">
+              Attempt {attemptNumber} of {maxAttempt}
+            </p>
+          )}
           <p className="text-xs font-semibold text-foreground/60 leading-relaxed mb-8">
             {resultData.pass.subMessage}
           </p>
@@ -81,7 +89,7 @@ function ResultScreen({
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-[591px] p-10 text-center">
+      <div className="bg-white rounded-2xl shadow-lg w-full max-w-147.75 p-10 text-center">
         <div className="flex justify-center mb-4">
           <XCircle className="w-12 h-12 text-destructive" />
         </div>
@@ -91,9 +99,15 @@ function ResultScreen({
         <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
           {resultData.fail.message}
         </p>
-        <p className="text-gray-600 mb-3 font-semibold">
-          {resultData.fail.attemptsInfo}
-        </p>
+        {attemptNumber !== undefined && maxAttempt !== undefined ? (
+          <p className="text-gray-600 mb-3 font-semibold">
+            Attempt {attemptNumber} of {maxAttempt}
+          </p>
+        ) : (
+          <p className="text-gray-600 mb-3 font-semibold">
+            {resultData.fail.attemptsInfo}
+          </p>
+        )}
         <p className="text-gray-600 mb-3 font-semibold">
           {resultData.fail.contactInfo}
         </p>
@@ -135,7 +149,7 @@ function ResultScreen({
   );
 }
 
-export default function AssessmentQuiz({ onExit, courseId, quizQuestions, resultData: resultDataProp }) {
+export default function AssessmentQuiz({ onExit, courseId, courseNumericId, userId, quizQuestions, resultData: resultDataProp }) {
   const router = useRouter();
   const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
   const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
@@ -146,10 +160,14 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(30 * 60);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [score, setScore] = useState(0);
+  const [isPassed, setIsPassed] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
+  const [attemptNumber, setAttemptNumber] = useState(undefined);
+  const [maxAttempt, setMaxAttempt] = useState(undefined);
 
   const currentQuestion = questions[currentIndex];
 
@@ -185,15 +203,6 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
 
   const hasAnswered = answers[currentQuestion?.id] !== undefined;
 
-  const calculateScore = () => {
-    let correct = 0;
-    questions.forEach((q) => {
-      if (answers[q.id] === q.correctAnswer) {
-        correct++;
-      }
-    });
-    return Math.round((correct / totalQuestions) * 100);
-  };
 
   const handleNext = () => {
     if (!hasAnswered) return;
@@ -202,19 +211,60 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
     }
   };
 
-  const handleSubmit = () => {
-    if (!hasAnswered) return;
-    const finalScore = calculateScore();
-    setScore(finalScore);
-    setSubmitted(true);
-  };
+  const handleSubmit = async () => {
+    if (!hasAnswered || isSubmitting) return;
 
+    const answersArr = questions.map((q) => {
+      const selectedIdx = answers[q.id];
+      const selectedOption = selectedIdx !== undefined
+        ? (q.options || q.choices || [])[selectedIdx]
+        : null;
+      const selectedKey = selectedOption?.option_key || String(selectedIdx ?? '');
+
+      return {
+        question_id: String(q.question_id || q.id),
+        question: q.question_text || q.question,
+        question_type: q.question_type || 'Multiple_choice',
+        point: q.point || 0,
+        selected_answer_for_multiChoice: selectedKey,
+      };
+    });
+
+    const payload = {
+      userId: Number(userId),
+      courseId: Number(courseNumericId),
+      answers: answersArr,
+      time_taken_minutes: Math.round((30 * 60 - timeLeft) / 60),
+    };
+
+    setIsSubmitting(true);
+    try {
+      // Step 1: Submit the quiz
+      await submitQuiz(payload);
+
+      // Step 2: Fetch the latest submission to get the backend-calculated score
+      const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
+      const submission = resultRes?.submission;
+      setScore(submission?.score ?? 0);
+      setIsPassed(submission?.passed ?? false);
+      if (submission?.attempt_number !== undefined) setAttemptNumber(submission.attempt_number);
+      if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
+    } catch (e) {
+      console.error('Quiz submission failed', e);
+    } finally {
+      setIsSubmitting(false);
+      setSubmitted(true);
+    }
+  };
   const handleTryAgain = () => {
     setCurrentIndex(0);
     setAnswers({});
     setTimeLeft(30 * 60);
     setSubmitted(false);
+    setIsSubmitting(false);
     setScore(0);
+    setIsPassed(false);
+    setAttemptNumber(undefined);
   };
 
   const handleBackToCourses = () => {
@@ -269,10 +319,9 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
 
   // Show result screen after submission (before / after feedback)
   if (submitted) {
-    const passed = score >= resultData.passingScore;
     return (
       <ResultScreen
-        passed={passed}
+        passed={isPassed}
         score={score}
         resultData={resultData}
         onBackToCourses={handleBackToCourses}
@@ -280,6 +329,8 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
         feedbackMandatory={feedbackMandatory}
         feedbackSubmitted={feedbackSubmitted}
         onOpenFeedback={() => setShowFeedbackForm(true)}
+        attemptNumber={attemptNumber}
+        maxAttempt={maxAttempt}
       />
     );
   }
@@ -320,7 +371,7 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
             </span>
           </div>
 
-          <div className="h-[330px]">
+          <div className="h-82.5">
             <h2 className="text-base font-medium text-gray-900 mb-6">
               {currentQuestion.question_text || currentQuestion.question}
             </h2>
@@ -376,15 +427,15 @@ export default function AssessmentQuiz({ onExit, courseId, quizQuestions, result
           </button>
           <button
             onClick={isLastQuestion ? handleSubmit : handleNext}
-            disabled={!hasAnswered}
+            disabled={!hasAnswered || isSubmitting}
             className={`flex items-center gap-1.5 px-7 py-2.5 rounded-full text-sm font-semibold transition ${
-              hasAnswered
+              hasAnswered && !isSubmitting
                 ? "bg-primary text-white hover:bg-primary/90 cursor-pointer"
                 : "bg-gray-300 text-white cursor-not-allowed"
             }`}
           >
-            {isLastQuestion ? "Submit" : "Next"}
-            <ChevronRight className="w-4 h-4" />
+            {isLastQuestion ? (isSubmitting ? "Submitting..." : "Submit") : "Next"}
+            {!isSubmitting && <ChevronRight className="w-4 h-4" />}
           </button>
         </div>
       </div>

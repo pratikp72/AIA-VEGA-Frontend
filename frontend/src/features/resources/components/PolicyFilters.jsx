@@ -16,7 +16,7 @@ export default function PolicyFilters({
     <Filters
       tab={tab}
       onTabChange={onTabChange}
-      tabs={[{ key: 'policies', label: 'Policy' }, { key: 'forms', label: 'Forms & Templates' }]}
+      tabs={[{ key: 'policies', label: 'Policies' }, { key: 'forms-templates', label: 'Forms & Templates' }]}
       search={search}
       onSearchChange={onSearchChange}
       date={date}

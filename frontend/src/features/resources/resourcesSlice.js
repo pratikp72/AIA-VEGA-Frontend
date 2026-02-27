@@ -13,6 +13,18 @@ export const loadResources = createAsyncThunk(
   }
 );
 
+export const LoadFormandTemplates = createAsyncThunk(
+  'resources/LoadFormandTemplates',
+  async ({ page = 1, limit = 10, append = false } = {}, { rejectWithValue }) => {
+    try {
+      const result = await fetchResources(page, limit, 'forms');
+      return { ...result, __append: append };
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
 const initialState = {
   resourcesList: [],
   currentPage: 1,

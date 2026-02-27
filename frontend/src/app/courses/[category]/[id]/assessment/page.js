@@ -39,11 +39,12 @@ export default function AssessmentInstructionsRoutePage() {
   let quiz = course?.quiz?.[0] || null;
   
   return (
-    <AssessmentInstructions
-      category={category}
-      courseId={id}
-      courseName={course?.title}
-      quiz={quiz}
+ <AssessmentInstructions
+    category={category}
+    courseId={id}
+    courseNumericId={course?.id}  // ← add this
+    courseName={course?.title}
+    quiz={quiz}
     />
   );
 }

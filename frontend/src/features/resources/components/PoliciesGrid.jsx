@@ -7,7 +7,7 @@ export default function PoliciesGrid({ resources }) {
   return (
     <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
       {resources.map((r) => (
-        <Link key={r.id} href={`/resources/${r.id}`} className="block">
+        <Link key={r.id} href={`/resources/${r.documentId}`} className="block">
           <PolicyCard resource={r} />
         </Link>
       ))}

@@ -38,13 +38,8 @@ export default function AssessmentInstructions(props) {
   const [courseName, setCourseName] = useState(props.courseName || "");
   const [quizStarted, setQuizStarted] = useState(false);
 
-  const {
-    subtitle,
-    notice,
-    instructionCards: mockInstructionCards,
-    checklist: mockChecklist,
-    buttonText,
-  } = MOCK_ASSESSMENT_DATA;
+const { subtitle, notice, instructionCards: mockInstructionCards, checklist: mockChecklist, buttonText } =
+  MOCK_ASSESSMENT_DATA;
 
   // Build instruction cards: prefer API quiz_instruction, fall back to mock
   const apiInstructions = props.quiz?.quiz_instruction;
@@ -116,11 +111,13 @@ export default function AssessmentInstructions(props) {
   if (quizStarted) {
     return (
       <AssessmentQuiz
-        onExit={() => setQuizStarted(false)}
-        courseId={courseId}
-        quizQuestions={quizQuestions}
-        resultData={resultData}
-      />
+      onExit={() => setQuizStarted(false)}
+      courseId={courseId}
+      courseNumericId={props.courseNumericId}  // ← use props, not hardcoded 234
+      userId={7} // hardcoded for now from JWT
+      quizQuestions={quizQuestions}
+      resultData={resultData}
+    />
     );
   }
 

@@ -1,115 +1,75 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import SurfaceCard from '@/components/common/SurfaceCard';
-import PageContainer from '@/components/layout/PageContainer';
-import { Calendar, Users } from 'lucide-react';
+import { useEffect, useState } from "react";
+import SurfaceCard from "@/components/common/SurfaceCard";
+import PageContainer from "@/components/layout/PageContainer";
+import { Calendar } from "lucide-react";
+import MarkdownIt from "markdown-it";
+import Loader from "@/components/common/Loader";
+const md = new MarkdownIt();
 
-function slugify(text) {
-  return (
-    text
-      .toString()
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-  );
-}
-
-export default function PolicyDetail({ item }) {
-  const [html, setHtml] = useState('');
+export default function PolicyDetail({ item, fetchPolicyById }) {
+  const [policy, setPolicy] = useState(null);
+  const [html, setHtml] = useState("");
   const [headings, setHeadings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!item || !item.description) {
-      setHtml('');
-      setHeadings([]);
+    setLoading(true);
+    if (!item || !item.documentId) {
+      setLoading(false);
       return;
     }
-
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(item.description, 'text/html');
-
-      // collect headings in document order: h1-h6 and <p> that start with <strong> or <b>
-      const nodes = Array.from(doc.querySelectorAll('h1,h2,h3,h4,h5,h6,p'));
-
-      const used = new Set();
-      const nav = [];
-
-      nodes.forEach((node, idx) => {
-        if (node.tagName && /^H[1-6]$/.test(node.tagName)) {
-          const text = (node.textContent || `section-${idx + 1}`).trim();
-          if (text.toLowerCase() === 'overview') {
-            // remove overview heading from document and nav
-            node.remove();
-            return;
-          }
-          let id = node.getAttribute('id') || slugify(text) || `section-${idx + 1}`;
-          let base = id;
-          let i = 1;
-          while (used.has(id)) {
-            id = `${base}-${i}`;
-            i += 1;
-          }
-          used.add(id);
-          node.setAttribute('id', id);
-          nav.push({ id, text });
-        } else if (node.tagName === 'P') {
-          const first = node.firstElementChild;
-          if (first && (first.tagName === 'STRONG' || first.tagName === 'B')) {
-            const text = (first.textContent || `section-${idx + 1}`).trim();
-            if (text.toLowerCase() === 'overview') {
-              node.remove();
-              return;
-            }
-            let id = node.getAttribute('id') || slugify(text) || `section-${idx + 1}`;
-            let base = id;
-            let i = 1;
-            while (used.has(id)) {
-              id = `${base}-${i}`;
-              i += 1;
-            }
-            used.add(id);
-
-            // transform <p><strong>Title</strong> Rest...</p>
-            // into <h4 id="...">Title</h4><p>Rest...</p>
-            const strongHtml = first.outerHTML;
-            const innerHtml = node.innerHTML || '';
-            const restHtml = innerHtml.replace(strongHtml, '').trim();
-
-            const h = doc.createElement('h4');
-            h.textContent = text;
-            h.setAttribute('id', id);
-
-            const p = doc.createElement('p');
-            p.innerHTML = restHtml;
-
-            node.replaceWith(h, p);
-
-            nav.push({ id, text });
-          }
+    fetchPolicyById(item.documentId)
+      .then((data) => {
+        setPolicy(data);
+        if (!data || !data.description) {
+          setHtml("");
+          setHeadings([]);
+          setLoading(false);
+          return;
         }
+        try {
+          // If description looks like HTML, use as is. Otherwise, render as Markdown.
+          const desc = data.description || "";
+          const stripped = desc.replace(/<[^>]*>/g, "");
+          const htmlContent = md.render(stripped);
+          setHtml(htmlContent);
+        } catch (e) {
+          setHtml(data.description || "");
+          setHeadings([]);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setPolicy(null);
+        setHtml("");
+        setHeadings([]);
+        setLoading(false);
       });
-
-      const serialized = doc.body.innerHTML;
-      setHtml(serialized);
-      setHeadings(nav);
-    } catch (e) {
-      setHtml(item.description || '');
-      setHeadings([]);
-    }
   }, [item]);
 
-  if (!item) return null;
+  if (loading) return <Loader className="mt-10" />;
+  if (!policy) return null;
 
   const formatDate = (d) => {
     try {
-      return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return new Date(d).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
     } catch (e) {
       return d;
     }
+  };
+
+  const renderSummary = (description) => {
+    if (!description) return "";
+
+    // Strip HTML tags first, then render markdown
+    const stripped = description.replace(/<[^>]*>/g, "");
+    return md.render(stripped);
   };
 
   return (
@@ -118,37 +78,57 @@ export default function PolicyDetail({ item }) {
         <SurfaceCard className="p-4 rounded-[12px] shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              {item.tag && <span className="inline-flex items-center bg-primary-purple text-white text-xs font-medium px-3 py-1 rounded-full">{item.tag}</span>}
-              {item.title && <h2 className="text-2xl font-bold mt-3 mb-2">{item.title}</h2>}
-              <p className="text-sm text-[#475569] mt-1">Standards and behaviours expected from all employees to maintain a professional workplace.</p>
-              <p className="text-sm text-[#65758B]">{item.summary || ''}</p>
+              {(policy?.tags || item.tags) && (
+                <span className="inline-flex items-center bg-primary-purple text-white text-xs font-medium px-3 py-1 rounded-full">
+                  {Array.isArray(policy?.tags)
+                    ? policy.tags.join(", ")
+                    : policy?.tags || item.tags}
+                </span>
+              )}
+              {item.title && (
+                <h2 className="text-2xl font-bold mt-3 mb-2">{item.title}</h2>
+              )}
+              <p className="text-sm text-[#475569] mt-1">
+                Standards and behaviours expected from all employees to maintain
+                a professional workplace.
+              </p>
+              <p
+                className="text-sm text-[#65758B]"
+                dangerouslySetInnerHTML={{
+                  __html: renderSummary(item.summary),
+                }}
+              ></p>
               <div className="mt-4 flex items-center gap-4 text-sm text-[#65758B]">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4" />
-                  <span>Updated {formatDate(item.date)}</span>
+                  <span>
+                    Updated{" "}
+                    {formatDate(policy?.updatedAt || policy?.date || item.date)}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </SurfaceCard>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 mt-6">
-          <div className="lg:col-span-8">
-              <SurfaceCard className="p-4 max-h-[520px] overflow-y-auto scrollbar-default">
-                <div className="mb-3"><h3 className="text-lg font-semibold">Policy Details</h3></div>
-                <div className="prose max-w-none leading-relaxed text-sm text-[#374151]">
-                {html ? (
-                  <div dangerouslySetInnerHTML={{ __html: html }} />
-                ) : (
-                  <>
-                    <p className="mt-4">{item.description}</p>
-                  </>
-                )}
+        <div className="w-full gap-10 mt-6">
+          <div className="">
+            <SurfaceCard className="p-4 max-h-[520px] overflow-y-auto scrollbar-default gap-2">
+              <div className="mb-3">
+                <h3 className="text-lg font-semibold">Policy Details</h3>
+              </div>
+              <div className="prose max-w-none leading-relaxed text-sm text-[#374151]">
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html:
+                      html || policy?.description || item.description || "",
+                  }}
+                />
               </div>
             </SurfaceCard>
           </div>
 
-          <aside className="lg:col-span-4">
+          {/* <aside className="lg:col-span-4">
             <SurfaceCard className="p-4">
               <h4 className="font-semibold">Quick Navigation</h4>
               <ol className="text-sm text-[#65758B] list-decimal list-inside space-y-2">
@@ -157,7 +137,7 @@ export default function PolicyDetail({ item }) {
                 ))}
               </ol>
             </SurfaceCard>
-          </aside>
+          </aside> */}
         </div>
       </PageContainer>
     </>
