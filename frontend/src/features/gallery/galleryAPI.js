@@ -1,4 +1,5 @@
 import { mockDelay, USE_MOCK_DATA } from '@/services/mockData';
+import { apiService } from '@/services/api';
 
 // Simple mock gallery items for development
 const MOCK_GALLERY = Array.from({ length: 20 }).map((_, i) => {
@@ -44,13 +45,34 @@ export async function fetchGallery(page = 1, limit = 12) {
     };
   }
 
-  // TODO: implement real API call
-  return {
-    items: [],
-    totalPages: 1,
-    totalItems: 0,
-    currentPage: page,
-  };
+  // Real API call
+  try {
+    const res = await apiService.get('/gallery-items', {
+      params: {
+        pagination: {
+          page,
+          pageSize: limit,
+        },
+        sort: ['date:asc'],
+        populate: '*',
+      },
+    });
+    // API returns { data: [...], meta: { pagination: {...} } }
+    const { data, meta } = res;
+    return {
+      items: Array.isArray(data) ? data : [],
+      totalPages: meta?.pagination?.pageCount || 1,
+      totalItems: meta?.pagination?.total || 0,
+      currentPage: meta?.pagination?.page || page,
+    };
+  } catch (err) {
+    return {
+      items: [],
+      totalPages: 1,
+      totalItems: 0,
+      currentPage: page,
+    };
+  }
 }
 
 export default { fetchGallery };

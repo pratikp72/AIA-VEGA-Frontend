@@ -15,7 +15,7 @@ export default function GalleryGrid({ items = [] }) {
     setSelectedItem(null);
   };
 
-  const isVideo = selectedItem && (selectedItem.type || '').toLowerCase() === 'video';
+  const isVideo = selectedItem && ((selectedItem.media_type || selectedItem.type || '').toLowerCase() === 'video');
 
   return (
     <>
@@ -29,9 +29,9 @@ export default function GalleryGrid({ items = [] }) {
 
       {/* Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70" onClick={handleClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 " onClick={handleClose}>
           <div 
-            className="relative bg-white rounded-[20px] max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-2xl p-4"
+            className="relative bg-white rounded-[20px] max-w-2xl w-full max-h-[85vh] shadow-2xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -53,7 +53,7 @@ export default function GalleryGrid({ items = [] }) {
               <div className="relative w-full bg-gray-900 rounded-[12px] overflow-hidden mb-4">
                 {isVideo ? (
                   <video
-                    src={selectedItem.url || selectedItem.thumbnail}
+                    src={(selectedItem.video?.url && (selectedItem.video?.url.startsWith('http') ? selectedItem.video?.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${selectedItem.video?.url}`)) || selectedItem.url}
                     controls
                     controlsList="nodownload"
                     className="w-full h-auto"
@@ -66,7 +66,12 @@ export default function GalleryGrid({ items = [] }) {
                   </video>
                 ) : (
                   <img
-                    src={selectedItem.url || selectedItem.thumbnail}
+                    src={(() => {
+                      const url = selectedItem.image?.formats?.large?.url || selectedItem.image?.formats?.medium?.url || selectedItem.image?.formats?.thumbnail?.url || selectedItem.image?.url || selectedItem.url || selectedItem.thumbnail;
+                      if (!url) return '';
+                      if (url.startsWith('http')) return url;
+                      return `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${url}`;
+                    })()}
                     alt={selectedItem.title || 'Gallery item'}
                     className="w-full h-auto object-cover"
                     style={{ maxHeight: '350px' }}
