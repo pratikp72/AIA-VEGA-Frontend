@@ -1,10 +1,6 @@
-import HomePage from '@/features/home/components/HomePage';
+import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'Dashboard - Your App',
-  description: 'Employee dashboard with news, events, and updates',
-};
-
-export default function Home() {
-  return <HomePage />;
+export default function Root() {
+  redirect('/login');
+  return null;
 }

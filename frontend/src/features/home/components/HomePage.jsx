@@ -42,6 +42,22 @@ export default function HomePage() {
   const isLoading = useAppSelector(selectIsDashboardLoading);
   const error = useAppSelector(selectHomeError);
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const getUsername = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user?.username || user?.name || 'there';
+    } catch {
+      return 'there';
+    }
+  };
+
   // Load dashboard data and news (carousel reads from news slice)
   useEffect(() => {
     dispatch(loadDashboardData());
@@ -81,7 +97,7 @@ export default function HomePage() {
         <PageHeader
           className="bg-transparent"
           containerClassName="pt-xl pb-xl px-xl bg-transparent"
-          title="Good Morning, Erin"
+          title={`${getGreeting()}, ${getUsername()}`}
           breadcrumbs={[{ label: 'Home' }]}
         >
           <p className="text-body text-muted-foreground max-w-3xl sm:max-w-5xl">
