@@ -3,10 +3,6 @@ import axios from 'axios';
 // API Configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api';
 
-// Fallback token when login is not implemented (remove once auth is in place)
-const FALLBACK_AUTH_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NywiaWF0IjoxNzcxODMxNDYxLCJleHAiOjE3NzQ0MjM0NjF9.AWc1VDjXN8B1WZXjZ2HTdWB27sqH7T5OvBO972cTB1I';
-
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -19,9 +15,7 @@ const api = axios.create({
 // Request Interceptor - Add auth token to all requests
 api.interceptors.request.use(
   (config) => {
-    const stored =
-      typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    const token = stored || FALLBACK_AUTH_TOKEN;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

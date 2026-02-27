@@ -3,10 +3,10 @@
 // Fetch form templates from backend
 export async function fetchFormTemplates() {
   const url = `http://localhost:1337/api/form-templates`;
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NywiaWF0IjoxNzcxODMxNDYxLCJleHAiOjE3NzQ0MjM0NjF9.AWc1VDjXN8B1WZXjZ2HTdWB27sqH7T5OvBO972cTB1I';
+  const getToken = () => localStorage.getItem('authToken') || '';
   const res = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${getToken()}`,
       'Content-Type': 'application/json',
     },
   });
@@ -21,10 +21,10 @@ export async function fetchFormTemplates() {
 // Fetch a single form template by documentId
 export async function fetchFormTemplateById(documentId) {
   const url = `http://localhost:1337/api/form-templates/${documentId}`;
-  const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NywiaWF0IjoxNzcxODMxNDYxLCJleHAiOjE3NzQ0MjM0NjF9.AWc1VDjXN8B1WZXjZ2HTdWB27sqH7T5OvBO972cTB1I';
+const getToken = () => localStorage.getItem('authToken') || '';
   const res = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${getToken()}`,
       'Content-Type': 'application/json',
     },
   });
