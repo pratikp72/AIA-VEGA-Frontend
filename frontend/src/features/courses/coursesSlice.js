@@ -53,10 +53,15 @@ const coursesSlice = createSlice({
         const mod = state.currentCourse.modulesList.find(m => m.id === moduleId);
         if (mod) mod.mark_as_read = true;
       }
-      // Keep rawModules in sync so the next PUT sends the correct payload
-      if (state.currentCourse?.rawModules) {
-        const raw = state.currentCourse.rawModules.find(m => m.id === moduleId);
-        if (raw) raw.mark_as_read = true;
+    },
+    // Called on course load with the user's completed_modules from user-progress.
+    // Resets all mark_as_read to false first, then sets true for completed ones.
+    initializeModuleReadState: (state, action) => {
+      const completedIds = action.payload; // string[]
+      if (state.currentCourse?.modulesList) {
+        state.currentCourse.modulesList.forEach(mod => {
+          mod.mark_as_read = completedIds.includes(String(mod.id));
+        });
       }
     },
   },
@@ -90,5 +95,5 @@ const coursesSlice = createSlice({
   },
 });
 
-export const { clearError, resetCoursesState, clearCurrentCourse, markModuleAsRead } = coursesSlice.actions;
+export const { clearError, resetCoursesState, clearCurrentCourse, markModuleAsRead, initializeModuleReadState } = coursesSlice.actions;
 export default coursesSlice.reducer;

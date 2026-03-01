@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import PageSection from "@/components/common/PageSection";
@@ -8,14 +8,14 @@ import CourseContentList from "./CourseContentList";
 import FinalAssessment from "./FinalAssessment";
 import CourseTextOrPdf from "./CourseTextOrPdf";
 import { useAppDispatch } from "@/store/hooks";
-import { markModuleAsRead } from "@/features/courses/coursesSlice";
-import { updateModuleMarkAsRead } from "@/features/courses/coursesAPI";
+import { markModuleAsRead, initializeModuleReadState } from "@/features/courses/coursesSlice";
+import { markModuleProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
 
 export default function CoursesDetailPage({ category, course, selectedModule }) {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [showFullReadingView, setShowFullReadingView] = useState(false);
-  const [canMarkAsRead, setCanMarkAsRead] = useState(false);
 
   if (!course) return <div className="p-8">Course not found.</div>;
 
@@ -26,38 +26,51 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
   const quizzes = course.quiz || [];
   const feedbacks = course.feedback || [];
   const description = course.description || [];
-  const unlocked = true; // Adjust if you have a real field for this
+  const allModulesCompleted = contents.length > 0 && contents.every(m => m.mark_as_read);
   // For debugging:
   // console.log('modules:', contents)
 
   const moduleId = searchParams.get('moduleId');
   const currentModule = selectedModule || (moduleId ? contents.find(m => String(m.id) === String(moduleId)) : contents[0]) || contents[0];
+  const currentModuleIdx = contents.findIndex(m => m.id === currentModule?.id);
+  const nextModule = currentModuleIdx >= 0 ? contents[currentModuleIdx + 1] || null : null;
 
-  // Reset canMarkAsRead and start a 50%-duration timer whenever the module changes.
-  // If the module has no duration, enable immediately.
+  // Fetch per-user read state from user-progress whenever the course loads.
+  // This replaces the shared mark_as_read from the course schema.
   useEffect(() => {
-    setCanMarkAsRead(false);
-    const durationMin = currentModule?.moduleDuration;
-    if (!durationMin || durationMin <= 0) {
-      setCanMarkAsRead(true);
-      return;
-    }
-    const thresholdMs = durationMin * 60 * 1000 * 0.5; // 50% of duration in ms
-    const timer = setTimeout(() => setCanMarkAsRead(true), thresholdMs);
-    return () => clearTimeout(timer);
-  }, [currentModule?.id]); // re-run only when module changes
+    if (!course?.id) return;
+    fetchUserCourseProgress(7, course.id).then(completedIds => {
+      dispatch(initializeModuleReadState(completedIds));
+    });
+  }, [course?.id, dispatch]);
 
-  const handleMarkAsRead = async (moduleId) => {
-    dispatch(markModuleAsRead({ moduleId })); // instant UI update
+
+  const handleMarkAsRead = async (modId) => {
+    dispatch(markModuleAsRead({ moduleId: modId })); // instant UI update
     try {
-      await updateModuleMarkAsRead(course.documentId, moduleId, course.rawModules); // persist to Strapi
+      await markModuleProgress({ userId: 7, courseId: course.id, moduleId: String(modId) });
     } catch (err) {
       console.error('Failed to mark module as read:', err);
     }
   };
 
+  const handleNextLecture = () => {
+    if (!nextModule || !course?.documentId) return;
+    router.push(`/courses/${category}/${course.documentId}/${nextModule.id}`);
+  };
+
   if (showFullReadingView) {
-    return <CourseTextOrPdf course={course} category={category} selectedModule={currentModule} onBack={() => setShowFullReadingView(false)} />;
+    return (
+      <CourseTextOrPdf
+        course={course}
+        category={category}
+        selectedModule={currentModule}
+        onBack={() => setShowFullReadingView(false)}
+        onMarkAsRead={() => handleMarkAsRead(currentModule?.id)}
+        onNextLecture={handleNextLecture}
+        isRead={currentModule?.mark_as_read || false}
+      />
+    );
   }
 
   const courseBgStyle = {
@@ -194,10 +207,9 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
                 courseId={course.documentId}
                 category={category}
                 course={course}
-                canMarkAsRead={canMarkAsRead}
                 onMarkAsRead={handleMarkAsRead}
               />
-              <FinalAssessment unlocked={unlocked} category={category} courseId={course.documentId} />
+              <FinalAssessment unlocked={allModulesCompleted} category={category} courseId={course.documentId} />
             </div>
           </div>
         </PageSection>

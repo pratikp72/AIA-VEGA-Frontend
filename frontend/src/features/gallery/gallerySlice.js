@@ -3,9 +3,9 @@ import { fetchGallery } from './galleryAPI';
 
 export const loadGallery = createAsyncThunk(
   'gallery/loadGallery',
-  async ({ page = 1, limit = 12, append = false } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 12, append = false, company = '' } = {}, { rejectWithValue }) => {
     try {
-      const result = await fetchGallery(page, limit);
+      const result = await fetchGallery(page, limit, company);
       return { ...result, __append: append };
     } catch (err) {
       return rejectWithValue(err.message);
@@ -15,6 +15,7 @@ export const loadGallery = createAsyncThunk(
 
 const initialState = {
   items: [],
+  companyFilter: 'AIA',
   currentPage: 1,
   totalPages: 1,
   totalItems: 0,
@@ -26,6 +27,10 @@ const gallerySlice = createSlice({
   name: 'gallery',
   initialState,
   reducers: {
+    setCompanyFilter: (state, action) => {
+      state.companyFilter = action.payload;
+      state.currentPage = 1;
+    },
     setPage: (state, action) => {
       state.currentPage = action.payload;
     },
@@ -61,5 +66,5 @@ const gallerySlice = createSlice({
   },
 });
 
-export const { setPage, clearError, resetGalleryState } = gallerySlice.actions;
+export const { setCompanyFilter, setPage, clearError, resetGalleryState } = gallerySlice.actions;
 export default gallerySlice.reducer;

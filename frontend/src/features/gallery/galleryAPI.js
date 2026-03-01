@@ -1,5 +1,38 @@
+import api from '@/services/api';
 import { mockDelay, USE_MOCK_DATA } from '@/services/mockData';
 import { apiService } from '@/services/api';
+
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api').replace(/\/api\/?$/, '');
+
+function normalizeGalleryItem(item) {
+  // company is a many-to-many relation → extract first company name as string (like People feature)
+  const companyName = Array.isArray(item.company) && item.company.length > 0
+    ? item.company[0].name || ''
+    : '';
+
+  const rawImageUrl = item.image?.url;
+  const rawVideoUrl = item.video?.url;
+  const imageUrl = rawImageUrl
+    ? (rawImageUrl.startsWith('http') ? rawImageUrl : BASE_URL + rawImageUrl)
+    : null;
+  const videoUrl = rawVideoUrl
+    ? (rawVideoUrl.startsWith('http') ? rawVideoUrl : BASE_URL + rawVideoUrl)
+    : null;
+
+  const isVideo = item.media_type === 'Video';
+
+  return {
+    id: item.id,
+    title: item.title || '',
+    type: item.media_type || 'Image',
+    company: companyName,  // string, e.g. "AIA" or "VEGA"
+    date: item.date || '',
+    description: item.description || '',
+    location: item.location || '',
+    thumbnail: isVideo ? null : imageUrl,
+    url: isVideo ? videoUrl : imageUrl,
+  };
+}
 
 // Simple mock gallery items for development
 const MOCK_GALLERY = Array.from({ length: 20 }).map((_, i) => {
@@ -32,15 +65,18 @@ const MOCK_GALLERY = Array.from({ length: 20 }).map((_, i) => {
   };
 });
 
-export async function fetchGallery(page = 1, limit = 12) {
+export async function fetchGallery(page = 1, limit = 12, company = '') {
   if (USE_MOCK_DATA) {
     await mockDelay(200);
+    const source = company
+      ? MOCK_GALLERY.filter(it => it.company === company)
+      : MOCK_GALLERY;
     const start = (page - 1) * limit;
     const end = start + limit;
     return {
-      items: MOCK_GALLERY.slice(start, end),
-      totalPages: Math.max(1, Math.ceil(MOCK_GALLERY.length / limit)),
-      totalItems: MOCK_GALLERY.length,
+      items: source.slice(start, end),
+      totalPages: Math.max(1, Math.ceil(source.length / limit)),
+      totalItems: source.length,
       currentPage: page,
     };
   }
@@ -60,7 +96,7 @@ export async function fetchGallery(page = 1, limit = 12) {
     // API returns { data: [...], meta: { pagination: {...} } }
     const { data, meta } = res;
     return {
-      items: Array.isArray(data) ? data : [],
+      items: Array.isArray(data) ? data.map(normalizeGalleryItem) : [],
       totalPages: meta?.pagination?.pageCount || 1,
       totalItems: meta?.pagination?.total || 0,
       currentPage: meta?.pagination?.page || page,

@@ -31,6 +31,9 @@ export default function Filters({
   // selects: array of { value, onChange, options, placeholder }
   selects = [],
 
+  // extra elements rendered after selects in the same row (e.g. a Reset button)
+  children,
+
   className = '',
 }) {
   return (
@@ -85,6 +88,13 @@ export default function Filters({
             <Select value={s.value} onChange={s.onChange} options={s.options || []} placeholder={s.placeholder} textSize="text-sm" />
           </div>
         ))}
+
+        {/* Extra actions (e.g. Reset filters button) */}
+        {children && (
+          <div className="flex items-center w-full lg:w-auto">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

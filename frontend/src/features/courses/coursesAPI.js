@@ -153,6 +153,25 @@ export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModu
   }, { timeout: 30000 });
 };
 
+export const markModuleProgress = async ({ userId, courseId, moduleId }) => {
+  return api.post('/user-progress/mark-module', { userId, courseId, moduleId });
+};
+
+// Returns the array of completed moduleIds (as strings) for this user+course.
+// Falls back to [] on any error so the UI stays functional.
+export const fetchUserCourseProgress = async (userId, courseNumericId) => {
+  if (!userId || !courseNumericId) return [];
+  try {
+    const response = await api.get('/user-progress/progress', {
+      params: { userId, courseId: courseNumericId },
+    });
+    const data = response?.data || response;
+    return Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
+  } catch {
+    return [];
+  }
+};
+
 export const fetchCourseCategories = fetchAllCourses;
 
 export default {

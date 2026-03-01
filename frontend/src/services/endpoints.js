@@ -56,6 +56,13 @@ export const API_ENDPOINTS = {
     GET: (id) => `/people/${id}`,
   },
 
+  // Analytics endpoints
+  ANALYTICS: {
+    EMPLOYEES: '/analytics/employees',
+    DEPARTMENTS: '/analytics/departments',
+    UNIT_LOCATIONS: '/analytics/unit-locations',
+  },
+
   // Calendar endpoints
   CALENDAR: {
     EVENTS: '/calendar/events',
@@ -66,6 +73,11 @@ export const API_ENDPOINTS = {
     LIST: '/courses',
     GET: (id) => `/courses/${id}`,
     MY_COURSES: '/courses/my-courses',
+  },
+
+  // Gallery endpoints
+  GALLERY: {
+    LIST: '/gallery-items',
   },
 
 };

@@ -1,5 +1,5 @@
 import api from '@/services/api';
-import API_ENDPOINTS from '@/services/endpoints';
+import { API_ENDPOINTS } from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 
 function normalizeUser(user) {
@@ -26,17 +26,80 @@ function normalizeUser(user) {
   };
 }
 
-export const fetchPeople = async () => {
+/**
+ * Fetch paginated + filtered people from /analytics/employees.
+ * All filtering is done server-side.
+ */
+export const fetchPeople = async ({
+  company = '',
+  department = '',
+  location = '',
+  search = '',
+  sort = '',
+  page = 1,
+  pageSize = 9,
+} = {}) => {
   if (USE_MOCK_DATA) {
     await mockDelay(400);
     const { MOCK_HOME_DATA } = await import('@/services/mockData');
-    return (MOCK_HOME_DATA.people || []);
+    return {
+      items: MOCK_HOME_DATA.people || [],
+      totalPages: 1,
+      totalCount: (MOCK_HOME_DATA.people || []).length,
+      currentPage: 1,
+    };
   }
-  const response = await api.get(API_ENDPOINTS.USERS.LIST);
-  const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
-  return raw.map(normalizeUser);
+
+  console.log('[fetchPeople] called with:', { company, department, location, search, sort, page, pageSize });
+
+  const params = { page, pageSize };
+
+  if (company) params.company = company;
+  if (department) params.department = department;
+  if (location) params.location = location;
+  if (search) params.search = search;
+  // sortBy values match the sortFieldMap keys in analyticsShared.js
+  if (sort) params.sortBy = sort;
+
+  const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, { params });
+
+  // /analytics/employees returns { items, total, page, pageSize, totalPages }
+  const items = (response?.items || []).map(normalizeUser);
+  return {
+    items,
+    totalPages: response?.totalPages || 1,
+    totalCount: response?.total || items.length,
+    currentPage: response?.page || page,
+  };
 };
 
-export default {
-  fetchPeople,
+/**
+ * Fetch unique department and location options for the given company.
+ * Uses dedicated analytics endpoints for efficiency.
+ */
+export const fetchPeopleOptions = async (company = '') => {
+  if (USE_MOCK_DATA) {
+    return { departments: [], locations: [] };
+  }
+
+  const params = company ? { company } : {};
+
+  const [deptRes, locRes] = await Promise.all([
+    api.get(API_ENDPOINTS.ANALYTICS.DEPARTMENTS, { params }),
+    api.get(API_ENDPOINTS.ANALYTICS.UNIT_LOCATIONS, { params }),
+  ]);
+
+  const departments = (Array.isArray(deptRes) ? deptRes : [])
+    .map((d) => d.name)
+    .filter(Boolean)
+    .sort();
+
+  const locations = (Array.isArray(locRes) ? locRes : [])
+    .map((l) => l.name)
+    .filter(Boolean)
+    .sort();
+
+  return { departments, locations };
 };
+
+export default { fetchPeople, fetchPeopleOptions };

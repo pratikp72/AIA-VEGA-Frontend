@@ -43,7 +43,7 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
   );
 }
 
-export default function CourseContentList({ current, onSelect, courseId, category, course, canMarkAsRead, onMarkAsRead }) {
+export default function CourseContentList({ current, onSelect, courseId, category, course, onMarkAsRead }) {
   // Prefer modulesList if present and is array, else fallback to modules
   const modules = Array.isArray(course?.modulesList)
     ? course.modulesList
@@ -82,6 +82,9 @@ export default function CourseContentList({ current, onSelect, courseId, categor
     router.push(url);
   };
 
+  const allCompleted = modules.length > 0 && modules.every(m => m.mark_as_read);
+  const firstUnreadIdx = modules.findIndex(m => !m.mark_as_read);
+
   return (
     <div>
       <h3 className="mt-10 mb-6 text-2xl font-bold text-gray-900">
@@ -93,11 +96,13 @@ export default function CourseContentList({ current, onSelect, courseId, categor
           const isSelected = activeModuleId === module.id;
           const isRead = module.mark_as_read;
           const nextModule = modules[idx + 1] || null;
-          // "Mark as Read" is clickable only for the active module after 50% time spent
-          const markEnabled = isSelected && canMarkAsRead && !isRead;
+          const isLocked = !allCompleted && firstUnreadIdx >= 0 && idx > firstUnreadIdx;
+          let displayStatus = isRead ? "completed" : isLocked ? "locked" : "active";
+          // "Mark as Read" enabled for any expanded, unread, unlocked module
+          const markEnabled = isOpen && !isRead && !isLocked;
           // "Next Lecture" is enabled only after this module is marked as read
           const nextEnabled = isRead && !!nextModule;
-          let displayStatus = isRead ? "completed" : "active";
+          const handleClick = () => { if (isLocked) return; handleModuleClick(module); };
           return (
             <div
               key={module.id}
@@ -105,8 +110,8 @@ export default function CourseContentList({ current, onSelect, courseId, categor
             >
               {/* Module Header */}
               <button
-                onClick={() => handleModuleClick(module)}
-                className={`flex items-center gap-3 w-full text-left p-4 cursor-pointer`}
+                onClick={handleClick}
+                className={`flex items-center gap-3 w-full text-left p-4 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <ModuleCircle
                   moduleNumber={idx + 1}
@@ -136,7 +141,7 @@ export default function CourseContentList({ current, onSelect, courseId, categor
                 <>
                   {/* Action Buttons */}
                   <div className="flex items-center gap-4 rounded-b-2xl px-4 pb-4">
-                    {/* Mark as Read — enabled after spending 50% of module duration */}
+                    {/* Mark as Read */}
                     <button
                       onClick={() => markEnabled && onMarkAsRead(module.id)}
                       disabled={!markEnabled}
