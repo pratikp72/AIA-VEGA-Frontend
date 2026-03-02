@@ -63,6 +63,14 @@ export const API_ENDPOINTS = {
     UNIT_LOCATIONS: '/analytics/unit-locations',
   },
 
+  // Location endpoints – Strapi unit_locations content-type
+  LOCATION: {
+    UNIT_LOCATIONS: '/unit-locations',
+    UNIT_LOCATIONS_WITH_UNITS: '/unit-locations?populate[units][populate]=unit_img',
+    UNIT_LOCATIONS_BY_LOCATION: '/unit-locations/by-location',
+    UNIT_LOCATION_BY_ID: (id) => `/unit-locations/${id}`,
+  },
+
   // Calendar endpoints
   CALENDAR: {
     EVENTS: '/calendar/events',

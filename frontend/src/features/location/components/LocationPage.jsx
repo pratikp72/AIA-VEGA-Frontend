@@ -1,55 +1,67 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectPlants, selectSelectedPlantId, selectUnits, selectLocationLoading } from '../locationSelectors';
-import { setPlants, setSelectedPlantId, setUnits, setLoading } from '../locationSlice';
-import { fetchPlants, fetchUnitsByPlant } from '../locationAPI';
+import { selectLocations, selectLocationLoading } from '../locationSelectors';
+import { setLocations, setLoading } from '../locationSlice';
+import { fetchLocationsList, fetchUnitsByLocation } from '../locationAPI';
 import LocationCard from './LocationCard';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
 import Select from '@/components/ui/select';
-import Pagination from '@/components/common/Pagination';
 
 export default function LocationsPage() {
   const dispatch = useDispatch();
-  const plants = useSelector(selectPlants);
-  const selectedPlantId = useSelector(selectSelectedPlantId);
-  const units = useSelector(selectUnits);
+  const locations = useSelector(selectLocations);
   const loading = useSelector(selectLocationLoading);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [perPage, setPerPage] = React.useState(6);
-  const totalPages = Math.max(1, Math.ceil(units.length / perPage));
-  const pagedUnits = units.slice((currentPage - 1) * perPage, currentPage * perPage);
+  const [units, setUnits] = React.useState([]);
+  const [selectedLocationId, setSelectedLocationId] = React.useState('');
+  const [unitsLoading, setUnitsLoading] = React.useState(false);
+  const [fetchError, setFetchError] = React.useState(null);
 
+  // Load dropdown options on mount (GET /unit-locations)
   React.useEffect(() => {
     dispatch(setLoading(true));
-    fetchPlants().then((data) => {
-      dispatch(setPlants(data));
-      if (data.length > 0) {
-        dispatch(setSelectedPlantId(data[0].id));
-      }
-      dispatch(setLoading(false));
-    });
+    setFetchError(null);
+    fetchLocationsList()
+      .then((list) => {
+        const arr = Array.isArray(list) ? list : [];
+        dispatch(setLocations(arr));
+        if (arr.length > 0) {
+          setSelectedLocationId(String(arr[0].documentId ?? arr[0].id ?? ''));
+        }
+      })
+      .catch((err) => {
+        console.error('Location list fetch failed:', err);
+        setFetchError(err?.message || 'Failed to load locations');
+        dispatch(setLocations([]));
+      })
+      .finally(() => dispatch(setLoading(false)));
   }, [dispatch]);
 
+  // Fetch units from backend filter API when location changes
   React.useEffect(() => {
-    if (selectedPlantId) {
-      dispatch(setLoading(true));
-      fetchUnitsByPlant(selectedPlantId).then((data) => {
-        dispatch(setUnits(data));
-        setCurrentPage(1); // Reset to first page on plant change
-        dispatch(setLoading(false));
-      });
-    }
-  }, [dispatch, selectedPlantId]);
+    if (selectedLocationId === '') return;
+    setUnitsLoading(true);
+    fetchUnitsByLocation(selectedLocationId)
+      .then((list) => setUnits(list))
+      .catch((err) => {
+        console.error('Units fetch failed:', err);
+        setUnits([]);
+      })
+      .finally(() => setUnitsLoading(false));
+  }, [selectedLocationId]);
 
-  // Breadcrumbs: Only Locations
+  const handleLocationChange = (name) => {
+    const loc = locations.find((l) => l.name === name);
+    setSelectedLocationId(loc ? String(loc.documentId ?? loc.id ?? '') : '');
+    if (!loc) setUnits([]);
+  };
+
   const breadcrumbs = [{ label: 'Locations' }];
-
-  // Custom select options for plants
-  const plantOptions = plants.map((plant) => plant.name);
-  const selectedPlantName = plants.find((p) => p.id === selectedPlantId)?.name || '';
+  const plantOptions = locations.map((loc) => loc.name);
+  const selectedPlant = locations.find(
+    (loc) => String(loc.documentId ?? loc.id) === selectedLocationId
+  );
 
   return (
     <>
@@ -63,43 +75,38 @@ export default function LocationsPage() {
       </PageHeader>
       <PageContainer className="py-4">
         <div className="mb-8">
-          <div className="font-semibold text-[18px] text-[#363A4D] mb-2">Select Unit / Plant</div>
-            <div className=" rounded-xl py-2" style={{ maxWidth: 340 }}>
-              <div className="w-full">
-                <Select
-                  value={selectedPlantName}
-                  onChange={(name) => {
-                    const plant = plants.find((p) => p.name === name);
-                    if (plant) dispatch(setSelectedPlantId(plant.id));
-                  }}
-                  options={plantOptions}
-                  placeholder="Select Plant"
-                  textSize="text-base"
-                />
-              </div>
+          <div className="font-semibold text-[18px] text-[#363A4D] mb-2">Select Plant</div>
+          <div className="rounded-xl py-2" style={{ maxWidth: 340 }}>
+            <div className="w-full">
+              <Select
+                value={selectedPlant?.name ?? ''}
+                onChange={handleLocationChange}
+                options={plantOptions}
+                placeholder="Select Plant"
+                textSize="text-base"
+              />
             </div>
+          </div>
         </div>
         {loading ? (
-          <div>Loading...</div>
+          <div className="py-8 text-gray-500">Loading locations...</div>
+        ) : fetchError ? (
+          <div className="py-8 text-red-600">
+            {fetchError}
+            <p className="text-sm text-gray-500 mt-2">Ensure the Strapi server is running at {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}</p>
+          </div>
+        ) : locations.length === 0 ? (
+          <div className="py-8 text-gray-500">No locations found.</div>
+        ) : unitsLoading ? (
+          <div className="py-8 text-gray-500">Loading units...</div>
+        ) : units.length > 0 ? (
+          <div className="flex flex-wrap gap-6">
+            {units.map((unit) => (
+              <LocationCard key={unit?.id ?? unit?.unit_id} unit={unit} />
+            ))}
+          </div>
         ) : (
-          <>
-            <div className="flex flex-wrap gap-6">
-              {pagedUnits.map(unit => (
-                <LocationCard key={unit.id} unit={unit} />
-              ))}
-            </div>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              showSummary
-              totalCount={units.length}
-              perPageOptions={[3, 6, 9, 12, 15]}
-              perPage={perPage}
-              onPerPageChange={(n) => { setPerPage(n); setCurrentPage(1); }}
-              className="mt-8"
-            />
-          </>
+          <div className="py-8 text-gray-500">No units available for this plant.</div>
         )}
       </PageContainer>
     </>
