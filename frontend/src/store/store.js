@@ -1,10 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
-import homeReducer from '@/features/home/homeSlice';  // ← ADD THIS
-import newsReducer from '@/features/news/newsSlice';  // ← ADD THIS
+import homeReducer from '@/features/home/homeSlice';
+import newsReducer from '@/features/news/newsSlice';
 import peopleReducer from '@/features/people/peopleSlice';
 import resourcesReducer from '@/features/resources/resourcesSlice';
 import galleryReducer from '@/features/gallery/gallerySlice';
 import coursesReducer from '@/features/courses/coursesSlice';
+import locationsReducer from '@/features/location/locationSlice';
 
 // Import your feature slices here as you create them
 // import authReducer from '@/features/auth/authSlice';
@@ -17,7 +18,7 @@ export const store = configureStore({
     resources: resourcesReducer,
     gallery: galleryReducer,
     courses: coursesReducer,
-    // auth: authReducer,
+    locations: locationsReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
