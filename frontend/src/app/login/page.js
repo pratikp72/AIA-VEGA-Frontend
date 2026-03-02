@@ -32,7 +32,7 @@ const LoginPage = () => {
         height: '100%',
         zIndex: 1,
         // backdropFilter: 'blur(8px)',
-        background: 'rgba(0,0,0,0.6)',
+        background: 'rgba(0,0,0,0.3)',
       }} />
 
       {/* Login Form */}
