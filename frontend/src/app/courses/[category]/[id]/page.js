@@ -48,7 +48,7 @@ export default function CourseDetailPage() {
   // Use normalized modulesList (normalizeModule maps modules → modulesList)
   const modules = Array.isArray(course.modulesList) ? course.modulesList : [];
   const selectedModule = moduleId
-    ? modules.find(m => String(m.id) === String(moduleId))
+    ? modules.find(m => String(m.moduleId || m.id) === String(moduleId))
     : null;
   const defaultModule = selectedModule || modules[0];
 

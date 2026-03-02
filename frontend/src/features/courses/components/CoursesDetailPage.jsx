@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
@@ -7,15 +7,23 @@ import CourseStats from "./CourseStats";
 import CourseContentList from "./CourseContentList";
 import FinalAssessment from "./FinalAssessment";
 import CourseTextOrPdf from "./CourseTextOrPdf";
+import FeedbackForm from "./FeedbackForm";
+import LayoutShell from "@/components/layout/LayoutShell";
+import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
 import { markModuleAsRead, initializeModuleReadState } from "@/features/courses/coursesSlice";
 import { markModuleProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
+import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
+import { getCurrentUserId } from "@/lib/auth";
 
 export default function CoursesDetailPage({ category, course, selectedModule }) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showFullReadingView, setShowFullReadingView] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, needsFeedbackSubmission: false });
+  const skipNextProgressUpdate = useRef(false);
 
   if (!course) return <div className="p-8">Course not found.</div>;
 
@@ -30,27 +38,66 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
   // For debugging:
   // console.log('modules:', contents)
 
-  const moduleId = searchParams.get('moduleId');
-  const currentModule = selectedModule || (moduleId ? contents.find(m => String(m.id) === String(moduleId)) : contents[0]) || contents[0];
-  const currentModuleIdx = contents.findIndex(m => m.id === currentModule?.id);
+  const moduleIdFromUrl = searchParams.get('moduleId');
+  const currentModule = selectedModule || (moduleIdFromUrl ? contents.find(m => String(m.moduleId || m.id) === String(moduleIdFromUrl)) : contents[0]) || contents[0];
+  const currentModuleIdx = contents.findIndex(m => String(m.moduleId || m.id) === String(currentModule?.moduleId || currentModule?.id));
   const nextModule = currentModuleIdx >= 0 ? contents[currentModuleIdx + 1] || null : null;
 
   // Fetch per-user read state from user-progress whenever the course loads.
   // This replaces the shared mark_as_read from the course schema.
   useEffect(() => {
-    if (!course?.id) return;
-    fetchUserCourseProgress(7, course.id).then(completedIds => {
-      dispatch(initializeModuleReadState(completedIds));
+    const userId = getCurrentUserId();
+    const courseIdForApi = course?.id ?? course?.documentId;
+    if (!courseIdForApi || !userId) return;
+    Promise.all([
+      fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
+      checkPendingReattemptRequest(userId, courseIdForApi),
+    ]).then(([{ completedModules, progressStatus }, hasPending]) => {
+      if (skipNextProgressUpdate.current) {
+        skipNextProgressUpdate.current = false;
+        setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending }));
+        return;
+      }
+      dispatch(initializeModuleReadState(completedModules));
+      setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending }));
+      if (progressStatus === "Completed") {
+        getLatestSubmission(userId, courseIdForApi).then((res) => {
+          const score = res?.submission?.score;
+          setCourseProgress((p) => ({ ...p, quizScore: score }));
+        });
+      } else if (progressStatus === "In_progress") {
+        // Check if user passed quiz but hasn't submitted feedback (course not fully completed)
+        getLatestSubmission(userId, courseIdForApi).then((res) => {
+          const passed = res?.submission?.passed === true;
+          setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: passed }));
+        });
+      }
     });
-  }, [course?.id, dispatch]);
+  }, [course?.id, course?.documentId, dispatch]);
 
 
   const handleMarkAsRead = async (modId) => {
+    const userId = getCurrentUserId();
+    if (!userId) return;
     dispatch(markModuleAsRead({ moduleId: modId })); // instant UI update
     try {
-      await markModuleProgress({ userId: 7, courseId: course.id, moduleId: String(modId) });
+      await markModuleProgress({ userId, courseId: course.id ?? course.documentId, moduleId: String(modId) });
+      // Refetch progress to ensure UI stays in sync with backend
+      const courseIdForApi = course.id ?? course.documentId;
+      if (courseIdForApi) {
+        const { completedModules } = await fetchUserCourseProgress(userId, courseIdForApi, { fresh: true });
+        skipNextProgressUpdate.current = true;
+        dispatch(initializeModuleReadState(completedModules));
+      }
     } catch (err) {
       console.error('Failed to mark module as read:', err);
+      // Refetch to restore actual state (optimistic update may have shown incorrect state)
+      const courseIdForApi = course.id ?? course.documentId;
+      if (courseIdForApi) {
+        fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }).then(({ completedModules }) => {
+          dispatch(initializeModuleReadState(completedModules));
+        });
+      }
     }
   };
 
@@ -59,6 +106,84 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
     router.push(`/courses/${category}/${course.documentId}/${nextModule.id}`);
   };
 
+  // Feedback form: when user passed quiz but hasn't submitted feedback
+  if (showFeedbackForm) {
+    const feedbackForLang =
+      (course.feedback || []).find((fb) => fb.language === course.quiz?.[0]?.language) ||
+      (course.feedback || [])[0];
+    const feedbackQuestions = feedbackForLang?.feedback_question || [];
+    const userId = getCurrentUserId();
+    const courseNumericId = course.id ?? course.documentId;
+
+    return (
+      <LayoutShell>
+        <PageContainer className="py-8">
+          <FeedbackForm
+            questions={feedbackQuestions}
+            onCancel={() => setShowFeedbackForm(false)}
+            onSubmit={(response) => {
+              setShowFeedbackForm(false);
+              // Refetch progress - backend finalizeCourse sets Completed
+              if (userId && courseNumericId) {
+                fetchUserCourseProgress(userId, courseNumericId, { fresh: true }).then(({ completedModules, progressStatus }) => {
+                  dispatch(initializeModuleReadState(completedModules));
+                  setCourseProgress((p) => ({ ...p, progressStatus, needsFeedbackSubmission: false }));
+                  if (progressStatus === "Completed") {
+                    getLatestSubmission(userId, courseNumericId).then((res) => {
+                      setCourseProgress((p) => ({ ...p, quizScore: res?.submission?.score }));
+                    });
+                  }
+                });
+              }
+            }}
+            userId={userId}
+            courseId={courseNumericId}
+          />
+        </PageContainer>
+      </LayoutShell>
+    );
+  }
+
+  // Feedback form: shown when user passed quiz but hasn't submitted feedback
+  if (showFeedbackForm) {
+    const feedbackForLang =
+      (feedbacks || []).find((fb) => fb.language === course?.quiz?.[0]?.language) ||
+      (feedbacks || [])[0];
+    const feedbackQuestions = feedbackForLang?.feedback_question || [];
+    const courseIdForApi = course.id ?? course.documentId;
+    const userId = getCurrentUserId();
+    return (
+      <LayoutShell>
+        <PageContainer className="py-8">
+          <FeedbackForm
+            questions={feedbackQuestions}
+            onCancel={() => setShowFeedbackForm(false)}
+            onSubmit={(res) => {
+              setShowFeedbackForm(false);
+              if (userId && courseIdForApi) {
+                fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }).then(({ completedModules, progressStatus }) => {
+                  dispatch(initializeModuleReadState(completedModules));
+                  setCourseProgress((p) => ({
+                    ...p,
+                    progressStatus,
+                    needsFeedbackSubmission: false,
+                  }));
+                  if (progressStatus === "Completed") {
+                    getLatestSubmission(userId, courseIdForApi).then((subRes) => {
+                      setCourseProgress((prev) => ({ ...prev, quizScore: subRes?.submission?.score }));
+                    });
+                  }
+                });
+              }
+            }}
+            userId={userId}
+            courseId={courseIdForApi}
+          />
+        </PageContainer>
+      </LayoutShell>
+    );
+  }
+
   if (showFullReadingView) {
     return (
       <CourseTextOrPdf
@@ -66,7 +191,7 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
         category={category}
         selectedModule={currentModule}
         onBack={() => setShowFullReadingView(false)}
-        onMarkAsRead={() => handleMarkAsRead(currentModule?.id)}
+        onMarkAsRead={() => handleMarkAsRead(currentModule?.moduleId || currentModule?.id)}
         onNextLecture={handleNextLecture}
         isRead={currentModule?.mark_as_read || false}
       />
@@ -203,13 +328,22 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
               <CourseStats course={course} />
               <CourseContentList
                 contents={contents}
-                current={currentModule?.id || 0}
+                current={currentModule?.moduleId || currentModule?.id || 0}
                 courseId={course.documentId}
                 category={category}
                 course={course}
                 onMarkAsRead={handleMarkAsRead}
               />
-              <FinalAssessment unlocked={allModulesCompleted} category={category} courseId={course.documentId} />
+              <FinalAssessment
+                unlocked={allModulesCompleted}
+                category={category}
+                courseId={course.documentId}
+                isCompleted={courseProgress.progressStatus === "Completed"}
+                quizScore={courseProgress.quizScore}
+                hasPendingReattempt={courseProgress.hasPendingReattempt}
+                needsFeedbackSubmission={courseProgress.needsFeedbackSubmission}
+                onOpenFeedback={() => setShowFeedbackForm(true)}
+              />
             </div>
           </div>
         </PageSection>

@@ -163,18 +163,31 @@ export const markModuleProgress = async ({ userId, courseId, moduleId }) => {
   return api.post('/user-progress/mark-module', { userId, courseId, moduleId });
 };
 
-// Returns the array of completed moduleIds (as strings) for this user+course.
-// Falls back to [] on any error so the UI stays functional.
-export const fetchUserCourseProgress = async (userId, courseNumericId) => {
-  if (!userId || !courseNumericId) return [];
+// Returns completed module IDs and progress status for this user+course.
+// Falls back to empty on any error so the UI stays functional.
+// Pass { fresh: true } to bypass GET deduplication cache (use after mutations like mark-as-read).
+export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}) => {
+  if (!userId || !courseNumericId) return { completedModules: [], progressStatus: null };
   try {
-    const response = await api.get('/user-progress/progress', {
-      params: { userId, courseId: courseNumericId },
-    });
+    const params = { userId, courseId: courseNumericId };
+    if (opts.fresh) params._t = Date.now(); // bypass dedupe cache
+    const response = await api.get('/user-progress/progress', { params });
     const data = response?.data || response;
-    return Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
+    const completedModules = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
+    return { completedModules, progressStatus: data?.progress_status ?? null };
   } catch {
-    return [];
+    return { completedModules: [], progressStatus: null };
+  }
+};
+
+// Returns all user progress keyed by course id (for course list completion badges).
+export const fetchAllUserProgress = async (userId) => {
+  if (!userId) return {};
+  try {
+    const res = await api.get('/user-progress/all', { params: { userId } });
+    return res || {};
+  } catch {
+    return {};
   }
 };
 
