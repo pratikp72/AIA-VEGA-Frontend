@@ -6,6 +6,12 @@ const appNodeModules = path.join(__dirname, "node_modules");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
+  },
   turbopack: {
     // Resolve from this app's node_modules so tailwindcss etc. are found (fixes wrong root when C:\Users\DELL\package.json exists)
     resolveAlias: {
