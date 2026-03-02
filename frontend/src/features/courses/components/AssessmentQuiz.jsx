@@ -29,6 +29,7 @@ function ResultScreen({
   onOpenFeedback,
   attemptNumber,
   maxAttempt,
+  reattemptRequired,
 }) {
   const canGoBack = !feedbackMandatory || feedbackSubmitted;
   const backButtonClass = canGoBack
@@ -94,10 +95,14 @@ function ResultScreen({
           <XCircle className="w-12 h-12 text-destructive" />
         </div>
         <h2 className="text-xl font-bold text-destructive mb-4">
-          {resultData.fail.title} {score}%
+          {reattemptRequired
+            ? `Maximum attempts reached`
+            : `${resultData.fail.title} ${score}%`}
         </h2>
         <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
-          {resultData.fail.message}
+          {reattemptRequired
+            ? `You have used all ${maxAttempt} attempt(s). Please request a reattempt from your administrator.`
+            : resultData.fail.message}
         </p>
         {attemptNumber !== undefined && maxAttempt !== undefined ? (
           <p className="text-gray-600 mb-3 font-semibold">
@@ -149,12 +154,13 @@ function ResultScreen({
   );
 }
 
-export default function AssessmentQuiz({ onExit, courseId, courseNumericId, userId, quizQuestions, resultData: resultDataProp }) {
+export default function AssessmentQuiz({ onExit, courseId, courseNumericId, userId, quizQuestions, resultData: resultDataProp, feedbackQuestions, feedbackCompulsory }) {
   const router = useRouter();
   const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
   const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
-  const { mandatory: feedbackMandatory } = getCourseFeedbackConfig(courseId);
+  // Use compulsory flag from the backend feedback component; fall back to mock for legacy/dev
+  const feedbackMandatory = feedbackCompulsory ?? getCourseFeedbackConfig(courseId).mandatory;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -168,6 +174,7 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
   const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
   const [attemptNumber, setAttemptNumber] = useState(undefined);
   const [maxAttempt, setMaxAttempt] = useState(undefined);
+  const [reattemptRequired, setReattemptRequired] = useState(false);
 
   const currentQuestion = questions[currentIndex];
 
@@ -239,16 +246,28 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
 
     setIsSubmitting(true);
     try {
-      // Step 1: Submit the quiz
-      await submitQuiz(payload);
+      // Step 1: Submit the quiz — read the response to detect blocked attempts
+      const submitRes = await submitQuiz(payload);
 
-      // Step 2: Fetch the latest submission to get the backend-calculated score
+      // Step 2: Always fetch latest for attempt/maxAttempt info
       const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
-      const submission = resultRes?.submission;
-      setScore(submission?.score ?? 0);
-      setIsPassed(submission?.passed ?? false);
-      if (submission?.attempt_number !== undefined) setAttemptNumber(submission.attempt_number);
       if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
+
+      if (submitRes?.reattempt_required) {
+        // Attempt was blocked (max attempts reached) — do NOT show the old submission's score
+        setReattemptRequired(true);
+        setIsPassed(false);
+        setScore(0);
+        if (resultRes?.submission?.attempt_number !== undefined) {
+          setAttemptNumber(resultRes.submission.attempt_number);
+        }
+      } else {
+        // New submission was created — show the freshly calculated score
+        const submission = resultRes?.submission;
+        setScore(submission?.score ?? 0);
+        setIsPassed(submission?.passed ?? false);
+        if (submission?.attempt_number !== undefined) setAttemptNumber(submission.attempt_number);
+      }
     } catch (e) {
       console.error('Quiz submission failed', e);
     } finally {
@@ -265,6 +284,7 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
     setScore(0);
     setIsPassed(false);
     setAttemptNumber(undefined);
+    setReattemptRequired(false);
   };
 
   const handleBackToCourses = () => {
@@ -309,8 +329,11 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
       <LayoutShell>
         <PageContainer className="py-8">
           <FeedbackForm
+            questions={feedbackQuestions}
             onCancel={() => setShowFeedbackForm(false)}
             onSubmit={handleFeedbackSubmit}
+            userId={userId}
+            courseId={courseNumericId} // Pass numeric course ID
           />
         </PageContainer>
       </LayoutShell>
@@ -331,6 +354,7 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
         onOpenFeedback={() => setShowFeedbackForm(true)}
         attemptNumber={attemptNumber}
         maxAttempt={maxAttempt}
+        reattemptRequired={reattemptRequired}
       />
     );
   }

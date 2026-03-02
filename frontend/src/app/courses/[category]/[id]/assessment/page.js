@@ -42,9 +42,10 @@ export default function AssessmentInstructionsRoutePage() {
  <AssessmentInstructions
     category={category}
     courseId={id}
-    courseNumericId={course?.id}  // ← add this
+    courseNumericId={course?.id}
     courseName={course?.title}
     quiz={quiz}
+    feedback={course?.feedback || []}
     />
   );
 }

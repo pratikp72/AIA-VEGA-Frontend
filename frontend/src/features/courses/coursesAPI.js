@@ -79,6 +79,12 @@ function normalizeCourse(course) {
     rawModules,                              // raw Strapi format — needed for PUT updates
     modulesList: rawModules.map(normalizeModule),
     quiz,
+    feedback: Array.isArray(course.feedback)
+      ? course.feedback.map(fb => ({
+          ...fb,
+          feedback_question: Array.isArray(fb.feedback_question) ? fb.feedback_question : [],
+        }))
+      : [],
     learners: 0,
     progress: 0,
     completed: false,
@@ -114,7 +120,7 @@ export const fetchCourseById = async (documentId) => {
      params: {
       'populate[modules][populate]': '*',
       'populate[thumbnail]': true,
-      'populate[feedback]': true,
+      'populate[feedback][populate][feedback_question]': true,
       'populate[orientation_detail]': true,
       'populate[prerequisite_courses]': true,
       'populate[quiz][populate][quiz_questions][populate][options]': true,

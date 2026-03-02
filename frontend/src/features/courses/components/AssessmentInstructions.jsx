@@ -108,16 +108,26 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
   }
   const resultData = props.quiz?.resultData; // optional, fallback to mock in AssessmentQuiz
 
+  // Pick feedback questions matching the quiz language, fall back to first entry
+  const feedbackForLang =
+    (props.feedback || []).find(fb => fb.language === props.quiz?.language) ||
+    (props.feedback || [])[0];
+  const feedbackQuestions = feedbackForLang?.feedback_question || [];
+  // compulsory is a yes-no-toggle custom field: true = mandatory, false/null = optional
+  const feedbackCompulsory = feedbackForLang?.compulsory === true;
+
   if (quizStarted) {
     return (
       <AssessmentQuiz
-      onExit={() => setQuizStarted(false)}
-      courseId={courseId}
-      courseNumericId={props.courseNumericId}  // ← use props, not hardcoded 234
-      userId={7} // hardcoded for now from JWT
-      quizQuestions={quizQuestions}
-      resultData={resultData}
-    />
+        onExit={() => setQuizStarted(false)}
+        courseId={courseId}
+        courseNumericId={props.courseNumericId}
+        userId={7} // hardcoded for now from JWT
+        quizQuestions={quizQuestions}
+        resultData={resultData}
+        feedbackQuestions={feedbackQuestions}
+        feedbackCompulsory={feedbackCompulsory}
+      />
     );
   }
 
