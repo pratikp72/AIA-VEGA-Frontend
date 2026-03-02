@@ -13,7 +13,7 @@ import {
   MOCK_ASSESSMENT_RESULTS,
   getCourseFeedbackConfig,
 } from "@/services/mockData";
-import { submitQuiz, getLatestSubmission } from "../quizSubmissionAPI";
+import { submitQuiz, getLatestSubmission, sendReattemptRequest, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import FeedbackForm from "./FeedbackForm";
 import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
@@ -24,13 +24,20 @@ function ResultScreen({
   resultData,
   onBackToCourses,
   onTryAgain,
+  onSendReattemptRequest,
   feedbackMandatory,
   feedbackSubmitted,
   onOpenFeedback,
   attemptNumber,
   maxAttempt,
+  reattemptRequired,
+  reattemptSent,
+  reattemptLoading,
+  reattemptError,
 }) {
-  const canGoBack = !feedbackMandatory || feedbackSubmitted;
+  const canGoBack = passed
+    ? !feedbackMandatory || feedbackSubmitted || reattemptSent
+    : true;
   const backButtonClass = canGoBack
     ? "w-full py-3 rounded-xl bg-success text-white hover:bg-success/90 transition cursor-pointer"
     : "w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed";
@@ -50,7 +57,7 @@ function ResultScreen({
           </p>
           {attemptNumber !== undefined && maxAttempt !== undefined && (
             <p className="text-sm font-semibold text-foreground/60 mb-2">
-              Attempt {attemptNumber} of {maxAttempt}
+              Attempt {Math.min(attemptNumber, maxAttempt)} of {maxAttempt}
             </p>
           )}
           <p className="text-xs font-semibold text-foreground/60 leading-relaxed mb-8">
@@ -59,8 +66,13 @@ function ResultScreen({
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              onClick={onOpenFeedback}
-              className="w-full py-3 rounded-xl border-2 border-primary bg-white text-primary font-semibold hover:bg-primary/5 transition cursor-pointer"
+              onClick={reattemptSent ? undefined : onOpenFeedback}
+              disabled={reattemptSent}
+              className={`w-full py-3 rounded-xl border-2 border-primary font-semibold transition ${
+                reattemptSent
+                  ? "bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed"
+                  : "bg-white text-primary hover:bg-primary/5 cursor-pointer"
+              }`}
             >
               Submit Feedback
             </button>
@@ -94,14 +106,18 @@ function ResultScreen({
           <XCircle className="w-12 h-12 text-destructive" />
         </div>
         <h2 className="text-xl font-bold text-destructive mb-4">
-          {resultData.fail.title} {score}%
+          {reattemptRequired
+            ? `Maximum attempts reached`
+            : `${resultData.fail.title} ${score}%`}
         </h2>
         <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
-          {resultData.fail.message}
+          {reattemptRequired
+            ? `You have used all ${maxAttempt} attempt(s). Please request a reattempt from your administrator.`
+            : resultData.fail.message}
         </p>
         {attemptNumber !== undefined && maxAttempt !== undefined ? (
           <p className="text-gray-600 mb-3 font-semibold">
-            Attempt {attemptNumber} of {maxAttempt}
+            Attempt {Math.min(attemptNumber, maxAttempt)} of {maxAttempt}
           </p>
         ) : (
           <p className="text-gray-600 mb-3 font-semibold">
@@ -115,13 +131,9 @@ function ResultScreen({
           {resultData.fail.subMessage}
         </p>
         <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={onOpenFeedback}
-            className="w-full py-3 rounded-xl border-2 border-primary bg-white text-primary font-semibold hover:bg-primary/5 transition cursor-pointer"
-          >
-            Submit Feedback
-          </button>
+          {reattemptError && (
+            <p className="text-sm text-destructive font-medium">{reattemptError}</p>
+          )}
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -131,30 +143,41 @@ function ResultScreen({
             >
               {resultData.fail.secondaryButtonText}
             </button>
-            <button
-              onClick={onTryAgain}
-              className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
-            >
-              {resultData.fail.primaryButtonText}
-            </button>
+            {reattemptRequired && attemptNumber != null && maxAttempt != null && attemptNumber === maxAttempt ? (
+              <button
+                type="button"
+                onClick={onSendReattemptRequest}
+                disabled={reattemptLoading || reattemptSent}
+                className="flex-1 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {reattemptSent
+                  ? "Request sent"
+                  : reattemptLoading
+                    ? "Sending..."
+                    : "Send Re-attempt Request"}
+              </button>
+            ) : (
+              <button
+                onClick={onTryAgain}
+                className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
+              >
+                {resultData.fail.primaryButtonText}
+              </button>
+            )}
           </div>
         </div>
-        {feedbackMandatory && !feedbackSubmitted && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Please submit feedback to continue to courses.
-          </p>
-        )}
       </div>
     </div>
   );
 }
 
-export default function AssessmentQuiz({ onExit, courseId, courseNumericId, userId, quizQuestions, resultData: resultDataProp }) {
+export default function AssessmentQuiz({ onExit, courseId, category, courseNumericId, userId, quizQuestions, resultData: resultDataProp, feedbackQuestions, feedbackCompulsory }) {
   const router = useRouter();
   const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
   const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
-  const { mandatory: feedbackMandatory } = getCourseFeedbackConfig(courseId);
+  // Use compulsory flag from the backend feedback component; fall back to mock for legacy/dev
+  const feedbackMandatory = feedbackCompulsory ?? getCourseFeedbackConfig(courseId).mandatory;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -168,8 +191,23 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
   const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
   const [attemptNumber, setAttemptNumber] = useState(undefined);
   const [maxAttempt, setMaxAttempt] = useState(undefined);
+  const [reattemptRequired, setReattemptRequired] = useState(false);
+  const [reattemptSent, setReattemptSent] = useState(false);
+  const [reattemptLoading, setReattemptLoading] = useState(false);
+  const [reattemptError, setReattemptError] = useState(null);
+  const [showReattemptSuccessModal, setShowReattemptSuccessModal] = useState(false);
 
   const currentQuestion = questions[currentIndex];
+
+  // When re-request succeeds: show modal and redirect to course page in 5-6 sec
+  useEffect(() => {
+    if (!reattemptSent || !category || !courseId) return;
+    setShowReattemptSuccessModal(true);
+    const timer = setTimeout(() => {
+      router.push(`/courses/${category}/${courseId}`);
+    }, 5500);
+    return () => clearTimeout(timer);
+  }, [reattemptSent, category, courseId, router]);
 
   useEffect(() => {
     if (timeLeft <= 0 || submitted) return;
@@ -239,16 +277,37 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
 
     setIsSubmitting(true);
     try {
-      // Step 1: Submit the quiz
-      await submitQuiz(payload);
+      // Step 1: Submit the quiz — read the response to detect blocked attempts
+      const submitRes = await submitQuiz(payload);
 
-      // Step 2: Fetch the latest submission to get the backend-calculated score
+      // Step 2: Always fetch latest for attempt/maxAttempt info
       const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
-      const submission = resultRes?.submission;
-      setScore(submission?.score ?? 0);
-      setIsPassed(submission?.passed ?? false);
-      if (submission?.attempt_number !== undefined) setAttemptNumber(submission.attempt_number);
       if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
+
+      if (submitRes?.reattempt_required) {
+        // Attempt was blocked (max attempts reached) — do NOT show the old submission's score
+        setReattemptRequired(true);
+        setIsPassed(false);
+        setScore(0);
+        if (resultRes?.submission?.attempt_number !== undefined && resultRes?.maxAttempt !== undefined) {
+          setAttemptNumber(Math.min(resultRes.submission.attempt_number, resultRes.maxAttempt));
+        } else if (resultRes?.submission?.attempt_number !== undefined) {
+          setAttemptNumber(resultRes.submission.attempt_number);
+        }
+        // If user already sent re-attempt request (e.g. after failing attempt 3), show "Request sent" not the button
+        const hasPending = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+        if (hasPending) setReattemptSent(true);
+      } else {
+        // New submission was created — show the freshly calculated score
+        const submission = resultRes?.submission;
+        setScore(submission?.score ?? 0);
+        setIsPassed(submission?.passed ?? false);
+        if (submission?.attempt_number !== undefined && resultRes?.maxAttempt !== undefined) {
+          setAttemptNumber(Math.min(submission.attempt_number, resultRes.maxAttempt));
+        } else if (submission?.attempt_number !== undefined) {
+          setAttemptNumber(submission.attempt_number);
+        }
+      }
     } catch (e) {
       console.error('Quiz submission failed', e);
     } finally {
@@ -265,6 +324,22 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
     setScore(0);
     setIsPassed(false);
     setAttemptNumber(undefined);
+    setReattemptRequired(false);
+  };
+
+  const handleSendReattemptRequest = async () => {
+    if (reattemptLoading || reattemptSent) return;
+    setReattemptLoading(true);
+    setReattemptError(null);
+    try {
+      await sendReattemptRequest(Number(userId), Number(courseNumericId));
+      setReattemptSent(true);
+    } catch (err) {
+      const msg = err?.error?.message || err?.message || "Failed to send re-attempt request.";
+      setReattemptError(msg);
+    } finally {
+      setReattemptLoading(false);
+    }
   };
 
   const handleBackToCourses = () => {
@@ -309,11 +384,34 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
       <LayoutShell>
         <PageContainer className="py-8">
           <FeedbackForm
+            questions={feedbackQuestions}
             onCancel={() => setShowFeedbackForm(false)}
             onSubmit={handleFeedbackSubmit}
+            userId={userId}
+            courseId={courseNumericId} // Pass numeric course ID
           />
         </PageContainer>
       </LayoutShell>
+    );
+  }
+
+  // Re-request success modal: overlay when request sent
+  if (submitted && showReattemptSuccessModal) {
+    return (
+      <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <CheckCircle2 className="w-14 h-14 text-success" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Request sent successfully</h2>
+          <p className="text-gray-600 mb-4">
+            Your re-attempt request has been sent to the administrator. You will be notified once it is approved.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Redirecting you to the course page in 5 seconds...
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -326,11 +424,16 @@ export default function AssessmentQuiz({ onExit, courseId, courseNumericId, user
         resultData={resultData}
         onBackToCourses={handleBackToCourses}
         onTryAgain={handleTryAgain}
+        onSendReattemptRequest={handleSendReattemptRequest}
         feedbackMandatory={feedbackMandatory}
         feedbackSubmitted={feedbackSubmitted}
         onOpenFeedback={() => setShowFeedbackForm(true)}
         attemptNumber={attemptNumber}
         maxAttempt={maxAttempt}
+        reattemptRequired={reattemptRequired}
+        reattemptSent={reattemptSent}
+        reattemptLoading={reattemptLoading}
+        reattemptError={reattemptError}
       />
     );
   }

@@ -51,10 +51,10 @@ export default function CourseContentList({ current, onSelect, courseId, categor
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
-  const currentModuleId = searchParams.get('moduleId');
+  const currentModuleId = params.moduleId ?? searchParams.get('moduleId');
 
-  const defaultModuleId = modules?.[0]?.id;
-  const activeModuleId = currentModuleId ? parseInt(currentModuleId) : (typeof current === 'number' ? current : defaultModuleId);
+  const defaultModuleId = modules?.[0]?.moduleId || modules?.[0]?.id;
+  const activeModuleId = currentModuleId ?? current ?? defaultModuleId;
   const [openModuleId, setOpenModuleId] = useState(activeModuleId || defaultModuleId);
 
   useEffect(() => {
@@ -72,13 +72,15 @@ export default function CourseContentList({ current, onSelect, courseId, categor
 
   const handleModuleClick = (module) => {
     if (!course?.documentId) return;
-    const url = `/courses/${category}/${course.documentId}/${module.id}`;
+    const modId = module.moduleId || module.id;
+    const url = `/courses/${category}/${course.documentId}/${modId}`;
     router.push(url);
   };
 
   const handleNextLecture = (nextModule) => {
     if (!nextModule || !course?.documentId) return;
-    const url = `/courses/${category}/${course.documentId}/${nextModule.id}`;
+    const modId = nextModule.moduleId || nextModule.id;
+    const url = `/courses/${category}/${course.documentId}/${modId}`;
     router.push(url);
   };
 
@@ -92,8 +94,9 @@ export default function CourseContentList({ current, onSelect, courseId, categor
       </h3>
       <div className="flex flex-col gap-3">
         {modules.map((module, idx) => {
-          const isOpen = openModuleId === module.id;
-          const isSelected = activeModuleId === module.id;
+          const modId = module.moduleId || module.id;
+          const isOpen = String(openModuleId) === String(modId);
+          const isSelected = String(activeModuleId) === String(modId);
           const isRead = module.mark_as_read;
           const nextModule = modules[idx + 1] || null;
           const isLocked = !allCompleted && firstUnreadIdx >= 0 && idx > firstUnreadIdx;
@@ -105,7 +108,7 @@ export default function CourseContentList({ current, onSelect, courseId, categor
           const handleClick = () => { if (isLocked) return; handleModuleClick(module); };
           return (
             <div
-              key={module.id}
+              key={modId}
               className="bg-white rounded-2xl shadow overflow-hidden"
             >
               {/* Module Header */}
@@ -143,7 +146,7 @@ export default function CourseContentList({ current, onSelect, courseId, categor
                   <div className="flex items-center gap-4 rounded-b-2xl px-4 pb-4">
                     {/* Mark as Read */}
                     <button
-                      onClick={() => markEnabled && onMarkAsRead(module.id)}
+                      onClick={() => markEnabled && onMarkAsRead(modId)}
                       disabled={!markEnabled}
                       className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-xl h-10 text-sm font-semibold transition
                         ${isRead

@@ -45,7 +45,7 @@ export default function CourseDetailModulePage() {
 
   const modulesList = course.modulesList || [];
   const selectedModule = moduleId
-    ? modulesList.find(m => String(m.id) === String(moduleId))
+    ? modulesList.find(m => String(m.moduleId || m.id) === String(moduleId))
     : null;
   const defaultModule = selectedModule || modulesList[0];
 

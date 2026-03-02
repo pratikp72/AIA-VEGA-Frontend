@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import PageHeader from "@/components/common/PageHeader";
 
 import {
@@ -17,6 +18,8 @@ import {
   MOCK_ASSESSMENT_DATA,
 } from "@/services/mockData";
 import AssessmentQuiz from "./AssessmentQuiz";
+import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
+import { getCurrentUserId } from "@/lib/auth";
 
 const ICON_MAP = {
   Timer,
@@ -28,6 +31,7 @@ const ICON_MAP = {
 };
 
 export default function AssessmentInstructions(props) {
+  const router = useRouter();
   // Debug: log the received quiz prop
   if (typeof window !== "undefined") {
     // eslint-disable-next-line no-console
@@ -37,6 +41,8 @@ export default function AssessmentInstructions(props) {
   const [courseId, setCourseId] = useState(props.courseId || "");
   const [courseName, setCourseName] = useState(props.courseName || "");
   const [quizStarted, setQuizStarted] = useState(false);
+  const [blockStartPendingReattempt, setBlockStartPendingReattempt] = useState(false);
+  const [blockCheckLoading, setBlockCheckLoading] = useState(true);
 
 const { subtitle, notice, instructionCards: mockInstructionCards, checklist: mockChecklist, buttonText } =
   MOCK_ASSESSMENT_DATA;
@@ -92,6 +98,35 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
     }
   }, [props.category, props.courseId, props.courseName]);
 
+  // Check if user has pending reattempt request (at max attempts) → block starting assessment
+  useEffect(() => {
+    const userId = props.userId ?? getCurrentUserId();
+    const courseNumericId = props.courseNumericId;
+    if (!courseNumericId || !userId) {
+      setBlockCheckLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const [latestRes, hasPending] = await Promise.all([
+          getLatestSubmission(Number(userId), Number(courseNumericId)),
+          checkPendingReattemptRequest(Number(userId), Number(courseNumericId)),
+        ]);
+        if (cancelled) return;
+        const maxAttempt = latestRes?.maxAttempt ?? 1;
+        const attemptNumber = latestRes?.submission?.attempt_number ?? 0;
+        const atMaxAttempts = attemptNumber >= maxAttempt;
+        setBlockStartPendingReattempt(atMaxAttempts && hasPending);
+      } catch {
+        if (!cancelled) setBlockStartPendingReattempt(false);
+      } finally {
+        if (!cancelled) setBlockCheckLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [props.userId, props.courseNumericId]);
+
   // Prepare quiz questions and result data for AssessmentQuiz
   // Support both quiz_questions (from API) and questions (legacy/mock)
   let quizQuestions = undefined;
@@ -108,16 +143,27 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
   }
   const resultData = props.quiz?.resultData; // optional, fallback to mock in AssessmentQuiz
 
+  // Pick feedback questions matching the quiz language, fall back to first entry
+  const feedbackForLang =
+    (props.feedback || []).find(fb => fb.language === props.quiz?.language) ||
+    (props.feedback || [])[0];
+  const feedbackQuestions = feedbackForLang?.feedback_question || [];
+  // compulsory is a yes-no-toggle custom field: true = mandatory, false/null = optional
+  const feedbackCompulsory = feedbackForLang?.compulsory === true;
+
   if (quizStarted) {
     return (
       <AssessmentQuiz
-      onExit={() => setQuizStarted(false)}
-      courseId={courseId}
-      courseNumericId={props.courseNumericId}  // ← use props, not hardcoded 234
-      userId={7} // hardcoded for now from JWT
-      quizQuestions={quizQuestions}
-      resultData={resultData}
-    />
+        onExit={() => setQuizStarted(false)}
+        courseId={courseId}
+        category={category}
+        courseNumericId={props.courseNumericId}
+        userId={props.userId ?? getCurrentUserId()}
+        quizQuestions={quizQuestions}
+        resultData={resultData}
+        feedbackQuestions={feedbackQuestions}
+        feedbackCompulsory={feedbackCompulsory}
+      />
     );
   }
 
@@ -246,14 +292,39 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
             </div>
           </div>
 
-          {/* Start Assessment Button */}
-          <div className="flex justify-center">
-            <button
-              onClick={() => setQuizStarted(true)}
-              className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
-            >
-              {buttonText}
-            </button>
+          {/* Start Assessment Button / Pending Reattempt Block */}
+          <div className="flex flex-col items-center gap-4">
+            {blockStartPendingReattempt ? (
+              <>
+                <div className="rounded-xl p-5 mb-2 flex items-start gap-3 border border-warning bg-orange-light max-w-xl w-full">
+                  <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-warning-light-bg">
+                    <Info className="w-4 h-4 text-warning" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-lg text-warning">
+                      Re-attempt request pending
+                    </span>
+                    <p className="text-gray mt-1">
+                      Your re-attempt request has been sent. Please wait for admin approval before you can take the assessment again.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/courses")}
+                  className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
+                >
+                  Back to Courses
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => setQuizStarted(true)}
+                disabled={blockCheckLoading}
+                className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {blockCheckLoading ? "Checking..." : buttonText}
+              </button>
+            )}
           </div>
         </div>
       </div>
