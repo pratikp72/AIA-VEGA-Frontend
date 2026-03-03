@@ -3,14 +3,15 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Heart } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import SurfaceCard from '@/components/common/SurfaceCard';
-import { fetchNewsById } from '@/features/news/newsAPI';
+import { fetchNewsById, likeNews, unlikeNews, fetchNewsLikesState } from '@/features/news/newsAPI';
 import { loadAllNews } from '@/features/news/newsSlice';
 import { selectNewsList } from '@/features/news/newsSelectors';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { getCurrentUserId } from '@/lib/auth';
 import Loader from '@/components/common/Loader';
 import MarkdownIt from 'markdown-it';
 
@@ -22,6 +23,22 @@ export default function NewsDetailPage() {
   const newsList = useAppSelector(selectNewsList);
   const [article, setArticle] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [likesCount, setLikesCount] = useState(0);
+  const [liked, setLiked] = useState(false);
+  const userId = getCurrentUserId();
+
+  // Check if current user is in likes (handles API: objects with id/documentId or array of ids; userId number or string)
+  const isLikedByUser = (likesList, currentUserId) => {
+    if (currentUserId == null || currentUserId === '') return false;
+    const likes = Array.isArray(likesList) ? likesList : [];
+    const uid = Number(currentUserId) || String(currentUserId);
+    return likes.some((u) => {
+      if (u == null) return false;
+      const likeId = typeof u === 'object' ? (u.id ?? u.documentId) : u;
+      if (likeId == null) return false;
+      return Number(likeId) === Number(uid) || String(likeId) === String(uid);
+    });
+  };
 
   const latestNews = useMemo(() => {
     return (newsList || [])
@@ -38,8 +55,26 @@ export default function NewsDetailPage() {
     let cancelled = false;
     setLoading(true);
     fetchNewsById(id)
-      .then((data) => {
-        if (!cancelled) setArticle(data);
+      .then(async (data) => {
+        if (cancelled) return;
+        setArticle(data);
+        const rawLikes = data?.likes;
+        const likes = Array.isArray(rawLikes)
+          ? rawLikes
+          : (Array.isArray(rawLikes?.data) ? rawLikes.data : []);
+        setLikesCount(likes.length);
+        setLiked(isLikedByUser(likes, userId));
+
+        // Sync from dedicated likes-state endpoint (DB truth), in case API hides likes relation
+        try {
+          const state = await fetchNewsLikesState(id);
+          if (!cancelled && state) {
+            if (typeof state.likesCount === 'number') setLikesCount(state.likesCount);
+            if (typeof state.liked === 'boolean') setLiked(state.liked);
+          }
+        } catch {
+          // ignore, fallback is article.likes-based state
+        }
       })
       .catch(() => {
         if (!cancelled) setArticle(null);
@@ -48,7 +83,28 @@ export default function NewsDetailPage() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, userId]);
+
+  const handleToggleLike = async () => {
+    if (!userId || !article) return;
+    const documentId = article.documentId ?? article.id;
+    if (!documentId) return;
+    try {
+      if (liked) {
+        const res = await unlikeNews(documentId);
+        if (typeof res?.likesCount === 'number') setLikesCount(res.likesCount);
+        else setLikesCount((c) => Math.max(0, c - 1));
+        setLiked(false);
+      } else {
+        const res = await likeNews(documentId);
+        if (typeof res?.likesCount === 'number') setLikesCount(res.likesCount);
+        else setLikesCount((c) => c + 1);
+        setLiked(true);
+      }
+    } catch (err) {
+      console.error('Failed to toggle like', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -75,10 +131,11 @@ export default function NewsDetailPage() {
         breadcrumbs={[
           { label: 'Home', href: '/home' },
           { label: 'News', href: '/news' },
+          { label: article.title, href: null },
         ]}
         right={(
           <Link
-            href="/home"
+            href="/news"
             className="flex items-center gap-2 text-small font-medium text-gray-medium hover:text-gray-dark hover:underline shrink-0"
           >
             <ChevronRight className="w-4 h-4 rotate-180" />
@@ -107,6 +164,32 @@ export default function NewsDetailPage() {
             </div>
             <div className="prose prose-gray max-w-none text-gray-600">
               <p dangerouslySetInnerHTML={{ __html: md.render(article.description || '') }} />
+            </div>
+            {/* Likes at bottom of article */}
+            <div className="flex items-center gap-2 pt-4 border-t border-gray-200">
+              {userId ? (
+                <button
+                  type="button"
+                  onClick={handleToggleLike}
+                  className="flex items-center gap-2 text-gray-600 hover:text-primary-purple transition-colors"
+                  aria-label={liked ? 'Unlike' : 'Like'}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${liked ? 'fill-current text-primary-purple' : ''}`}
+                    strokeWidth={1.8}
+                  />
+                  <span className="font-medium">{likesCount}</span>
+                  <span className="text-sm text-gray-500">
+                    {likesCount === 1 ? 'like' : 'likes'}
+                  </span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Heart className="w-5 h-5" strokeWidth={1.8} />
+                  <span className="font-medium">{likesCount}</span>
+                  <span className="text-sm">{likesCount === 1 ? 'like' : 'likes'}</span>
+                </div>
+              )}
             </div>
           </article>
 
