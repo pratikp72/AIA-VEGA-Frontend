@@ -1,11 +1,20 @@
 "use client";
 
 import Link from 'next/link';
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
+function getFormFileUrl(item) {
+  if (item.form_type === 'URL' && item.form_url) return item.form_url;
+  const m = item.form_pdf || item.form_excel || item.form_word;
+  const raw = (Array.isArray(m) ? m[0] : m)?.url ?? (Array.isArray(m) ? m[0] : m)?.data?.attributes?.url;
+  return raw ? (raw.startsWith('http') ? raw : `${API_BASE}${raw.startsWith('/') ? '' : '/'}${raw}`) : '';
+}
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import PolicyDetail from '@/features/resources/components/PolicyDetail';
+import PdfViewer from '@/features/resources/components/PdfViewer';
 import { fetchPolicyById } from '@/features/resources/policiesAPI';
 import { fetchFormTemplateById } from '@/features/resources/formTemplatesAPI';
 
@@ -62,9 +71,9 @@ export default function ResourceDetailPage() {
             <p className="text-sm text-[#65758B] mb-1">Downloadable: {item.is_downloadable ? 'Yes' : 'No'}</p>
             <p className="text-sm text-[#374151] mt-2">{item.description}</p>
             <p className="text-xs text-[#475569] mt-2">Updated: {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-            {item.is_downloadable && (
+            {item.is_downloadable && getFormFileUrl(item) && (
               <a
-                href={item.form_url || '#'}
+                href={getFormFileUrl(item)}
                 download={item.form_type !== 'URL'}
                 target={item.form_type === 'URL' ? '_blank' : undefined}
                 rel="noopener noreferrer"
@@ -73,18 +82,18 @@ export default function ResourceDetailPage() {
                 Download
               </a>
             )}
-            {!item.is_downloadable && item.form_type === 'URL' && item.form_url && (
+            {item.form_type === 'URL' && item.form_url && (
               <a
                 href={item.form_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark ml-2"
               >
                 Go to Form
               </a>
             )}
-            {!item.is_downloadable && item.form_type === 'PDF' && item.form_url && (
-              <iframe src={item.form_url} title="PDF Preview" className="w-full h-96 mt-4 border rounded" />
+            {item.form_type === 'PDF' && getFormFileUrl(item) && (
+              <PdfViewer fileUrl={getFormFileUrl(item)} title="PDF Preview" className="w-full h-96 mt-4 border rounded" />
             )}
           </div>
         ) : (

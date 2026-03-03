@@ -1,8 +1,10 @@
 // formTemplatesAPI.js
 
-// Fetch form templates from backend
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
+
+// Fetch form templates from backend (populate media for PDF/Excel/Word file URLs)
 export async function fetchFormTemplates() {
-  const url = `http://localhost:1337/api/form-templates`;
+  const url = `${API_BASE}/api/form-templates?populate[0]=form_pdf&populate[1]=form_excel&populate[2]=form_word`;
   const getToken = () => localStorage.getItem('authToken') || '';
   const res = await fetch(url, {
     headers: {
@@ -18,9 +20,9 @@ export async function fetchFormTemplates() {
   };
 }
 
-// Fetch a single form template by documentId
+// Fetch a single form template by documentId (populate media for file URLs)
 export async function fetchFormTemplateById(documentId) {
-  const url = `http://localhost:1337/api/form-templates/${documentId}`;
+  const url = `${API_BASE}/api/form-templates/${documentId}?populate[0]=form_pdf&populate[1]=form_excel&populate[2]=form_word`;
 const getToken = () => localStorage.getItem('authToken') || '';
   const res = await fetch(url, {
     headers: {

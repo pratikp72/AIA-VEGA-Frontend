@@ -9,6 +9,12 @@ import { fetchEvents, fetchEventById, fetchHolidays } from '@/features/calendar/
 import Loader from '@/components/common/Loader';
 import 'react-calendar/dist/Calendar.css';
 
+const VIEW_MODES = [
+  { key: 'day', label: 'Day' },
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+];
+
 const CATEGORY_LEGEND = [
   { key: 'conferences', label: 'Conferences', color: '#2563EB' },
   { key: 'birthdays', label: 'Birthdays', color: '#FD8C02' },
@@ -25,9 +31,66 @@ function toDateKey(d) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+function toMonthKey(d) {
+  if (!d) return '';
+  const date = d instanceof Date ? d : new Date(d);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+/** Get minutes from midnight for the given date (0–1440). Uses start_date/end_date; if no time, returns null (all-day). */
+function getEventMinutes(ev, dayDate) {
+  const dayStart = new Date(dayDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  if (ev.start_date) {
+    const start = new Date(ev.start_date);
+    if (start >= dayEnd || start < dayStart) return null;
+    const minutes = start.getHours() * 60 + start.getMinutes();
+    return minutes;
+  }
+  return null;
+}
+
+function getEventEndMinutes(ev, dayDate) {
+  const dayStart = new Date(dayDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
+  if (ev.end_date) {
+    const end = new Date(ev.end_date);
+    const endMinutes = end >= dayEnd ? 24 * 60 : end.getHours() * 60 + end.getMinutes();
+    return endMinutes;
+  }
+  const startM = getEventMinutes(ev, dayDate);
+  return startM != null ? startM + 60 : 60; // default 1 hr or all-day 9–10
+}
+
+/** Events for day view with layout: { ev, startMinutes, endMinutes, topPct, heightPct } */
+function layoutDayEvents(events, dayDate) {
+  const dayStart = new Date(dayDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const totalMinutes = 24 * 60;
+  return events
+    .map((ev) => {
+      const startM = getEventMinutes(ev, dayDate);
+      const endM = getEventEndMinutes(ev, dayDate);
+      if (startM == null) return { ev, allDay: true, startMinutes: 0, endMinutes: 60, topPct: 0, heightPct: (60 / totalMinutes) * 100 };
+      const topPct = (startM / totalMinutes) * 100;
+      const duration = Math.max(15, endM - startM);
+      const heightPct = (duration / totalMinutes) * 100;
+      return { ev, allDay: false, startMinutes: startM, endMinutes: endM, topPct, heightPct };
+    })
+    .sort((a, b) => (a.allDay ? -1 : a.startMinutes) - (b.allDay ? -1 : b.startMinutes));
+}
+
 export default function CalendarPage() {
+  const [viewMode, setViewMode] = useState('month');
   const [activeDate, setActiveDate] = useState(() => new Date());
   const [activeStartDate, setActiveStartDate] = useState(() => new Date());
+  const [calendarView, setCalendarView] = useState('month');
   const [eventsList, setEventsList] = useState([]);
   const [holidaysList, setHolidaysList] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -35,6 +98,7 @@ export default function CalendarPage() {
   const [expandedEventId, setExpandedEventId] = useState(null);
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,10 +154,50 @@ export default function CalendarPage() {
     [holidaysList]
   );
 
+  const eventsByMonth = useMemo(() => {
+    const map = {};
+    (eventsList || []).forEach((ev) => {
+      if (!ev.date) return;
+      const monthKey = ev.date.slice(0, 7);
+      map[monthKey] = (map[monthKey] || 0) + 1;
+    });
+    return map;
+  }, [eventsList]);
+
+  const holidaysByMonth = useMemo(() => {
+    const map = {};
+    (holidaysList || []).forEach((h) => {
+      if (!h.date) return;
+      const d = new Date(h.date);
+      const monthKey = toMonthKey(d);
+      map[monthKey] = (map[monthKey] || 0) + 1;
+    });
+    return map;
+  }, [holidaysList]);
+
   const currentEvents = useMemo(() => {
     const key = toDateKey(activeDate);
     return eventsByDate[key] || [];
   }, [activeDate, eventsByDate]);
+
+  const dayViewLayout = useMemo(
+    () => layoutDayEvents(currentEvents, activeDate),
+    [currentEvents, activeDate]
+  );
+
+  const allDayEvents = useMemo(() => dayViewLayout.filter((x) => x.allDay), [dayViewLayout]);
+  const timedEvents = useMemo(() => dayViewLayout.filter((x) => !x.allDay), [dayViewLayout]);
+
+  const isToday = useMemo(() => {
+    const t = new Date();
+    return activeDate.getDate() === t.getDate() && activeDate.getMonth() === t.getMonth() && activeDate.getFullYear() === t.getFullYear();
+  }, [activeDate]);
+
+  const nowMinutes = useMemo(() => {
+    if (!isToday) return null;
+    const t = new Date();
+    return t.getHours() * 60 + t.getMinutes();
+  }, [isToday]);
 
   const currentHolidays = useMemo(() => {
     return (holidaysList || []).filter((h) => {
@@ -107,15 +211,52 @@ export default function CalendarPage() {
     });
   }, [activeDate, holidaysList]);
 
-  const monthYearLabel = activeStartDate
-    ? activeStartDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : 'January 2024';
+  const headerLabel = useMemo(() => {
+    if (viewMode === 'day') {
+      return activeDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    if (viewMode === 'year') {
+      return String(activeStartDate.getFullYear());
+    }
+    return activeStartDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }, [viewMode, activeDate, activeStartDate]);
 
-  const goPrevMonth = () => {
-    setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  const goPrev = () => {
+    if (viewMode === 'day') {
+      setActiveDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
+    } else if (viewMode === 'year') {
+      setActiveStartDate((d) => new Date(d.getFullYear() - 1, d.getMonth(), 1));
+    } else {
+      setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+    }
   };
-  const goNextMonth = () => {
-    setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+  const goNext = () => {
+    if (viewMode === 'day') {
+      setActiveDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
+    } else if (viewMode === 'year') {
+      setActiveStartDate((d) => new Date(d.getFullYear() + 1, d.getMonth(), 1));
+    } else {
+      setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+    }
+  };
+
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    setCalendarView(mode === 'year' ? 'year' : 'month');
+    if (mode === 'day') {
+      setActiveDate(activeDate);
+    } else if (mode === 'year') {
+      setActiveStartDate(new Date(activeDate.getFullYear(), 0, 1));
+    } else {
+      setActiveStartDate(new Date(activeDate.getFullYear(), activeDate.getMonth(), 1));
+    }
+  };
+
+  const handleYearViewMonthClick = (date) => {
+    setActiveStartDate(new Date(date.getFullYear(), date.getMonth(), 1));
+    setActiveDate(new Date(date.getFullYear(), date.getMonth(), 1));
+    setViewMode('month');
+    setCalendarView('month');
   };
 
   const handleToggleEvent = (ev) => {
@@ -163,36 +304,146 @@ export default function CalendarPage() {
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
-                    onClick={goPrevMonth}
+                    onClick={goPrev}
                     className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-                    aria-label="Previous month"
+                    aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'year' ? 'Previous year' : 'Previous month'}
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
-                  <span className="text-xl font-bold text-gray-900 min-w-[120px] text-center">
-                    {monthYearLabel}
+                  <span className="text-xl font-bold text-gray-900 min-w-[140px] sm:min-w-[200px] text-center">
+                    {headerLabel}
                   </span>
                   <button
                     type="button"
-                    onClick={goNextMonth}
+                    onClick={goNext}
                     className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-                    aria-label="Next month"
+                    aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'year' ? 'Next year' : 'Next month'}
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
-                <button
-                  type="button"
-                  className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
-                >
-                  Month
-                  <ChevronDown className="w-4 h-4 text-gray-600" />
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setViewDropdownOpen((o) => !o)}
+                    className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
+                  >
+                    {VIEW_MODES.find((m) => m.key === viewMode)?.label ?? 'Month'}
+                    <ChevronDown className={`w-4 h-4 text-gray-600 transition ${viewDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {viewDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" aria-hidden onClick={() => setViewDropdownOpen(false)} />
+                      <div className="absolute right-0 top-full mt-1 z-20 min-w-[100px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                        {VIEW_MODES.map((m) => (
+                          <button
+                            key={m.key}
+                            type="button"
+                            onClick={() => {
+                              handleViewModeChange(m.key);
+                              setViewDropdownOpen(false);
+                            }}
+                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${viewMode === m.key ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
+              {viewMode === 'day' ? (
+                <div className="day-view-grid flex flex-col min-h-[500px]">
+                  {/* All-day row */}
+                  {(allDayEvents.length > 0) && (
+                    <div className="flex border-b border-gray-200 min-h-[44px] shrink-0">
+                      <div className="w-14 shrink-0 py-2 pr-2 text-right text-xs text-gray-500 border-r border-gray-200 font-medium">All day</div>
+                      <div className="flex-1 flex gap-1.5 flex-wrap p-2 content-start">
+                        {allDayEvents.map(({ ev }) => (
+                          <div
+                            key={ev.id}
+                            className="rounded-md px-2.5 py-1.5 text-xs font-medium truncate max-w-[220px] border-l-2"
+                            style={{ backgroundColor: `${ev.color ?? '#2563EB'}22`, color: ev.color ?? '#2563EB', borderLeftColor: ev.color ?? '#2563EB' }}
+                          >
+                            {ev.fullTitle || ev.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Hour grid - scrollable */}
+                  <div className="flex flex-1 min-h-0 overflow-auto">
+                    <div className="w-14 shrink-0 flex flex-col border-r border-gray-200 bg-gray-50/50">
+                      {HOURS.map((h) => (
+                        <div key={h} className="h-14 flex items-start justify-end pr-2 text-xs text-gray-500 leading-none pt-0.5">
+                          {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex-1 relative bg-white" style={{ height: 24 * 56, minHeight: 400 }}>
+                      {/* Hour lines */}
+                      {HOURS.map((h) => (
+                        <div key={h} className="absolute left-0 right-0 border-t border-gray-100" style={{ top: `${(h / 24) * 100}%`, height: '4.166%' }} />
+                      ))}
+                      {/* Now line (today only) */}
+                      {isToday && nowMinutes != null && (
+                        <div
+                          className="absolute left-0 right-0 z-10 flex items-center"
+                          style={{ top: `${(nowMinutes / (24 * 60)) * 100}%` }}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                          <div className="flex-1 h-0.5 bg-primary" />
+                        </div>
+                      )}
+                      {/* Timed event blocks */}
+                      {timedEvents.map(({ ev, topPct, heightPct }) => {
+                        const EventIcon = ev.icon === 'gift' ? Gift : ev.icon === 'graduation-cap' ? GraduationCap : CalendarDays;
+                        const startM = getEventMinutes(ev, activeDate);
+                        const endM = getEventEndMinutes(ev, activeDate);
+                        const timeLabel = startM != null ? `${String(Math.floor(startM / 60) % 12 || 12)}:${String(startM % 60).padStart(2, '0')} ${startM < 720 ? 'AM' : 'PM'} – ${String(Math.floor(endM / 60) % 12 || 12)}:${String(endM % 60).padStart(2, '0')} ${endM < 720 ? 'AM' : 'PM'}` : '';
+                        return (
+                          <button
+                            key={ev.id}
+                            type="button"
+                            onClick={() => handleToggleEvent(ev)}
+                            className="absolute left-1 right-1 rounded-md text-left overflow-hidden border-l-2 shadow-sm hover:ring-2 hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary z-[1]"
+                            style={{
+                              top: `${topPct}%`,
+                              height: `calc(${heightPct}% - 2px)`,
+                              minHeight: 20,
+                              backgroundColor: `${ev.color ?? '#2563EB'}18`,
+                              borderLeftColor: ev.color ?? '#2563EB',
+                              color: ev.color ?? '#2563EB',
+                            }}
+                          >
+                            <div className="px-2 py-0.5 flex items-center gap-1.5">
+                              <EventIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                              <span className="font-semibold text-xs truncate text-gray-900">{ev.fullTitle || ev.title}</span>
+                            </div>
+                            {timeLabel && (
+                              <div className="px-2 text-[10px] text-gray-500 truncate">{timeLabel}</div>
+                            )}
+                            {ev.location && heightPct > 6 && (
+                              <div className="px-2 flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                                <MapPin className="w-3 h-3 shrink-0" />
+                                <span className="truncate">{ev.location}</span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : (
               <Calendar
-                value={activeDate}
-                onChange={setActiveDate}
+                value={viewMode === 'year' ? null : activeDate}
+                view={calendarView}
+                onViewChange={({ view: nextView }) => nextView && setCalendarView(nextView)}
+                onClickMonth={viewMode === 'year' ? handleYearViewMonthClick : undefined}
+                onChange={viewMode === 'year' ? undefined : setActiveDate}
                 activeStartDate={activeStartDate}
                 onActiveStartDateChange={({ activeStartDate: next }) => next && setActiveStartDate(next)}
                 calendarType="gregory"
@@ -202,6 +453,18 @@ export default function CalendarPage() {
                 prev2Label={null}
                 next2Label={null}
                 tileContent={({ date, view }) => {
+                  if (view === 'year') {
+                    const monthKey = toMonthKey(date);
+                    const eventCount = eventsByMonth[monthKey] || 0;
+                    const holidayCount = holidaysByMonth[monthKey] || 0;
+                    const total = eventCount + holidayCount;
+                    if (total === 0) return null;
+                    return (
+                      <div className="calendar-tile-inner year-tile">
+                        <span className="text-[10px] font-medium text-gray-600">{total} event{total !== 1 ? 's' : ''}</span>
+                      </div>
+                    );
+                  }
                   if (view !== 'month') return null;
                   const key = toDateKey(date);
                   const dayEvents = eventsByDate[key] || [];
@@ -249,6 +512,9 @@ export default function CalendarPage() {
                   );
                 }}
                 tileClassName={({ date, view }) => {
+                  if (view === 'year') {
+                    return 'rounded-lg';
+                  }
                   if (view !== 'month') return '';
                   const key = toDateKey(date);
                   const isHoliday = holidayDates.has(key);
@@ -263,6 +529,7 @@ export default function CalendarPage() {
                 }}
                 className="calendar-widget border-0 w-full"
               />
+              )}
             </div>
             )}
           </div>
@@ -470,6 +737,22 @@ export default function CalendarPage() {
         .calendar-tile-inner {
           text-align: left;
           width: 100%;
+        }
+        .calendar-card .react-calendar__year-view__months__month {
+          min-height: 60px;
+          padding: 8px;
+        }
+        .calendar-card .react-calendar__year-view .calendar-tile-inner.year-tile {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px 0;
+        }
+        .day-view-grid {
+          padding: 0;
+        }
+        .day-view-grid .h-14 {
+          height: 3.5rem;
         }
       `}</style>
     </div>
