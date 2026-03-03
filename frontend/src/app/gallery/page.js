@@ -116,18 +116,25 @@ export default function GalleryPage() {
               { value: type, onChange: (v) => setType(v), options: TYPE_OPTIONS, placeholder: 'Type' },
             ]}
           >
-            <button
-              type="button"
-              className="ml-2 px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm"
-              onClick={() => {
-                setSearch('');
-                setDate('');
-                setSortBy('');
-                setType('');
-              }}
-            >
-              Reset Filters
-            </button>
+            {(
+              search ||
+              date ||
+              sortBy ||
+              type
+            ) && (
+              <button
+                type="button"
+                className="ml-2 px-4 py-2 rounded-lg bg-white text-primary font-medium text-base hover:bg-gray-100"
+                onClick={() => {
+                  setSearch('');
+                  setDate('');
+                  setSortBy('');
+                  setType('');
+                }}
+              >
+                Reset filters
+              </button>
+            )}
           </Filters>
         </div>
       </PageHeader>
