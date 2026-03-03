@@ -20,7 +20,7 @@ export default function NewsCard({ news }) {
           {/* Category Badge */}
           <div className="absolute top-4 left-4">
             <Badge className="inline-flex items-center gap-2 rounded-[4px] bg-[#ECEBFF] text-[#3441A3] h-[15px] p-3">
-              {news.category}
+              {news.category ?? news.news_category?.name ?? 'News'}
             </Badge>
           </div>
         </div>

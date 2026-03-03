@@ -284,28 +284,29 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
       if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
 
+      const submission = resultRes?.submission;
+      const maxAttemptVal = resultRes?.maxAttempt ?? 1;
+      const attemptNum = submission?.attempt_number;
+      const currentEqualsMax = attemptNum != null && maxAttemptVal != null && attemptNum >= maxAttemptVal;
+
       if (submitRes?.reattempt_required) {
-        // Attempt was blocked (max attempts reached) — do NOT show the old submission's score
+        // Backend said max attempts reached (blocked submit or just saved last attempt and failed)
         setReattemptRequired(true);
         setIsPassed(false);
-        setScore(0);
-        if (resultRes?.submission?.attempt_number !== undefined && resultRes?.maxAttempt !== undefined) {
-          setAttemptNumber(Math.min(resultRes.submission.attempt_number, resultRes.maxAttempt));
-        } else if (resultRes?.submission?.attempt_number !== undefined) {
-          setAttemptNumber(resultRes.submission.attempt_number);
-        }
-        // If user already sent re-attempt request (e.g. after failing attempt 3), show "Request sent" not the button
+        setScore(submission?.score ?? 0);
+        if (attemptNum != null) setAttemptNumber(attemptNum);
         const hasPending = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
         if (hasPending) setReattemptSent(true);
       } else {
         // New submission was created — show the freshly calculated score
-        const submission = resultRes?.submission;
         setScore(submission?.score ?? 0);
         setIsPassed(submission?.passed ?? false);
-        if (submission?.attempt_number !== undefined && resultRes?.maxAttempt !== undefined) {
-          setAttemptNumber(Math.min(submission.attempt_number, resultRes.maxAttempt));
-        } else if (submission?.attempt_number !== undefined) {
-          setAttemptNumber(submission.attempt_number);
+        if (attemptNum != null) setAttemptNumber(attemptNum);
+        // Show re-attempt button when current attempt === max_attempt and failed (e.g. max_attempt=1, failed 1st time)
+        if (!submission?.passed && currentEqualsMax) {
+          setReattemptRequired(true);
+          const hasPending = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+          if (hasPending) setReattemptSent(true);
         }
       }
     } catch (e) {

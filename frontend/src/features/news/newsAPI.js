@@ -88,7 +88,7 @@ export async function fetchNewsById(id) {
   }
 
   const res = await api.get(`/news-items/${id}`, {
-    params: { populate: '*' },
+    params: NEWS_POPULATE,
   });
   const data = res?.data;
   if (!data) return null;
