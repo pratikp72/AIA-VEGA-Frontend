@@ -49,7 +49,7 @@ api.interceptors.response.use(
           console.error('Forbidden - You dont have permission');
           break;
         case 404:
-          console.error('Resource not found');
+          console.warn('Resource not found:', error.config?.url);
           break;
         case 500:
           console.error('Server error');

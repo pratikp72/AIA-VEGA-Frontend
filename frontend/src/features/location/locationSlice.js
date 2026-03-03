@@ -1,9 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
-  plants: [], // List of plants with units
-  selectedPlantId: null,
-  units: [], // Units for selected plant
+  locations: [], // List of locations, each with units
   loading: false,
   error: null,
 };
@@ -12,14 +10,8 @@ const locationSlice = createSlice({
   name: 'locations',
   initialState,
   reducers: {
-    setPlants(state, action) {
-      state.plants = action.payload;
-    },
-    setSelectedPlantId(state, action) {
-      state.selectedPlantId = action.payload;
-    },
-    setUnits(state, action) {
-      state.units = action.payload;
+    setLocations(state, action) {
+      state.locations = action.payload;
     },
     setLoading(state, action) {
       state.loading = action.payload;
@@ -30,5 +22,5 @@ const locationSlice = createSlice({
   },
 });
 
-export const { setPlants, setSelectedPlantId, setUnits, setLoading, setError } = locationSlice.actions;
+export const { setLocations, setLoading, setError } = locationSlice.actions;
 export default locationSlice.reducer;

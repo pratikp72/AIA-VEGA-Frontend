@@ -1,75 +1,82 @@
-// Mock API for location data
-export async function fetchPlants() {
-  // Replace with real API call
-  return [
-    { id: 'plant1', name: 'Moralya Plant' },
-    { id: 'plant2', name: 'Other Plant' },
-  ];
+import { apiService } from '@/services/api';
+import { API_ENDPOINTS } from '@/services/endpoints';
+
+const STRAPI_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
+
+/**
+ * Resolve Strapi media URL (v4: data.attributes.url, v5: url at top level)
+ */
+function resolveImageUrl(media) {
+  if (!media) return null;
+  const url = media?.data?.attributes?.url ?? media?.url ?? (typeof media === 'string' ? media : null);
+  if (!url) return null;
+  return url.startsWith('http') ? url : `${STRAPI_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
-export async function fetchUnitsByPlant(plantId) {
-  // Replace with real API call
-  if (plantId === 'plant1') {
-    return [
-      {
-        id: 'unit3',
-        name: 'Unit 3',
-        image: '/unit3.jpg',
-        address: 'Plot 104, GVMM Estate, Odhav Rd, Odhav Industrial Estate, Ahmedabad, Gujarat 382415',
-        siteManager: 'Sarah Michelle',
-        hrManager: 'Elvin Patel',
-        contact: '9325363126',
-      },
-      {
-        id: 'unit4',
-        name: 'Unit 4',
-        image: '/unit4.jpg',
-        address: 'Plot 105, GVMM Estate, Odhav Rd, Odhav Industrial Estate, Ahmedabad, Gujarat 382415',
-        siteManager: 'John Doe',
-        hrManager: 'Priya Shah',
-        contact: '9876543210',
-      },
-      {
-        id: 'unit5',
-        name: 'Unit 5',
-        image: '/unit5.jpg',
-        address: 'Plot 106, GVMM Estate, Odhav Rd, Odhav Industrial Estate, Ahmedabad, Gujarat 382415',
-        siteManager: 'Amit Kumar',
-        hrManager: 'Rina Mehta',
-        contact: '9988776655',
-      },
-      {
-        id: 'unit6',
-        name: 'Unit 6',
-        image: '/unit6.jpg',
-        address: 'Plot 107, GVMM Estate, Odhav Rd, Odhav Industrial Estate, Ahmedabad, Gujarat 382415',
-        siteManager: 'Suresh Singh',
-        hrManager: 'Meena Joshi',
-        contact: '9123456780',
-      },
-    ];
-  }
-  if (plantId === 'plant2') {
-    return [
-      {
-        id: 'unit7',
-        name: 'Unit 7',
-        image: '/unit7.jpg',
-        address: 'Plot 201, ABC Estate, Vatva, Ahmedabad, Gujarat 382445',
-        siteManager: 'Rakesh Patel',
-        hrManager: 'Sunita Rao',
-        contact: '9001122334',
-      },
-      {
-        id: 'unit8',
-        name: 'Unit 8',
-        image: '/unit8.jpg',
-        address: 'Plot 202, ABC Estate, Vatva, Ahmedabad, Gujarat 382445',
-        siteManager: 'Vikas Sharma',
-        hrManager: 'Anjali Desai',
-        contact: '9011223344',
-      },
-    ];
-  }
-  return [];
+/**
+ * Flatten Strapi unit to { id, name, image, map_link, site_manager, hr_manager, contact, address }
+ * Schema: unit_name, address, contact, site_manager, hr_manager, map_link, unit_img
+ */
+function normalizeUnit(u) {
+  if (!u) return { id: null, name: '', address: '', image: null, map_link: '', site_manager: '', hr_manager: '', contact: '' };
+  const attrs = u?.attributes ?? u;
+  const image = attrs?.unit_img ?? attrs?.image ?? u?.unit_img ?? u?.image;
+  return {
+    id: u?.id ?? u?.documentId ?? null,
+    name: attrs?.unit_name ?? attrs?.name ?? u?.unit_name ?? u?.name ?? '',
+    address: attrs?.address ?? u?.address ?? '',
+    image: resolveImageUrl(image),
+    map_link: attrs?.map_link ?? attrs?.mapLink ?? u?.map_link ?? u?.mapLink ?? '',
+    site_manager: attrs?.site_manager ?? attrs?.siteManager ?? u?.site_manager ?? u?.siteManager ?? '',
+    hr_manager: attrs?.hr_manager ?? attrs?.hrManager ?? u?.hr_manager ?? u?.hrManager ?? '',
+    contact: attrs?.contact ?? u?.contact ?? '',
+  };
 }
+
+/**
+ * Normalize Strapi v4/v5 response to flat { id, name } for dropdown
+ */
+function normalizeLocationsList(raw) {
+  const arr = Array.isArray(raw) ? raw : raw?.data ?? [];
+  return arr.map((item) => ({
+    id: item.id ?? item.documentId,
+    documentId: item.documentId ?? item.id,
+    name: item?.attributes?.name ?? item?.name ?? '',
+  }));
+}
+
+/**
+ * Fetch location list for dropdown (GET /unit-locations)
+ */
+export const fetchLocationsList = async () => {
+  const response = await apiService.get(API_ENDPOINTS.LOCATION.UNIT_LOCATIONS);
+  return normalizeLocationsList(response);
+};
+
+/**
+ * Normalize location with units to array of units
+ */
+function locationToUnits(location) {
+  if (!location) return [];
+  const unitsRaw = location?.units ?? location?.attributes?.units ?? [];
+  const arr = Array.isArray(unitsRaw) ? unitsRaw : unitsRaw?.data ?? [];
+  return arr.map(normalizeUnit);
+}
+
+/**
+ * Fetch units for a location (GET /unit-locations/:documentId with populate)
+ */
+export const fetchUnitsByLocation = async (locationId) => {
+  if (!locationId) return [];
+
+  try {
+    const loc = await apiService.get(API_ENDPOINTS.LOCATION.UNIT_LOCATION_BY_ID(locationId), {
+      params: { 'populate[units][populate]': 'unit_img' },
+    });
+    const data = loc?.data ?? loc;
+    return locationToUnits(data);
+  } catch (err) {
+    console.error('Units fetch failed:', err);
+    return [];
+  }
+};
