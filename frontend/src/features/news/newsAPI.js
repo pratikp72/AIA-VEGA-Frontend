@@ -7,13 +7,13 @@ import { USE_MOCK_DATA, mockDelay, MOCK_NEWS_DATA } from '@/services/mockData';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
 
-// Helpers: normalize Strapi v4 response (unwrap media, resolve image URL)
+// Helpers: normalize Strapi v4/v5 response (v5 = flat, no attributes; resolve image URL)
 function unwrapMedia(attrs) {
   if (!attrs) return attrs;
   const cov = attrs.cover_image;
   if (!cov) return attrs;
-  const data = cov.data;
-  if (data == null) return { ...attrs, cover_image: null };
+  const data = cov?.data;
+  if (data == null) return { ...attrs, cover_image: cov };
   const mediaAttrs = Array.isArray(data) ? data[0]?.attributes : data?.attributes;
   return mediaAttrs ? { ...attrs, cover_image: mediaAttrs } : attrs;
 }
@@ -30,19 +30,24 @@ function withImageUrl(item, preferSize = 'medium') {
   return { ...item, imageUrl };
 }
 
+// Accept both Strapi v4 { id, attributes } and v5 flat { id, documentId, title, ... }
+function toFlat(item) {
+  if (!item) return item;
+  if (item.attributes) return { id: item.id, ...unwrapMedia(item.attributes) };
+  return unwrapMedia(item);
+}
+
 function normalizeItem(item) {
-  const { id, attributes } = item;
-  const flat = attributes ? { id, ...unwrapMedia(attributes) } : item;
+  const flat = toFlat(item);
   return withImageUrl(flat, 'small');
 }
 
 function normalizeDetail(item) {
-  const { id, attributes } = item;
-  const flat = attributes ? { id, ...unwrapMedia(attributes) } : item;
+  const flat = toFlat(item);
   return withImageUrl(flat, 'medium');
 }
 
-// 3. Clean API calls (no pagination)
+// Backend api::news.news has pluralName "news-items" → /api/news-items
 async function fetchNewsInternal(params = {}) {
   const res = await api.get('/news-items', {
     params: { populate: '*', ...params },
@@ -51,7 +56,6 @@ async function fetchNewsInternal(params = {}) {
   const news = raw.map(normalizeItem);
   return { news };
 }
-
 
 /** Fetch ALL news (no filter). Used for the "View all news" listing page. */
 export async function fetchAllNews() {
@@ -80,23 +84,57 @@ export async function fetchNewsByCategory(category) {
   return fetchNewsInternal(params);
 }
 
+/** Fetch a single news by id (numeric) or documentId (Strapi v5). Used for detail page. */
 export async function fetchNewsById(id) {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
-    const found = MOCK_NEWS_DATA.find((n) => n.id === parseInt(id, 10));
+    const found = MOCK_NEWS_DATA.find(
+      (n) => String(n.id) === String(id) || (n.documentId && String(n.documentId) === String(id))
+    );
     return found ? withImageUrl(found, 'medium') : null;
   }
 
   const res = await api.get(`/news-items/${id}`, {
-    params: NEWS_POPULATE,
+    // Strapi v5: populate: '*' populates all relations, including likes
+    params: { populate: '*' },
   });
   const data = res?.data;
   if (!data) return null;
   return normalizeDetail(data);
 }
 
+// Like a news item by documentId (backend resolves documentId → document)
+export async function likeNews(documentId) {
+  return api.post(`/news-items/${documentId}/like`);
+}
+
+// Unlike a news item by documentId
+export async function unlikeNews(documentId) {
+  return api.post(`/news-items/${documentId}/unlike`);
+}
+
+// Fetch likes count and whether current user liked this news
+export async function fetchNewsLikesState(id) {
+  return api.get(`/news-items/${id}/likes-state`);
+}
+
+// Fetch like counts for multiple news items (for listing cards). Returns { [documentId]: number }
+export async function fetchNewsLikesCounts(documentIds) {
+  if (!Array.isArray(documentIds) || documentIds.length === 0) return {};
+  const ids = documentIds.filter(Boolean).map(String);
+  if (ids.length === 0) return {};
+  const res = await api.get('/news-items/likes-counts', {
+    params: { documentIds: ids.join(',') },
+  });
+  return typeof res === 'object' && res !== null ? res : {};
+}
+
 export default {
   fetchAllNews,
   fetchNewsByCategory,
   fetchNewsById,
+  likeNews,
+  unlikeNews,
+  fetchNewsLikesState,
+  fetchNewsLikesCounts,
 };

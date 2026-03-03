@@ -89,6 +89,13 @@ export const API_ENDPOINTS = {
     BY_FILTERS: '/gallery-items/by-filters', // Primary; alternate: '/gallery-filtered' if above returns 404
   },
 
+  // Notifications (portal user – toUser = current user)
+  NOTIFICATIONS: {
+    ME: '/notifications/me',          // unread only (bell)
+    ALL: '/notifications/me/all',     // all history
+    MARK_READ: '/notifications/mark-read',
+  },
+
 };
 
 export default API_ENDPOINTS;
