@@ -83,9 +83,10 @@ export const API_ENDPOINTS = {
     MY_COURSES: '/courses/my-courses',
   },
 
-  // Gallery endpoints
+  // Gallery endpoints (baseURL already includes /api)
   GALLERY: {
     LIST: '/gallery-items',
+    BY_FILTERS: '/gallery-items/by-filters', // Primary; alternate: '/gallery-filtered' if above returns 404
   },
 
 };

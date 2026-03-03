@@ -58,7 +58,8 @@ api.interceptors.response.use(
           console.error('An error occurred:', data?.message || 'Unknown error');
       }
       
-      return Promise.reject(data || error.message);
+      const rejectPayload = typeof data === 'object' && data !== null ? { ...data, status } : { message: data || error.message, status };
+      return Promise.reject(rejectPayload);
     } else if (error.request) {
       // Request made but no response received
       console.error('Network error - No response from server');
