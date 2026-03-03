@@ -1,18 +1,34 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
 import GalleryGrid from '@/features/gallery/components/GalleryGrid';
 import Filters from '@/components/common/Filters';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loadGallery } from '@/features/gallery/gallerySlice';
+import { loadGalleryByFilters } from '@/features/gallery/gallerySlice';
 import {
   selectGalleryItems,
   selectGalleryLoading,
   selectGalleryError,
 } from '@/features/gallery/gallerySelectors';
+
+const SEARCH_DEBOUNCE_MS = 300;
+
+// Sort By: display label -> API value
+const SORT_BY_MAP = { 'Newest': 'newest', 'Oldest': 'oldest', 'Title A–Z': 'title-asc', 'Title Z–A': 'title-desc' };
+const SORT_BY_OPTIONS = ['', 'Newest', 'Oldest', 'Title A–Z', 'Title Z–A'];
+
+// Type: display -> API value (image | video)
+const TYPE_OPTIONS = ['', 'Image', 'Video'];
+
+function formatDateForApi(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  if (value?.toISOString) return value.toISOString().slice(0, 10);
+  return '';
+}
 
 export default function GalleryPage() {
   const dispatch = useAppDispatch();
@@ -22,50 +38,33 @@ export default function GalleryPage() {
 
   const [companyFilter, setCompanyFilter] = useState('AIA');
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('');
+  const [searchDebounced, setSearchDebounced] = useState('');
+  const [sortBy, setSortBy] = useState('Newest');
   const [date, setDate] = useState('');
   const [type, setType] = useState('');
+  const searchDebounceRef = useRef(null);
 
-  // Load all items once on mount — client-side filtering handles the rest
+  // Debounce search input
   useEffect(() => {
-    dispatch(loadGallery({ page: 1, limit: 100, append: false }));
-  }, [dispatch]);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearchDebounced(search);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [search]);
 
-  const filtered = useMemo(() => {
-    const result = (items || []).filter((it) => {
-      // Company filter — only apply when item has a company set; unlinked items show in all tabs
-      if (companyFilter && it.company && it.company.toLowerCase() !== companyFilter.toLowerCase()) return false;
-
-      // Type filter
-      if (type && it.type !== type) return false;
-
-      // Search filter
-      if (search) {
-        const s = search.toLowerCase();
-        if (!(`${it.title} ${it.type}`.toLowerCase().includes(s))) return false;
-      }
-
-      // Date filter
-      if (date) {
-        try {
-          const sel = new Date(date).toDateString();
-          if (new Date(it.date).toDateString() !== sel) return false;
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
-
-      return true;
-    });
-
-    if (!sortBy) return result;
-    const arr = [...result];
-    if (sortBy === 'newest') return arr.sort((a, b) => new Date(b.date) - new Date(a.date));
-    if (sortBy === 'oldest') return arr.sort((a, b) => new Date(a.date) - new Date(b.date));
-    if (sortBy === 'title-asc') return arr.sort((a, b) => a.title.localeCompare(b.title));
-    if (sortBy === 'title-desc') return arr.sort((a, b) => b.title.localeCompare(a.title));
-    return arr;
-  }, [items, companyFilter, type, search, date, sortBy]);
+  // Fetch from /by-filters when filters change — backend handles all filtering
+  useEffect(() => {
+    const params = {};
+    if (companyFilter) params.company = companyFilter;
+    if (type) params.type = type.toLowerCase();
+    if (sortBy) params.sortBy = SORT_BY_MAP[sortBy] ?? sortBy ?? 'newest';
+    if (searchDebounced?.trim()) params.search = searchDebounced.trim();
+    if (date) params.date = formatDateForApi(date);
+    dispatch(loadGalleryByFilters(params));
+  }, [companyFilter, type, sortBy, date, searchDebounced, dispatch]);
 
   const galleryBgStyle = {
     backgroundImage: 'url(/gallery-page-bg.png)',
@@ -111,8 +110,8 @@ export default function GalleryPage() {
             date={date}
             onDateChange={(v) => setDate(v)}
             selects={[
-              { value: sortBy, onChange: (v) => setSortBy(v), options: ['', 'newest', 'oldest', 'title-asc', 'title-desc'], placeholder: 'Sort By' },
-              { value: type, onChange: (v) => setType(v), options: ['', 'Image', 'Video'], placeholder: 'Type' },
+              { value: sortBy, onChange: (v) => setSortBy(v), options: SORT_BY_OPTIONS, placeholder: 'Sort By' },
+              { value: type, onChange: (v) => setType(v), options: TYPE_OPTIONS, placeholder: 'Type' },
             ]}
           />
         </div>
@@ -126,14 +125,27 @@ export default function GalleryPage() {
             </div>
           ) : error ? (
             <div className="text-center py-20">
-              <p className="text-body text-muted-foreground">{error}</p>
+              <p className="text-body text-muted-foreground mb-4">{error}</p>
+              <button
+                type="button"
+                onClick={() => dispatch(loadGalleryByFilters({
+                  company: companyFilter,
+                  type: type ? type.toLowerCase() : undefined,
+                  sortBy: SORT_BY_MAP[sortBy] ?? sortBy ?? 'newest',
+                  search: searchDebounced?.trim(),
+                  date: date ? formatDateForApi(date) : undefined,
+                }))}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90"
+              >
+                Retry
+              </button>
             </div>
-          ) : filtered.length === 0 ? (
+          ) : (items?.length ?? 0) === 0 ? (
             <div className="text-center py-20">
               <p className="text-body text-muted-foreground">No items found</p>
             </div>
           ) : (
-            <GalleryGrid items={filtered} />
+            <GalleryGrid items={items ?? []} />
           )}
         </PageSection>
       </main>

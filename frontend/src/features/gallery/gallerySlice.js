@@ -1,14 +1,14 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchGallery } from './galleryAPI';
+import { fetchGalleryByFilters } from './galleryAPI';
 
-export const loadGallery = createAsyncThunk(
-  'gallery/loadGallery',
-  async ({ page = 1, limit = 12, append = false, company = '' } = {}, { rejectWithValue }) => {
+export const loadGalleryByFilters = createAsyncThunk(
+  'gallery/loadGalleryByFilters',
+  async (filters = {}, { rejectWithValue }) => {
     try {
-      const result = await fetchGallery(page, limit, company);
-      return { ...result, __append: append };
+      const result = await fetchGalleryByFilters(filters);
+      return result;
     } catch (err) {
-      return rejectWithValue(err.message);
+      return rejectWithValue(err?.message ?? 'Failed to load gallery');
     }
   }
 );
@@ -41,27 +41,18 @@ const gallerySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loadGallery.pending, (state) => {
+      .addCase(loadGalleryByFilters.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(loadGallery.fulfilled, (state, action) => {
+      .addCase(loadGalleryByFilters.fulfilled, (state, action) => {
         state.loading = false;
         const payload = action.payload || {};
-        const incoming = payload.items || [];
-        const append = payload.__append === true;
-        if (append) {
-          state.items = Array.isArray(state.items) ? state.items.concat(incoming) : incoming;
-        } else {
-          state.items = incoming;
-        }
-        state.totalPages = payload.totalPages ?? state.totalPages;
-        state.totalItems = payload.totalItems ?? state.totalItems;
-        state.currentPage = payload.currentPage ?? state.currentPage;
+        state.items = payload.items ?? [];
       })
-      .addCase(loadGallery.rejected, (state, action) => {
+      .addCase(loadGalleryByFilters.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload ?? 'Failed to load gallery';
       });
   },
 });
