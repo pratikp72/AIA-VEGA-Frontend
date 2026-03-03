@@ -40,7 +40,7 @@ export default function MyCourses({ courses = [] }) {
                     {course.title}
                   </h3>
                   <p className="text-small text-muted-foreground mb-2">
-                    {course.completedLessons} of {course.totalLessons} modules
+                    {Math.min(course.completedLessons, course.totalLessons)} of {course.totalLessons} modules
                   </p>
 
                   {/* Progress bar */}
@@ -54,7 +54,7 @@ export default function MyCourses({ courses = [] }) {
                       </div>
                     </div>
                     <span className="text-small font-semibold text-gray-900 shrink-0">
-                      {course.progress}%
+                      {Math.min(100, course.progress)}%
                     </span>
                   </div>
 

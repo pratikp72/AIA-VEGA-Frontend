@@ -126,14 +126,14 @@ export default function CoursesCategoryPage({ category }) {
                       {isInProgress && (
                         <>
                           <div className="flex items-center justify-between mb-2 mt-2">
-                            <span className="text-small font-semibold text-primary">{course.progress}% Completed</span>
+                            <span className="text-small font-semibold text-primary">{Math.min(100, course.progress)}% Completed</span>
                             <span className="text-small text-muted-foreground">{course.time}</span>
                           </div>
                           <div className="flex items-center gap-2 mb-4">
                             <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                               <div
                                 className="h-2 bg-primary rounded-full transition-all"
-                                style={{ width: `${course.progress}%` }}
+                                style={{ width: `${Math.min(100, course.progress)}%` }}
                               />
                             </div>
                           </div>

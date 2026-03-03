@@ -163,9 +163,15 @@ export const fetchMyCourses = async () => {
             params: { userId, courseId },
           });
           const data = progRes?.data ?? progRes;
-          const completed = Array.isArray(data?.completed_modules) ? data.completed_modules : [];
-          completedLessons = completed.length;
-          progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+          const completed = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
+          // Count only unique course modules that have a matching entry in completed_modules.
+          // completed_modules may contain both numeric ids ("261") and string moduleIds
+          // ("mod-1772...") for the same module — count each physical module once.
+          const courseModules = Array.isArray(c.modules) ? c.modules : [];
+          completedLessons = courseModules.filter(m =>
+            completed.includes(String(m.id)) || (m.module_id && completed.includes(String(m.module_id)))
+          ).length;
+          progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessons / totalLessons) * 100)) : 0;
         } catch {
           // keep 0
         }

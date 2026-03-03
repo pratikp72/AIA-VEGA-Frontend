@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { Star } from "lucide-react";
-import { apiService } from '@/services/api';
+import api from '@/services/api';
 
 // Fallback questions used when no API feedback questions are available
 const FALLBACK_QUESTIONS = [
@@ -94,30 +94,56 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
   const setAnswer = (questionId, value) =>
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Prepare answers for backend
+    if (isSubmitting) return;
+
+    // Build answers array: one entry per question + courseRating + additionalFeedback
+    const answersArray = [
+      ...activeQuestions.map((q) => ({
+        question_id: q.question_id,
+        question: q.qestion || q.question || q.question_id,
+        answer_type: q.answer_type === 'Rating' ? 'Rating'
+          : q.answer_type === 'Text' ? 'Text'
+          : 'Text',
+        answer: String(answers[q.question_id] ?? ''),
+      })),
+      {
+        question_id: 'course_rating',
+        question: 'Course rating',
+        answer_type: 'Rating',
+        answer: String(courseRating),
+      },
+      ...(additionalFeedback.trim()
+        ? [{
+            question_id: 'additional_feedback',
+            question: 'Additional feedback',
+            answer_type: 'Text',
+            answer: additionalFeedback.trim(),
+          }]
+        : []),
+    ];
+
     const payload = {
       data: {
-        answers: {
-          ...answers,
-          courseRating,
-          additionalFeedback,
-        },
-        course: courseId,
-        users_permissions_user: userId,
+        answers: answersArray,
+        course: Number(courseId),
+        users_permissions_user: Number(userId),
       },
     };
-    console.log('Submitting feedback payload:', payload);
+
+    setIsSubmitting(true);
+    setSubmitError(null);
     try {
-      const response = await apiService.post('/feedback-submission/submit', payload, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      // Optionally call onSubmit with response
+      const response = await api.post('/feedback-submission/submit', payload);
       onSubmit?.(response);
-      alert(response.message || 'Feedback submitted successfully!');
     } catch (error) {
-      alert(error?.message || 'Failed to submit feedback.');
+      setSubmitError(error?.error?.message || error?.message || 'Failed to submit feedback. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,19 +227,24 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
               />
             </div>
 
+            {submitError && (
+              <p className="text-sm text-red-600 mb-4">{submitError}</p>
+            )}
             <div className="flex justify-start gap-3">
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-5 py-2.5 rounded-xl border-2 border-primary bg-white text-primary font-semibold text-sm hover:bg-primary/5 transition"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl border-2 border-primary bg-white text-primary font-semibold text-sm hover:bg-primary/5 transition disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition"
+                disabled={isSubmitting}
+                className="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Submit Form
+                {isSubmitting ? 'Submitting...' : 'Submit Form'}
               </button>
             </div>
           </form>

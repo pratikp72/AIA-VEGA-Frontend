@@ -20,7 +20,7 @@ export default function CourseStats({ course }) {
             </span>
             <div className="flex flex-col">
               <span className="text-sm font-medium text-gray-400">Modules Completed</span>
-              <span className="text-base font-bold text-gray-900">{course.progress}%</span>
+              <span className="text-base font-bold text-gray-900">{Math.min(100, course.progress ?? 0)}%</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -45,7 +45,7 @@ export default function CourseStats({ course }) {
         {/* Circular Progress */}
         <div className="relative shrink-0 w-36 max-w-[40%] aspect-square">
           <CircularProgressbar
-            value={course.progress}
+            value={Math.min(100, course.progress ?? 0)}
             strokeWidth={8}
             styles={buildStyles({
               pathColor: 'var(--color-success)',
@@ -55,7 +55,7 @@ export default function CourseStats({ course }) {
             })}
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[22px] font-bold leading-tight text-success">{course.progress}%</span>
+            <span className="text-[22px] font-bold leading-tight text-success">{Math.min(100, course.progress ?? 0)}%</span>
             <span className="text-[11px] text-gray-400 leading-tight">Grades Completed</span>
           </div>
         </div>

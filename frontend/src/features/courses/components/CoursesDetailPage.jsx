@@ -144,46 +144,6 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
     );
   }
 
-  // Feedback form: shown when user passed quiz but hasn't submitted feedback
-  if (showFeedbackForm) {
-    const feedbackForLang =
-      (feedbacks || []).find((fb) => fb.language === course?.quiz?.[0]?.language) ||
-      (feedbacks || [])[0];
-    const feedbackQuestions = feedbackForLang?.feedback_question || [];
-    const courseIdForApi = course.id ?? course.documentId;
-    const userId = getCurrentUserId();
-    return (
-      <LayoutShell>
-        <PageContainer className="py-8">
-          <FeedbackForm
-            questions={feedbackQuestions}
-            onCancel={() => setShowFeedbackForm(false)}
-            onSubmit={(res) => {
-              setShowFeedbackForm(false);
-              if (userId && courseIdForApi) {
-                fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }).then(({ completedModules, progressStatus }) => {
-                  dispatch(initializeModuleReadState(completedModules));
-                  setCourseProgress((p) => ({
-                    ...p,
-                    progressStatus,
-                    needsFeedbackSubmission: false,
-                  }));
-                  if (progressStatus === "Completed") {
-                    getLatestSubmission(userId, courseIdForApi).then((subRes) => {
-                      setCourseProgress((prev) => ({ ...prev, quizScore: subRes?.submission?.score }));
-                    });
-                  }
-                });
-              }
-            }}
-            userId={userId}
-            courseId={courseIdForApi}
-          />
-        </PageContainer>
-      </LayoutShell>
-    );
-  }
-
   if (showFullReadingView) {
     return (
       <CourseTextOrPdf
