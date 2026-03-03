@@ -23,11 +23,17 @@ export const loadAllCourses = createAsyncThunk(
   }
 );
 
+/**
+ * Load a single course by documentId. Optionally pass language so backend returns only that language's modules/quiz/feedback.
+ * @param {string | { documentId: string, language?: string }} arg - documentId string or { documentId, language }.
+ */
 export const loadCourseById = createAsyncThunk(
   'courses/loadCourseById',
-  async (documentId, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
     try {
-      return await fetchCourseById(documentId);
+      const documentId = typeof arg === 'string' ? arg : arg?.documentId;
+      const language = typeof arg === 'object' && arg != null ? arg.language : undefined;
+      return await fetchCourseById(documentId, language ? { language } : {});
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -98,7 +104,6 @@ const coursesSlice = createSlice({
       .addCase(loadCourseById.pending, (state) => {
         state.courseDetailLoading = true;
         state.courseDetailError = null;
-        state.currentCourse = null;
       })
       .addCase(loadCourseById.fulfilled, (state, action) => {
         state.courseDetailLoading = false;

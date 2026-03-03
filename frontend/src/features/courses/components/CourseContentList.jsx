@@ -43,11 +43,16 @@ function ModuleCircle({ moduleNumber, moduleStatus, isSelected }) {
   );
 }
 
-export default function CourseContentList({ current, onSelect, courseId, category, course, onMarkAsRead }) {
-  // Prefer modulesList if present and is array, else fallback to modules
-  const modules = Array.isArray(course?.modulesList)
-    ? course.modulesList
-    : (Array.isArray(course?.modules) ? course.modules : []);
+export default function CourseContentList({ contents, current, onSelect, courseId, category, course, selectedLanguage, onMarkAsRead }) {
+  // Use language-filtered contents when provided so sidebar shows only selected language; else full list
+  const modules =
+    Array.isArray(contents)
+      ? contents
+      : Array.isArray(course?.modulesList)
+        ? course.modulesList
+        : Array.isArray(course?.modules)
+          ? course.modules
+          : [];
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -70,18 +75,18 @@ export default function CourseContentList({ current, onSelect, courseId, categor
 
   if (!modules.length) return <div className="text-gray-500 italic">No modules found for this course.</div>;
 
+  const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
+
   const handleModuleClick = (module) => {
     if (!course?.documentId) return;
     const modId = module.moduleId || module.id;
-    const url = `/courses/${category}/${course.documentId}/${modId}`;
-    router.push(url);
+    router.push(`/courses/${category}/${course.documentId}/${modId}${langQuery}`);
   };
 
   const handleNextLecture = (nextModule) => {
     if (!nextModule || !course?.documentId) return;
     const modId = nextModule.moduleId || nextModule.id;
-    const url = `/courses/${category}/${course.documentId}/${modId}`;
-    router.push(url);
+    router.push(`/courses/${category}/${course.documentId}/${modId}${langQuery}`);
   };
 
   const allCompleted = modules.length > 0 && modules.every(m => m.mark_as_read);

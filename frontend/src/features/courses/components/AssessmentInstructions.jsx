@@ -43,6 +43,7 @@ export default function AssessmentInstructions(props) {
   const [quizStarted, setQuizStarted] = useState(false);
   const [blockStartPendingReattempt, setBlockStartPendingReattempt] = useState(false);
   const [blockCheckLoading, setBlockCheckLoading] = useState(true);
+  const [startingAssessment, setStartingAssessment] = useState(false);
 
 const { subtitle, notice, instructionCards: mockInstructionCards, checklist: mockChecklist, buttonText } =
   MOCK_ASSESSMENT_DATA;
@@ -206,6 +207,20 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
         <div className="px-xl pb-xl">
           <p className="text-muted-foreground mb-6">{subtitle}</p>
 
+          {/* Quiz language differs from selected course language */}
+          {props.quizLanguageMismatch && props.quiz?.language && (
+            <div className="rounded-xl p-4 mb-6 flex items-start gap-3 border border-blue-200 bg-blue-50 text-gray-800">
+              <Info className="w-5 h-5 shrink-0 text-blue-600 mt-0.5" />
+              <div>
+                <span className="font-semibold">Assessment language</span>
+                <p className="text-sm mt-1">
+                  No assessment is available in <strong>{props.selectedLanguage || "your selected language"}</strong>.
+                  This quiz is in <strong>{props.quiz.language}</strong>.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Important Notice */}
           <div className="rounded-xl p-5 mb-8 flex items-start gap-3 border border-warning bg-orange-light">
             <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-warning-light-bg">
@@ -318,11 +333,20 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
               </>
             ) : (
               <button
-                onClick={() => setQuizStarted(true)}
-                disabled={blockCheckLoading}
+                onClick={async () => {
+                  if (blockCheckLoading || startingAssessment) return;
+                  setStartingAssessment(true);
+                  try {
+                    await props.onBeforeStartAssessment?.();
+                  } finally {
+                    setStartingAssessment(false);
+                    setQuizStarted(true);
+                  }
+                }}
+                disabled={blockCheckLoading || startingAssessment}
                 className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {blockCheckLoading ? "Checking..." : buttonText}
+                {blockCheckLoading ? "Checking..." : startingAssessment ? "Loading quiz..." : buttonText}
               </button>
             )}
           </div>

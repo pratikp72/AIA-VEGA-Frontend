@@ -58,7 +58,10 @@ function normalizeModule(module, index) {
 
 function normalizeCourse(course) {
   const durationMin = course.course_duration_min || 0;
-  const rawModules = Array.isArray(course.modules) ? course.modules : [];
+  const rawModules =
+    Array.isArray(course.modules) ? course.modules
+    : Array.isArray(course?.attributes?.modules) ? course.attributes.modules
+    : [];
   // Normalize quiz array to always include quiz_questions if present
   const quiz = Array.isArray(course.quiz)
     ? course.quiz.map(q => ({
@@ -99,36 +102,48 @@ function normalizeCourse(course) {
   };
 }
 
-export const fetchAllCourses = async () => {
+/**
+ * Fetch all courses. Backend may optionally filter by language when provided.
+ * @param {{ language?: string }} opts - Optional. If language is set, backend returns only that language's content per course.
+ */
+export const fetchAllCourses = async (opts = {}) => {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
     return MOCK_COURSE_CATEGORIES;
   }
-const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
-  params: {
+  const params = {
     'populate[thumbnail]': true,
     'populate[quiz][populate][quiz_questions][populate][options]': true,
     'populate[modules]': true,
-  }
-});
+  };
+  if (opts.language) params.language = opts.language;
+
+  const response = await api.get(API_ENDPOINTS.COURSES.LIST, { params });
   const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   return raw.filter(c => c.active !== false).map(normalizeCourse);
 };
 
-export const fetchCourseById = async (documentId) => {
-  const response = await api.get(API_ENDPOINTS.COURSES.GET(documentId), {
-     params: {
-      'populate[modules][populate]': '*',
-      'populate[thumbnail]': true,
-      'populate[feedback][populate][feedback_question]': true,
-      'populate[orientation_detail]': true,
-      'populate[prerequisite_courses]': true,
-      'populate[quiz][populate][quiz_questions][populate][options]': true,
-      'populate[quiz][populate][quiz_instruction]': true,
-      'populate[quiz][populate][quiz_instruction_checklist][populate]': '*',
-    },
-  });
-  const raw = response?.data || response;
+/**
+ * Fetch a single course by documentId.
+ * @param {string} documentId - Course documentId
+ * @param {{ language?: string }} opts - Optional. If language is set, backend should return only modules/quiz/feedback in that language.
+ * Backend must populate quiz_questions.options so the quiz UI can show answer choices; see docs/BACKEND_QUIZ_OPTIONS_SPEC.md.
+ */
+export const fetchCourseById = async (documentId, opts = {}) => {
+  const params = {
+    'populate[modules][populate]': '*',
+    'populate[thumbnail]': true,
+    'populate[feedback][populate][feedback_question]': true,
+    'populate[orientation_detail]': true,
+    'populate[prerequisite_courses]': true,
+    'populate[quiz][populate][quiz_questions][populate][options]': true,
+    'populate[quiz][populate][quiz_instruction]': true,
+    'populate[quiz][populate][quiz_instruction_checklist][populate]': '*',
+  };
+  if (opts.language) params.language = opts.language;
+
+  const response = await api.get(API_ENDPOINTS.COURSES.GET(documentId), { params });
+  const raw = response?.data?.data ?? response?.data ?? response;
   return normalizeCourse(raw);
 };
 

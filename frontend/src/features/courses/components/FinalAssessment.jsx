@@ -2,8 +2,9 @@ import React from "react";
 import { Lock, CheckCircle2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
-export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, needsFeedbackSubmission, onOpenFeedback }) {
+export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, needsFeedbackSubmission, onOpenFeedback, selectedLanguage, hasQuizInSelectedLanguage }) {
   const router = useRouter();
+  const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
   if (!unlocked) {
     return (
       <div className="bg-white rounded-xl shadow p-6 mt-6">
@@ -73,13 +74,28 @@ export default function FinalAssessment({ unlocked, category, courseId, isComple
       </div>
     );
   }
+  if (!hasQuizInSelectedLanguage) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 mt-6">
+        <div className="font-semibold text-gray-800 text-lg mb-4">Final Assessment</div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
+          <p className="text-sm text-gray-600">
+            No assessment is available in <strong>{selectedLanguage || "this language"}</strong>.
+          </p>
+          <p className="text-xs text-gray-500 mt-2">
+            Switch to another language from the dropdown above if the course offers an assessment in that language.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="bg-white rounded-xl shadow p-6 mt-6">
       <div className="font-semibold text-gray-800 text-lg mb-4">Final Assessment</div>
       <div className="flex justify-center">
         <button
           className="bg-primary hover:bg-primary/90 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-150 text-lg"
-          onClick={() => router.push(`/courses/${category}/${courseId}/assessment`)}
+          onClick={() => router.push(`/courses/${category}/${courseId}/assessment${langQuery}`)}
         >
           Go to Assessment
         </button>

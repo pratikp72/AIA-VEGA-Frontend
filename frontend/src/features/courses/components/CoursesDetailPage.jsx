@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { FolderOpen, Clock, Maximize2 } from "lucide-react";
+import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
+import { FolderOpen, Clock, Maximize2, Languages } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import PageSection from "@/components/common/PageSection";
 import CourseStats from "./CourseStats";
@@ -11,36 +11,88 @@ import FeedbackForm from "./FeedbackForm";
 import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
-import { markModuleAsRead, initializeModuleReadState } from "@/features/courses/coursesSlice";
+import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/features/courses/coursesSlice";
 import { markModuleProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 
-export default function CoursesDetailPage({ category, course, selectedModule }) {
+export default function CoursesDetailPage({ category, course, selectedModule, initialLanguage }) {
+  const courseLanguages = course?.languages ?? course?.course_language ?? [];
+  const [selectedLanguage, setSelectedLanguage] = useState(
+    () => initialLanguage || courseLanguages[0] || "English"
+  );
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useParams();
   const searchParams = useSearchParams();
+  const moduleIdFromPath = params?.moduleId;
   const [showFullReadingView, setShowFullReadingView] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, needsFeedbackSubmission: false });
   const skipNextProgressUpdate = useRef(false);
 
+  // If initialLanguage (e.g. English) is not actually available for this course
+  // but the backend reports a single language (e.g. Gujarati), automatically
+  // switch the selection to the first available course language.
+  useEffect(() => {
+    if (!Array.isArray(courseLanguages) || courseLanguages.length === 0) return;
+    const selectedNorm = (selectedLanguage || "").trim().toLowerCase();
+    const hasSelected = courseLanguages.some(
+      (l) => (l || "").trim().toLowerCase() === selectedNorm
+    );
+    if (!hasSelected) {
+      setSelectedLanguage(courseLanguages[0]);
+    }
+  }, [courseLanguages, selectedLanguage]);
+
   if (!course) return <div className="p-8">Course not found.</div>;
 
-
-
-  // Use normalized modulesList (normalizeModule maps modules → modulesList)
-  const contents = Array.isArray(course.modulesList) ? course.modulesList : [];
-  const quizzes = course.quiz || [];
-  const feedbacks = course.feedback || [];
-  const description = course.description || [];
-  const allModulesCompleted = contents.length > 0 && contents.every(m => m.mark_as_read);
+  // Show only modules, quiz, and feedback for the selected language
+  const allModulesList = Array.isArray(course.modulesList) ? course.modulesList : [];
+  const selectedLangNorm = (selectedLanguage || "").trim().toLowerCase();
+  const filteredModules = allModulesList.filter(
+    (m) => (m.language || "").trim().toLowerCase() === selectedLangNorm
+  );
+  const contents =
+    filteredModules.length > 0
+      ? filteredModules
+      : allModulesList.length > 0 && courseLanguages.some((l) => (l || "").trim().toLowerCase() === selectedLangNorm)
+        ? allModulesList
+        : [];
+  const allQuizzes = Array.isArray(course.quiz) ? course.quiz : [];
+  const filteredQuizzes = allQuizzes.filter(
+    (q) => (q.language || "").trim().toLowerCase() === selectedLangNorm
+  );
+  const quizzes =
+    filteredQuizzes.length > 0
+      ? filteredQuizzes
+      : allQuizzes.length > 0 && courseLanguages.some((l) => (l || "").trim().toLowerCase() === selectedLangNorm)
+        ? allQuizzes
+        : [];
+  const allFeedbacks = Array.isArray(course.feedback) ? course.feedback : [];
+  const feedbacks = allFeedbacks.filter(
+    (fb) => (fb.language || "").trim().toLowerCase() === selectedLangNorm
+  );
+  const orientation =
+    course.orientation_detail &&
+    (course.orientation_detail.language || "").trim().toLowerCase() === selectedLangNorm
+      ? course.orientation_detail
+      : null;
+  const allModulesCompleted = contents.length > 0 && contents.every((m) => m.mark_as_read);
+  const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
   // For debugging:
   // console.log('modules:', contents)
 
-  const moduleIdFromUrl = searchParams.get('moduleId');
-  const currentModule = selectedModule || (moduleIdFromUrl ? contents.find(m => String(m.moduleId || m.id) === String(moduleIdFromUrl)) : contents[0]) || contents[0];
-  const currentModuleIdx = contents.findIndex(m => String(m.moduleId || m.id) === String(currentModule?.moduleId || currentModule?.id));
+  const moduleIdFromQuery = searchParams.get('moduleId');
+  const requestedModuleId = moduleIdFromPath || moduleIdFromQuery;
+  const currentModule =
+    (requestedModuleId
+      ? contents.find((m) => String(m.moduleId || m.id) === String(requestedModuleId))
+      : null) || contents[0] || null;
+  const currentModuleIdx = currentModule
+    ? contents.findIndex((m) => String(m.moduleId || m.id) === String(currentModule.moduleId || currentModule.id))
+    : -1;
   const nextModule = currentModuleIdx >= 0 ? contents[currentModuleIdx + 1] || null : null;
 
   // Fetch per-user read state from user-progress whenever the course loads.
@@ -103,14 +155,14 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
 
   const handleNextLecture = () => {
     if (!nextModule || !course?.documentId) return;
-    router.push(`/courses/${category}/${course.documentId}/${nextModule.id}`);
+    const base = `/courses/${category}/${course.documentId}/${nextModule.moduleId || nextModule.id}`;
+    const lang = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
+    router.push(`${base}${lang}`);
   };
 
   // Feedback form: when user passed quiz but hasn't submitted feedback
   if (showFeedbackForm) {
-    const feedbackForLang =
-      (course.feedback || []).find((fb) => fb.language === course.quiz?.[0]?.language) ||
-      (course.feedback || [])[0];
+    const feedbackForLang = feedbacks[0];
     const feedbackQuestions = feedbackForLang?.feedback_question || [];
     const userId = getCurrentUserId();
     const courseNumericId = course.id ?? course.documentId;
@@ -165,6 +217,9 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
     backgroundRepeat: 'no-repeat',
   };
 
+  const languageOptions =
+    Array.isArray(courseLanguages) && courseLanguages.length > 0 ? courseLanguages : ["English"];
+
   return (
     <div className="min-h-screen bg-[#fafafa]" style={courseBgStyle}>
       <PageHeader
@@ -184,6 +239,32 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
         showBreadcrumbSeparator
         containerClassName="pt-xl pb-0 px-xl bg-transparent"
       />
+      {/* Language selection dropdown — always visible so user can switch content language */}
+      <div className="px-xl pb-2 flex items-center justify-end">
+        <div className="flex items-center gap-2 bg-white/90 border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+          <Languages className="w-4 h-4 text-gray-500" aria-hidden />
+          <label htmlFor="course-language-select" className="text-sm font-medium text-gray-700">
+            Language
+          </label>
+          <select
+            id="course-language-select"
+            value={selectedLanguage}
+            onChange={(e) => {
+              const lang = e.target.value;
+              setSelectedLanguage(lang);
+              const params = new URLSearchParams(searchParams?.toString() || "");
+              params.set("lang", lang);
+              router.replace(`${pathname}?${params.toString()}`);
+              dispatch(loadCourseById({ documentId: course.documentId, language: lang }));
+            }}
+            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
+          >
+            {languageOptions.map((lang) => (
+              <option key={lang} value={lang}>{lang}</option>
+            ))}
+          </select>
+        </div>
+      </div>
       <main>
         <PageSection>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-10">
@@ -292,6 +373,7 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
                 courseId={course.documentId}
                 category={category}
                 course={course}
+                selectedLanguage={selectedLanguage}
                 onMarkAsRead={handleMarkAsRead}
               />
               <FinalAssessment
@@ -303,6 +385,8 @@ export default function CoursesDetailPage({ category, course, selectedModule }) 
                 hasPendingReattempt={courseProgress.hasPendingReattempt}
                 needsFeedbackSubmission={courseProgress.needsFeedbackSubmission}
                 onOpenFeedback={() => setShowFeedbackForm(true)}
+                selectedLanguage={selectedLanguage}
+                hasQuizInSelectedLanguage={hasQuizInSelectedLanguage}
               />
             </div>
           </div>

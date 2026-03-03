@@ -22,14 +22,22 @@ export default function CourseDetailPage() {
   const isLoading = useAppSelector(selectCourseDetailLoading);
   const error = useAppSelector(selectCourseDetailError);
 
+  const urlLanguage = searchParams.get('lang') || searchParams.get('language') || '';
+
   useEffect(() => {
     if (id) {
-      dispatch(loadCourseById(id));
+      if (urlLanguage) {
+        // Only filter by language when URL explicitly provides it
+        dispatch(loadCourseById({ documentId: id, language: urlLanguage }));
+      } else {
+        // No language param → let backend return all languages
+        dispatch(loadCourseById(id));
+      }
     }
     return () => {
       dispatch(clearCurrentCourse());
     };
-  }, [dispatch, id]);
+  }, [dispatch, id, urlLanguage]);
 
   if (isLoading) {
     return (
@@ -52,5 +60,12 @@ export default function CourseDetailPage() {
     : null;
   const defaultModule = selectedModule || modules[0];
 
-  return <CoursesDetailPage category={category} course={course} selectedModule={defaultModule} />;
+  return (
+    <CoursesDetailPage
+      category={category}
+      course={course}
+      selectedModule={defaultModule}
+      initialLanguage={urlLanguage || undefined}
+    />
+  );
 }

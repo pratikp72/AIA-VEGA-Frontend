@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import CoursesDetailPage from '@/features/courses/components/CoursesDetailPage';
 import Loader from '@/components/common/Loader';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -13,7 +13,9 @@ import {
 
 export default function CourseDetailModulePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const { category, id, moduleId } = params;
+  const urlLanguage = searchParams.get('lang') || searchParams.get('language') || '';
 
   const dispatch = useAppDispatch();
   const course = useAppSelector(selectCurrentCourse);
@@ -22,12 +24,16 @@ export default function CourseDetailModulePage() {
 
   useEffect(() => {
     if (id) {
-      dispatch(loadCourseById(id));
+      if (urlLanguage) {
+        dispatch(loadCourseById({ documentId: id, language: urlLanguage }));
+      } else {
+        dispatch(loadCourseById(id));
+      }
     }
     return () => {
       dispatch(clearCurrentCourse());
     };
-  }, [dispatch, id]);
+  }, [dispatch, id, urlLanguage]);
 
   if (isLoading) {
     return (
@@ -43,11 +49,11 @@ export default function CourseDetailModulePage() {
 
   if (!course) return <div className="p-8">Course not found.</div>;
 
-  const modulesList = course.modulesList || [];
-  const selectedModule = moduleId
-    ? modulesList.find(m => String(m.moduleId || m.id) === String(moduleId))
-    : null;
-  const defaultModule = selectedModule || modulesList[0];
-
-  return <CoursesDetailPage category={category} course={course} selectedModule={defaultModule} />;
+  return (
+    <CoursesDetailPage
+      category={category}
+      course={course}
+      initialLanguage={urlLanguage || undefined}
+    />
+  );
 }

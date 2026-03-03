@@ -38,6 +38,9 @@ api.interceptors.response.use(
       const { status, data } = error.response;
       
       switch (status) {
+        case 400:
+          console.error('Bad Request:', data?.message || 'Invalid request parameters');
+          break;
         case 401:
           // Unauthorized - clear token and redirect to login
           if (typeof window !== 'undefined') {
@@ -51,11 +54,20 @@ api.interceptors.response.use(
         case 404:
           console.warn('Resource not found:', error.config?.url);
           break;
+        case 422:
+          console.error('Validation Error:', data?.message || 'Invalid data provided');
+          break;
         case 500:
           console.error('Server error');
           break;
+        case 502:
+          console.error('Bad Gateway - Server unavailable');
+          break;
+        case 503:
+          console.error('Service Unavailable - Server temporarily down');
+          break;
         default:
-          console.error('An error occurred:', data?.message || 'Unknown error');
+          console.error(`HTTP ${status} Error at ${error.config?.url}:`, data?.message || data || 'Unknown error');
       }
       
       const rejectPayload = typeof data === 'object' && data !== null ? { ...data, status } : { message: data || error.message, status };

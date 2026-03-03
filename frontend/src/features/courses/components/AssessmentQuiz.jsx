@@ -171,6 +171,32 @@ function ResultScreen({
   );
 }
 
+function getQuestionOptions(question) {
+  if (!question) return [];
+  const q = question?.attributes ?? question;
+  const raw =
+    q.options ??
+    q.choices ??
+    q.question_options ??
+    question?.options ??
+    question?.choices ??
+    question?.question_options ??
+    [];
+  const arr = Array.isArray(raw)
+    ? raw
+    : raw?.data && Array.isArray(raw.data)
+      ? raw.data
+      : [];
+  return arr.map((opt) => {
+    if (opt == null) return { option_key: "", option_label: "" };
+    const attrs = opt.attributes ?? opt;
+    return {
+      option_key: attrs.option_key ?? opt.option_key ?? "",
+      option_label: attrs.option_label ?? opt.option_label ?? opt.text ?? opt.label ?? String(opt.id ?? ""),
+    };
+  });
+}
+
 export default function AssessmentQuiz({ onExit, courseId, category, courseNumericId, userId, quizQuestions, resultData: resultDataProp, feedbackQuestions, feedbackCompulsory }) {
   const router = useRouter();
   const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
@@ -254,10 +280,9 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
     const answersArr = questions.map((q) => {
       const selectedIdx = answers[q.id];
-      const selectedOption = selectedIdx !== undefined
-        ? (q.options || q.choices || [])[selectedIdx]
-        : null;
-      const selectedKey = selectedOption?.option_key || String(selectedIdx ?? '');
+      const opts = getQuestionOptions(q);
+      const selectedOption = selectedIdx !== undefined ? opts[selectedIdx] : null;
+      const selectedKey = selectedOption?.option_key ?? String(selectedIdx ?? "");
 
       return {
         question_id: String(q.question_id || q.id),
@@ -288,26 +313,17 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       const maxAttemptVal = resultRes?.maxAttempt ?? 1;
       const attemptNum = submission?.attempt_number;
       const currentEqualsMax = attemptNum != null && maxAttemptVal != null && attemptNum >= maxAttemptVal;
+      const userPassed = submission?.passed === true;
 
-      if (submitRes?.reattempt_required) {
-        // Backend said max attempts reached (blocked submit or just saved last attempt and failed)
+      setScore(submission?.score ?? 0);
+      setIsPassed(userPassed);
+      if (attemptNum != null) setAttemptNumber(attemptNum);
+
+      // Re-attempt UI only when user actually failed and has used all attempts (never when they passed)
+      if (!userPassed && (submitRes?.reattempt_required || currentEqualsMax)) {
         setReattemptRequired(true);
-        setIsPassed(false);
-        setScore(submission?.score ?? 0);
-        if (attemptNum != null) setAttemptNumber(attemptNum);
         const hasPending = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
         if (hasPending) setReattemptSent(true);
-      } else {
-        // New submission was created — show the freshly calculated score
-        setScore(submission?.score ?? 0);
-        setIsPassed(submission?.passed ?? false);
-        if (attemptNum != null) setAttemptNumber(attemptNum);
-        // Show re-attempt button when current attempt === max_attempt and failed (e.g. max_attempt=1, failed 1st time)
-        if (!submission?.passed && currentEqualsMax) {
-          setReattemptRequired(true);
-          const hasPending = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
-          if (hasPending) setReattemptSent(true);
-        }
       }
     } catch (e) {
       console.error('Quiz submission failed', e);
@@ -481,18 +497,12 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
             </h2>
 
             <div className="flex flex-col">
-              {(currentQuestion.options || currentQuestion.choices || []).map((option, idx) => {
+              {getQuestionOptions(currentQuestion).map((option, idx) => {
                 const isSelected = answers[currentQuestion.id] === idx;
-                // Support object or string option
-                let label = '';
-                if (typeof option === 'object' && option !== null) {
-                  label = option.option_label || option.text || option.label || '';
-                } else {
-                  label = option;
-                }
+                const label = option?.option_label ?? option?.option_key ?? "";
                 return (
                   <label
-                    key={idx}
+                    key={option?.option_key ?? idx}
                     onClick={() => handleSelectOption(idx)}
                     className="flex items-center gap-3 p-4 cursor-pointer rounded-xl border border-gray-100 hover:bg-gray-50 mb-4 shadow-sm"
                   >
@@ -505,7 +515,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
                         <span className="w-2 h-2 rounded-full bg-primary" />
                       )}
                     </span>
-                    <span className="text-xs text-gray-700">{label}</span>
+                    <span className="text-sm text-gray-700">{label}</span>
                   </label>
                 );
               })}
