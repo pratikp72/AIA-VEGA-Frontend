@@ -48,9 +48,9 @@ export default function NewsCard({ news }) {
             {news.title}
           </h3>
 
-          {/* Description - grows to fill so card height stays consistent */}
+          {/* Description - max 5 lines with ellipsis */}
             <div
-              className="text-body text-gray-medium mb-2 flex-1 min-h-0"
+              className="text-body text-gray-medium mb-2 line-clamp-5 overflow-hidden"
               dangerouslySetInnerHTML={{ __html: md.render(news.description || '') }}
             />
 

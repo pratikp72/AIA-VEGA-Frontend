@@ -126,26 +126,65 @@ function withImageUrl(imageObj) {
   return url.startsWith('http') ? url : BASE_URL + (url.startsWith('/') ? url : `/${url}`);
 }
 
+function getCurrentUserId() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export const fetchMyCourses = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(500);
     return MOCK_HOME_DATA.courses;
   }
-  const response = await api.get(API_ENDPOINTS.COURSES.LIST, { params: { populate: '*' } });
+  const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
+    params: {
+      'populate[thumbnail]': true,
+      'populate[modules]': true,
+    },
+  });
   const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
-  return raw
-    .filter(c => c.active !== false)
-    .slice(0, 4)
-    .map(c => ({
-      id: c.id,
-      documentId: c.documentId,
-      title: c.title || '',
-      thumbnail: withImageUrl(c.thumbnail),
-      progress: 0,
-      completedLessons: 0,
-      totalLessons: 0,
-      deadline: '2026-12-31',
-    }));
+  const courses = raw.filter(c => c.active !== false).slice(0, 4);
+  const userId = getCurrentUserId();
+
+  const withProgress = await Promise.all(
+    courses.map(async (c) => {
+      const totalLessons = Array.isArray(c.modules) ? c.modules.length : 0;
+      let completedLessons = 0;
+      let progress = 0;
+      const courseId = c.id ?? c.documentId;
+      if (userId && courseId) {
+        try {
+          const progRes = await api.get('/user-progress/progress', {
+            params: { userId, courseId },
+          });
+          const data = progRes?.data ?? progRes;
+          const completed = Array.isArray(data?.completed_modules) ? data.completed_modules : [];
+          completedLessons = completed.length;
+          progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+        } catch {
+          // keep 0
+        }
+      }
+      return {
+        id: c.id,
+        documentId: c.documentId,
+        title: c.title || '',
+        category: c.course_category || 'courses',
+        thumbnail: withImageUrl(c.thumbnail),
+        progress,
+        completedLessons,
+        totalLessons,
+        deadline: c.deadline || '2026-12-31',
+      };
+    })
+  );
+
+  return withProgress;
 };
 
 

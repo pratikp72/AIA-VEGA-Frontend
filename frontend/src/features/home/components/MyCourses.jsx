@@ -24,13 +24,13 @@ export default function MyCourses({ courses = [] }) {
         {courses.slice(0, 4).map((course) => (
           <Link key={course.id} href={`/courses/${(course.category || 'courses').toLowerCase().replace(/\s+/g, '-')}/${course.documentId || course.id}`} className="flex-1 min-h-0 flex w-full min-w-0">
             <Card className="w-full min-w-0 p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 bg-white rounded-[20px] h-[140px] flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
-              <div className="flex gap-4 flex-1 min-h-0 min-w-0 w-full">
-                {/* Course Thumbnail - fixed size, same for all */}
-                <div className="w-60px h-60px flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
+              <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">
+                {/* Course Thumbnail - fixed size, vertically centered */}
+                <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
                   <img
                     src={course.thumbnail}
                     alt={course.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full block object-cover object-center"
                   />
                 </div>
 

@@ -1,6 +1,10 @@
-// Selectors for Home feature (news carousel comes from news slice)
-export const selectNewsCarousel = (state) =>
-  (state.news?.newsList ?? []);
+// Selectors for Home feature (news carousel shows only homepage-visible news)
+export const selectNewsCarousel = (state) => {
+  const list = state.news?.newsList ?? [];
+  return list.filter(
+    (n) => n.visible_on_homepage === true || n.visible_on_homepage === 1
+  );
+};
 export const selectQuickLinks = (state) => state.home.quickLinks;
 export const selectUpcomingEvents = (state) => state.home.upcomingEvents;
 export const selectNewJoinees = (state) => state.home.newJoinees;
