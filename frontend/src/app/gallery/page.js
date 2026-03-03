@@ -39,7 +39,7 @@ export default function GalleryPage() {
   const [companyFilter, setCompanyFilter] = useState('AIA');
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
-  const [sortBy, setSortBy] = useState('Newest');
+  const [sortBy, setSortBy] = useState('');
   const [date, setDate] = useState('');
   const [type, setType] = useState('');
   const searchDebounceRef = useRef(null);
@@ -60,7 +60,9 @@ export default function GalleryPage() {
     const params = {};
     if (companyFilter) params.company = companyFilter;
     if (type) params.type = type.toLowerCase();
-    if (sortBy) params.sortBy = SORT_BY_MAP[sortBy] ?? sortBy ?? 'newest';
+    if (sortBy) {
+      params.sortBy = SORT_BY_MAP[sortBy] ?? sortBy;
+    }
     if (searchDebounced?.trim()) params.search = searchDebounced.trim();
     if (date) params.date = formatDateForApi(date);
     dispatch(loadGalleryByFilters(params));
@@ -113,7 +115,20 @@ export default function GalleryPage() {
               { value: sortBy, onChange: (v) => setSortBy(v), options: SORT_BY_OPTIONS, placeholder: 'Sort By' },
               { value: type, onChange: (v) => setType(v), options: TYPE_OPTIONS, placeholder: 'Type' },
             ]}
-          />
+          >
+            <button
+              type="button"
+              className="ml-2 px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm"
+              onClick={() => {
+                setSearch('');
+                setDate('');
+                setSortBy('');
+                setType('');
+              }}
+            >
+              Reset Filters
+            </button>
+          </Filters>
         </div>
       </PageHeader>
 
