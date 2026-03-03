@@ -41,9 +41,18 @@ export default function DatePicker({ value, onChange, placeholder = 'Date', text
     function onDoc(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     }
+    function onScroll() {
+      setOpen(false);
+    }
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
+    if (open) {
+      window.addEventListener('scroll', onScroll, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open]);
 
   const monthMatrix = useMemo(() => getMonthMatrix(view.year, view.month), [view]);
 

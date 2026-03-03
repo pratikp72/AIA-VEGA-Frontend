@@ -12,9 +12,18 @@ export default function Select({ value, onChange, options = [], placeholder = 'S
     function onDoc(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     }
+    function onScroll() {
+      setOpen(false);
+    }
     document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, []);
+    if (open) {
+      window.addEventListener('scroll', onScroll, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', onDoc);
+      window.removeEventListener('scroll', onScroll, true);
+    };
+  }, [open]);
 
   return (
     <div ref={ref} className="relative w-full">

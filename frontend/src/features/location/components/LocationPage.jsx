@@ -9,6 +9,13 @@ import PageContainer from '@/components/layout/PageContainer';
 import Select from '@/components/ui/select';
 
 export default function LocationsPage() {
+  const locationBgStyle = {
+    backgroundImage: 'url(/location-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    minHeight: '100vh',
+  };
   const dispatch = useDispatch();
   const locations = useSelector(selectLocations);
   const loading = useSelector(selectLocationLoading);
@@ -64,7 +71,7 @@ export default function LocationsPage() {
   );
 
   return (
-    <>
+    <div style={locationBgStyle}>
       <PageHeader
         title="Locations"
         breadcrumbs={breadcrumbs}
@@ -109,6 +116,6 @@ export default function LocationsPage() {
           <div className="py-8 text-gray-500">No units available for this plant.</div>
         )}
       </PageContainer>
-    </>
+    </div>
   );
 }
