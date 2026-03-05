@@ -5,6 +5,7 @@ import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 function normalizeUser(user) {
   const name = user.employee_name || user.username || 'Unknown';
   const joinDate = user.joining_date || null;
+  const dateOfBirth = user.date_of_birth || null;
   const now = new Date();
   const isNew = joinDate
     ? (now - new Date(joinDate)) / (1000 * 60 * 60 * 24) <= 30
@@ -20,6 +21,7 @@ function normalizeUser(user) {
     department: user.department || '',
     location: user.working_location || '',
     joinDate,
+    dateOfBirth,
     company: user.company || '',
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
     isNew,
@@ -72,6 +74,161 @@ export const fetchPeople = async ({
     currentPage: response?.page || page,
   };
 };
+
+/**
+ * Fetch employees' birthdays and anniversaries for calendar display
+ */
+export const fetchEmployeeBirthdays = async () => {
+  if (USE_MOCK_DATA) {
+    await mockDelay(300);
+    return generateMockBirthdaysAndAnniversaries().birthdays;
+  }
+
+  try {
+    // Use analytics endpoint which now includes date_of_birth
+    const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
+      params: { 
+        pageSize: 1000 // Get all employees for calendar events
+      }
+    });
+
+    const employees = response?.items || [];
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    return employees
+      .filter(emp => emp.date_of_birth && emp.blocked !== true)
+      .map(emp => {
+        const birthday = new Date(emp.date_of_birth);
+        // Set birthday to current year for calendar display
+        const thisYearBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
+        
+        return {
+          id: `birthday-${emp.id}`,
+          title: `🎂 ${emp.employee_name || emp.username}'s Birthday`,
+          date: thisYearBirthday.toISOString().slice(0, 10),
+          employee: normalizeUser(emp),
+          type: 'birthday',
+          color: '#FD8C02',
+          allDay: true
+        };
+      });
+  } catch (error) {
+    console.warn('Failed to fetch birthdays:', error);
+    // Fallback to mock data if API fails
+    return generateMockBirthdaysAndAnniversaries().birthdays;
+  }
+};
+
+export const fetchEmployeeAnniversaries = async () => {
+  if (USE_MOCK_DATA) {
+    await mockDelay(300);
+    return generateMockBirthdaysAndAnniversaries().anniversaries;
+  }
+
+  try {
+    // Use analytics endpoint for anniversaries
+    const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
+      params: { pageSize: 1000 } // Get all employees for calendar events
+    });
+
+    const employees = response?.items || [];
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    
+    return employees
+      .filter(emp => emp.joining_date)
+      .map(emp => {
+        const joinDate = new Date(emp.joining_date);
+        const thisYearAnniversary = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
+        const yearsOfService = currentYear - joinDate.getFullYear();
+        
+        // Only show if it's been at least 1 year
+        if (yearsOfService < 1) return null;
+        
+        return {
+          id: `anniversary-${emp.id}`,
+          title: `🏢 ${emp.employee_name || emp.username} - ${yearsOfService} Year${yearsOfService > 1 ? 's' : ''} work anniversary`,
+          date: thisYearAnniversary.toISOString().slice(0, 10),
+          employee: normalizeUser(emp),
+          type: 'anniversary',
+          color: '#9C2EDB',
+          allDay: true,
+          yearsOfService
+        };
+      })
+      .filter(Boolean);
+  } catch (error) {
+    console.warn('Failed to fetch anniversaries:', error);
+    return generateMockBirthdaysAndAnniversaries().anniversaries;
+  }
+};
+
+// Mock data generator for birthdays and anniversaries
+function generateMockBirthdaysAndAnniversaries() {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  
+  // Create some mock birthdays for March (current month) and other months
+  const mockEmployees = [
+    { id: 1, name: 'John Doe Updated', joinDate: '2024-02-23', birthday: '1985-03-08', department: 'Engineering', position: 'Senior Manager' },
+    { id: 2, name: 'abc', joinDate: '2026-02-11', birthday: '1990-03-12', department: 'HR', position: 'll' },
+    { id: 3, name: 'bob', joinDate: '2026-02-19', birthday: '1992-03-15', department: 'HR department', position: 'intern' },
+    { id: 4, name: 'max', joinDate: '2019-02-26', birthday: '1988-03-20', department: 'Sales', position: 'manager' },
+    { id: 5, name: 'dummy user', joinDate: '2026-02-03', birthday: '1995-07-25', department: 'Engineering', position: '24' },
+    { id: 6, name: 'mike', joinDate: '2026-02-20', birthday: '1987-11-30', department: 'Support', position: 'senior manager' },
+    { id: 7, name: 'Tom', joinDate: '2026-02-17', birthday: '1993-05-18', department: 'HR', position: 'HR' }
+  ];
+  
+  const birthdays = mockEmployees.map(emp => {
+    const birthday = new Date(emp.birthday);
+    const thisYearBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
+    
+    return {
+      id: `birthday-${emp.id}`,
+      title: `🎂 ${emp.name}'s Birthday`,
+      date: thisYearBirthday.toISOString().slice(0, 10),
+      employee: { 
+        id: emp.id, 
+        name: emp.name,
+        department: emp.department,
+        position: emp.position
+      },
+      type: 'birthday',
+      color: '#FD8C02',
+      allDay: true
+    };
+  });
+  
+  const anniversaries = mockEmployees
+    .map(emp => {
+      const joinDate = new Date(emp.joinDate);
+      const thisYearAnniversary = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
+      const yearsOfService = currentYear - joinDate.getFullYear();
+      
+      if (yearsOfService < 1) return null;
+      
+      return {
+        id: `anniversary-${emp.id}`,
+        title: `🏢 ${emp.name} - ${yearsOfService} Year${yearsOfService > 1 ? 's' : ''}`,
+        date: thisYearAnniversary.toISOString().slice(0, 10),
+        employee: { 
+          id: emp.id, 
+          name: emp.name,
+          department: emp.department,
+          position: emp.position
+        },
+        type: 'anniversary',
+        color: '#9C2EDB',
+        allDay: true,
+        yearsOfService
+      };
+    })
+    .filter(Boolean);
+  
+  return { birthdays, anniversaries };
+}
 
 /**
  * Fetch unique department and location options for the given company.

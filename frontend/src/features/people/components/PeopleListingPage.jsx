@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
@@ -33,6 +34,8 @@ const PER_PAGE = 9;
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get('search') ?? '';
 
   const people = useAppSelector(selectPeopleList);
   const isLoading = useAppSelector(selectPeopleLoading);
@@ -44,10 +47,10 @@ export default function PeopleListingPage() {
   const departmentOptions = useAppSelector(selectPeopleDepartmentOptions);
   const locationOptions = useAppSelector(selectPeopleLocationOptions);
 
-  // Immediate search input value (shown in the input box)
-  const [searchTerm, setSearchTerm] = useState('');
-  // Debounced value — updated 350ms after the user stops typing
-  const [debouncedSearch, setDebouncedSearch] = useState('');
+  // Immediate search input value (shown in the input box); init from URL when coming from global search
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  // Debounced value — updated 350ms after the user stops typing (init from URL when from global search)
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
 
   const [sortBy, setSortBy] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');

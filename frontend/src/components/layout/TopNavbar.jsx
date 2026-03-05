@@ -1,13 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Bell, User } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, Bell, Users, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
+import { globalSearch } from '@/features/search/globalSearchAPI';
+
+const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_MIN_LENGTH = 2;
+
+const NOTIFICATION_POLL_INTERVAL_MS = 20000; // 20 seconds – keeps bell count updated in near real time
 
 function NotificationBellDropdown() {
   const [open, setOpen] = useState(false);
@@ -16,24 +22,49 @@ function NotificationBellDropdown() {
   const ref = useRef(null);
   const router = useRouter();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (showLoading = false) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (!token) return;
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const data = await api.get(API_ENDPOINTS.NOTIFICATIONS.ME, { params: { limit: 50 } });
       setNotifications(Array.isArray(data?.data) ? data.data : []);
     } catch (e) {
       console.error('Failed to load notifications', e);
       setNotifications([]);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  };
+  }, []);
 
+  // Load count on mount and when dropdown opens (with loading state)
   useEffect(() => {
-    if (open) fetchNotifications();
-  }, [open]);
+    if (open) {
+      fetchNotifications(true);
+    }
+  }, [open, fetchNotifications]);
+
+  // Initial fetch so bell count is visible without opening dropdown
+  useEffect(() => {
+    fetchNotifications(false);
+  }, [fetchNotifications]);
+
+  // Poll so bell count updates in near real time (e.g. when admin approves quiz reattempt)
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (!token) return;
+    const interval = setInterval(() => fetchNotifications(false), NOTIFICATION_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Refetch when user returns to the tab so count is fresh
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchNotifications(false);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchNotifications]);
 
   useEffect(() => {
     function handleClick(e) {
@@ -132,6 +163,168 @@ function NotificationBellDropdown() {
   );
 }
 
+function GlobalSearch() {
+  const router = useRouter();
+  const containerRef = useRef(null);
+  const inputRef = useRef(null);
+  const debounceRef = useRef(null);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [results, setResults] = useState({ people: [], courses: [] });
+
+  const runSearch = useCallback(async (q) => {
+    const trimmed = String(q || '').trim();
+    if (trimmed.length < SEARCH_MIN_LENGTH) {
+      setResults({ people: [], courses: [] });
+      setOpen(trimmed.length > 0);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await globalSearch(trimmed);
+      setResults(data);
+      setOpen(true);
+    } catch (e) {
+      setResults({ people: [], courses: [] });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!query.trim()) {
+      setResults({ people: [], courses: [] });
+      setOpen(false);
+      return;
+    }
+    debounceRef.current = setTimeout(() => runSearch(query), SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, runSearch]);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
+    }
+    if (open) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleSelect = useCallback((href, searchQuery) => {
+    setOpen(false);
+    setQuery('');
+    if (searchQuery) {
+      router.push(`${href}?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      router.push(href);
+    }
+  }, [router]);
+
+  const hasResults = results.people.length > 0 || results.courses.length > 0;
+  const showDropdown = open && (query.trim().length >= SEARCH_MIN_LENGTH && (loading || hasResults));
+
+  return (
+    <div className="relative global-search-container" ref={containerRef} style={{ width: '303px' }}>
+      <div className="flex items-center bg-[#3d2d4f] rounded-xl px-5 py-3 h-10 w-full">
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => query.trim().length >= SEARCH_MIN_LENGTH && setOpen(true)}
+          placeholder="Search people, courses"
+          className="flex-1 min-w-0 bg-transparent outline-none text-gray-300 placeholder:text-gray-400"
+          aria-label="Search people and courses"
+          aria-expanded={showDropdown}
+          aria-autocomplete="list"
+        />
+        {loading ? (
+          <span className="text-gray-400 text-xs">Searching…</span>
+        ) : (
+          <Search className="w-5 h-5 text-gray-400 shrink-0" />
+        )}
+      </div>
+      {showDropdown && (
+        <div
+          className="absolute top-full left-0 right-0 mt-1 max-h-[320px] overflow-y-auto bg-[#1a1a1a] border border-gray-700 rounded-xl shadow-xl z-[100]"
+          role="listbox"
+        >
+          {loading ? (
+            <div className="px-4 py-6 text-center text-gray-400 text-sm">Searching…</div>
+          ) : !hasResults ? (
+            <div className="px-4 py-6 text-center text-gray-400 text-sm">No people or courses found</div>
+          ) : (
+            <>
+              {results.people.length > 0 && (
+                <div className="py-2">
+                  <div className="px-4 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5" /> People
+                  </div>
+                  <ul className="divide-y divide-gray-700/50">
+                    {results.people.map((p) => (
+                      <li key={`person-${p.id}`}>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2.5 hover:bg-gray-700/70 flex flex-col gap-0.5"
+                          onClick={() => handleSelect(p.href, p.searchQuery)}
+                          role="option"
+                        >
+                          <span className="font-medium text-white text-sm truncate">{p.name}</span>
+                          {p.subtitle && (
+                            <span className="text-gray-400 text-xs truncate">{p.subtitle}</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {results.courses.length > 0 && (
+                <div className="py-2">
+                  <div className="px-4 py-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5" /> Courses
+                  </div>
+                  <ul className="divide-y divide-gray-700/50">
+                    {results.courses.map((c) => (
+                      <li key={`course-${c.id}-${c.documentId}`}>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2.5 hover:bg-gray-700/70 flex flex-col gap-0.5"
+                          onClick={() => handleSelect(c.href, null)}
+                          role="option"
+                        >
+                          <span className="font-medium text-white text-sm truncate">{c.name}</span>
+                          {c.subtitle && (
+                            <span className="text-gray-400 text-xs truncate">{c.subtitle}</span>
+                          )}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProfileAvatarDropdown() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState(null);
@@ -206,17 +399,7 @@ export default function TopNavbar({ onMobileMenuToggle }) {
 
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-4 ml-auto">
-          <div
-            className="relative flex items-center bg-[#3d2d4f] rounded-xl px-5 py-3"
-            style={{ width: '303px', height: '40px' }}
-          >
-            <input
-              type="text"
-              placeholder="Search people, courses"
-              className="flex-1 bg-transparent outline-none text-gray-300 placeholder:text-gray-400"
-            />
-            <Search className="w-5 h-5 text-gray-400" />
-          </div>
+          <GlobalSearch />
 
           <NotificationBellDropdown />
 

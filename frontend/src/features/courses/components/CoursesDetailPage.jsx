@@ -75,7 +75,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const moduleIdFromPath = params?.moduleId;
   const [showFullReadingView, setShowFullReadingView] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
-  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, needsFeedbackSubmission: false });
+  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, needsFeedbackSubmission: false });
   const skipNextProgressUpdate = useRef(false);
 
   // If initialLanguage (e.g. English) is not actually available for this course
@@ -151,14 +151,16 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     Promise.all([
       fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
       checkPendingReattemptRequest(userId, courseIdForApi),
-    ]).then(([{ completedModules, progressStatus }, hasPending]) => {
+    ]).then(([{ completedModules, progressStatus }, reattemptStatus]) => {
+      const hasPending = reattemptStatus?.hasPending ?? false;
+      const hasRejected = reattemptStatus?.hasRejected ?? false;
       if (skipNextProgressUpdate.current) {
         skipNextProgressUpdate.current = false;
-        setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending }));
+        setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
         return;
       }
       dispatch(initializeModuleReadState(completedModules));
-      setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending }));
+      setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
       if (progressStatus === "Completed") {
         getLatestSubmission(userId, courseIdForApi).then((res) => {
           const score = res?.submission?.score;
@@ -452,6 +454,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 isCompleted={courseProgress.progressStatus === "Completed"}
                 quizScore={courseProgress.quizScore}
                 hasPendingReattempt={courseProgress.hasPendingReattempt}
+                hasRejectedReattempt={courseProgress.hasRejectedReattempt}
                 needsFeedbackSubmission={courseProgress.needsFeedbackSubmission}
                 onOpenFeedback={() => setShowFeedbackForm(true)}
                 selectedLanguage={selectedLanguage}

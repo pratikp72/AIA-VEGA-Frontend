@@ -42,6 +42,7 @@ export default function AssessmentInstructions(props) {
   const [courseName, setCourseName] = useState(props.courseName || "");
   const [quizStarted, setQuizStarted] = useState(false);
   const [blockStartPendingReattempt, setBlockStartPendingReattempt] = useState(false);
+  const [blockRejectedReattempt, setBlockRejectedReattempt] = useState(false);
   const [blockCheckLoading, setBlockCheckLoading] = useState(true);
   const [startingAssessment, setStartingAssessment] = useState(false);
 
@@ -99,7 +100,7 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
     }
   }, [props.category, props.courseId, props.courseName]);
 
-  // Check if user has pending reattempt request (at max attempts) → block starting assessment
+  // Check if user has pending or rejected reattempt request → block starting assessment when pending (at max attempts) or when rejected
   useEffect(() => {
     const userId = props.userId ?? getCurrentUserId();
     const courseNumericId = props.courseNumericId;
@@ -110,7 +111,7 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
     let cancelled = false;
     (async () => {
       try {
-        const [latestRes, hasPending] = await Promise.all([
+        const [latestRes, reattemptStatus] = await Promise.all([
           getLatestSubmission(Number(userId), Number(courseNumericId)),
           checkPendingReattemptRequest(Number(userId), Number(courseNumericId)),
         ]);
@@ -118,9 +119,15 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
         const maxAttempt = latestRes?.maxAttempt ?? 1;
         const attemptNumber = latestRes?.submission?.attempt_number ?? 0;
         const atMaxAttempts = attemptNumber >= maxAttempt;
+        const hasPending = reattemptStatus?.hasPending ?? false;
+        const hasRejected = reattemptStatus?.hasRejected ?? false;
         setBlockStartPendingReattempt(atMaxAttempts && hasPending);
+        setBlockRejectedReattempt(hasRejected);
       } catch {
-        if (!cancelled) setBlockStartPendingReattempt(false);
+        if (!cancelled) {
+          setBlockStartPendingReattempt(false);
+          setBlockRejectedReattempt(false);
+        }
       } finally {
         if (!cancelled) setBlockCheckLoading(false);
       }
@@ -307,9 +314,31 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
             </div>
           </div>
 
-          {/* Start Assessment Button / Pending Reattempt Block */}
+          {/* Start Assessment Button / Pending or Rejected Reattempt Block */}
           <div className="flex flex-col items-center gap-4">
-            {blockStartPendingReattempt ? (
+            {blockRejectedReattempt ? (
+              <>
+                <div className="rounded-xl p-5 mb-2 flex items-start gap-3 border border-red-200 bg-red-50 max-w-xl w-full">
+                  <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-red-100">
+                    <Ban className="w-4 h-4 text-red-600" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-lg text-red-700">
+                      Your request is rejected
+                    </span>
+                    <p className="text-gray mt-1">
+                      You will not be able to attend the quiz or re-apply.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/courses")}
+                  className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-10 rounded-xl shadow transition cursor-pointer"
+                >
+                  Back to Courses
+                </button>
+              </>
+            ) : blockStartPendingReattempt ? (
               <>
                 <div className="rounded-xl p-5 mb-2 flex items-start gap-3 border border-warning bg-orange-light max-w-xl w-full">
                   <div className="p-1.5 rounded-lg shrink-0 mt-0.5 bg-warning-light-bg">

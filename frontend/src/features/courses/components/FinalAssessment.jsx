@@ -2,7 +2,7 @@ import React from "react";
 import { Lock, CheckCircle2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
-export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, needsFeedbackSubmission, onOpenFeedback, selectedLanguage, hasQuizInSelectedLanguage }) {
+export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, hasRejectedReattempt, needsFeedbackSubmission, onOpenFeedback, selectedLanguage, hasQuizInSelectedLanguage }) {
   const router = useRouter();
   const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
   if (!unlocked) {
@@ -33,6 +33,25 @@ export default function FinalAssessment({ unlocked, category, courseId, isComple
             </span>
           )}
         </div>
+      </div>
+    );
+  }
+  if (hasRejectedReattempt) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 mt-6">
+        <div className="font-semibold text-gray-800 text-lg mb-4">Final Assessment</div>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            disabled
+            className="bg-gray-200 text-gray-500 font-semibold py-2 px-6 rounded-lg shadow-md cursor-not-allowed text-lg"
+          >
+            Your request is rejected
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          You will not be able to attend the quiz or re-apply.
+        </p>
       </div>
     );
   }

@@ -37,7 +37,7 @@ function ResultScreen({
 }) {
   const canGoBack = passed
     ? !feedbackMandatory || feedbackSubmitted || reattemptSent
-    : true;
+    : (reattemptRequired ? reattemptSent : true);
   const backButtonClass = canGoBack
     ? "w-full py-3 rounded-xl bg-success text-white hover:bg-success/90 transition cursor-pointer"
     : "w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed";
@@ -322,8 +322,22 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       // Re-attempt UI only when user actually failed and has used all attempts (never when they passed)
       if (!userPassed && (submitRes?.reattempt_required || currentEqualsMax)) {
         setReattemptRequired(true);
-        const hasPending = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
-        if (hasPending) setReattemptSent(true);
+        setIsPassed(false);
+        setScore(submission?.score ?? 0);
+        if (attemptNum != null) setAttemptNumber(attemptNum);
+        const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+        if (reattemptStatus?.hasPending) setReattemptSent(true);
+      } else {
+        // New submission was created — show the freshly calculated score
+        setScore(submission?.score ?? 0);
+        setIsPassed(submission?.passed ?? false);
+        if (attemptNum != null) setAttemptNumber(attemptNum);
+        // Show re-attempt button when current attempt === max_attempt and failed (e.g. max_attempt=1, failed 1st time)
+        if (!submission?.passed && currentEqualsMax) {
+          setReattemptRequired(true);
+          const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+          if (reattemptStatus?.hasPending) setReattemptSent(true);
+        }
       }
     } catch (e) {
       console.error('Quiz submission failed', e);

@@ -107,25 +107,34 @@ function normalizeCourse(course) {
   };
 }
 
-/**
- * Fetch all courses. Backend may optionally filter by language when provided.
- * @param {{ language?: string }} opts - Optional. If language is set, backend returns only that language's content per course.
- */
-export const fetchAllCourses = async (opts = {}) => {
+const COURSES_LIST_PARAMS = {
+  'populate[thumbnail]': true,
+  'populate[quiz][populate][quiz_questions][populate][options]': true,
+  'populate[modules]': true,
+  'pagination[pageSize]': 50,
+};
+
+export const fetchAllCourses = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
     return MOCK_COURSE_CATEGORIES;
   }
-  const params = {
-    'populate[thumbnail]': true,
-    'populate[quiz][populate][quiz_questions][populate][options]': true,
-    'populate[modules]': true,
-  };
-  if (opts.language) params.language = opts.language;
-
-  const response = await api.get(API_ENDPOINTS.COURSES.LIST, { params });
-  const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
-  return raw.filter(c => c.active !== false).map(normalizeCourse);
+  const all = [];
+  let page = 1;
+  let pageCount = 1;
+  do {
+    const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
+      params: {
+        ...COURSES_LIST_PARAMS,
+        'pagination[page]': page,
+      },
+    });
+    const data = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+    all.push(...data);
+    pageCount = response?.meta?.pagination?.pageCount ?? 1;
+    page += 1;
+  } while (page <= pageCount);
+  return all.filter(c => c.active !== false).map(normalizeCourse);
 };
 
 /**
