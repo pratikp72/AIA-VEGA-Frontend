@@ -5,7 +5,7 @@ import Calendar from 'react-calendar';
 import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap, Info } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
-import { fetchEvents, fetchEventById, fetchHolidays } from '@/features/calendar/calendarAPI';
+import { fetchEvents, fetchEventById, fetchHolidays, fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/calendar/calendarAPI';
 import Loader from '@/components/common/Loader';
 import 'react-calendar/dist/Calendar.css';
 
@@ -93,8 +93,12 @@ export default function CalendarPage() {
   const [calendarView, setCalendarView] = useState('month');
   const [eventsList, setEventsList] = useState([]);
   const [holidaysList, setHolidaysList] = useState([]);
+  const [birthdaysList, setBirthdaysList] = useState([]);
+  const [anniversariesList, setAnniversariesList] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [holidaysLoading, setHolidaysLoading] = useState(true);
+  const [birthdaysLoading, setBirthdaysLoading] = useState(true);
+  const [anniversariesLoading, setAnniversariesLoading] = useState(true);
   const [expandedEventId, setExpandedEventId] = useState(null);
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -133,6 +137,38 @@ export default function CalendarPage() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setBirthdaysLoading(true);
+    fetchEmployeeBirthdays()
+      .then((list) => {
+        if (!cancelled) setBirthdaysList(list ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setBirthdaysList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setBirthdaysLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAnniversariesLoading(true);
+    fetchEmployeeAnniversaries()
+      .then((list) => {
+        if (!cancelled) setAnniversariesList(list ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setAnniversariesList([]);
+      })
+      .finally(() => {
+        if (!cancelled) setAnniversariesLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     setExpandedEventId(null);
     setExpandedEvent(null);
     setDetailLoading(false);
@@ -146,8 +182,25 @@ export default function CalendarPage() {
       if (!map[key]) map[key] = [];
       map[key].push(ev);
     });
+    
+    // Add birthdays
+    (birthdaysList || []).forEach((birthday) => {
+      const key = birthday.date;
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      map[key].push(birthday);
+    });
+    
+    // Add anniversaries
+    (anniversariesList || []).forEach((anniversary) => {
+      const key = anniversary.date;
+      if (!key) return;
+      if (!map[key]) map[key] = [];
+      map[key].push(anniversary);
+    });
+    
     return map;
-  }, [eventsList]);
+  }, [eventsList, birthdaysList, anniversariesList]);
 
   const holidayDates = useMemo(
     () => new Set((holidaysList || []).map((h) => h.date).filter(Boolean)),
@@ -156,13 +209,30 @@ export default function CalendarPage() {
 
   const eventsByMonth = useMemo(() => {
     const map = {};
+    
+    // Count regular events
     (eventsList || []).forEach((ev) => {
       if (!ev.date) return;
       const monthKey = ev.date.slice(0, 7);
       map[monthKey] = (map[monthKey] || 0) + 1;
     });
+    
+    // Count birthdays
+    (birthdaysList || []).forEach((birthday) => {
+      if (!birthday.date) return;
+      const monthKey = birthday.date.slice(0, 7);
+      map[monthKey] = (map[monthKey] || 0) + 1;
+    });
+    
+    // Count anniversaries
+    (anniversariesList || []).forEach((anniversary) => {
+      if (!anniversary.date) return;
+      const monthKey = anniversary.date.slice(0, 7);
+      map[monthKey] = (map[monthKey] || 0) + 1;
+    });
+    
     return map;
-  }, [eventsList]);
+  }, [eventsList, birthdaysList, anniversariesList]);
 
   const holidaysByMonth = useMemo(() => {
     const map = {};
@@ -174,6 +244,8 @@ export default function CalendarPage() {
     });
     return map;
   }, [holidaysList]);
+
+  const isDataLoading = eventsLoading || holidaysLoading || birthdaysLoading || anniversariesLoading;
 
   const currentEvents = useMemo(() => {
     const key = toDateKey(activeDate);
@@ -271,10 +343,15 @@ export default function CalendarPage() {
     setExpandedEventId(id);
     setExpandedEvent(null);
     setDetailLoading(true);
-    fetchEventById(id)
-      .then((data) => setExpandedEvent(data))
-      .catch(() => setExpandedEvent(null))
-      .finally(() => setDetailLoading(false));
+    if (ev.type === 'birthday' || ev.type === 'anniversary') {
+      setExpandedEvent(ev);
+      setDetailLoading(false);
+    } else {
+      fetchEventById(id)
+        .then((data) => setExpandedEvent(data))
+        .catch(() => setExpandedEvent(null))
+        .finally(() => setDetailLoading(false));
+    }
   };
 
   return (
@@ -294,7 +371,7 @@ export default function CalendarPage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left: Calendar */}
           <div className="flex-1 min-w-0">
-            {eventsLoading ? (
+            {isDataLoading ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px]">
                 <Loader size="lg" />
               </div>
@@ -557,7 +634,17 @@ export default function CalendarPage() {
                   </p>
                   <ul className="space-y-3">
                     {currentEvents.map((ev) => {
-                      const EventIcon = ev.icon === 'gift' ? Gift : ev.icon === 'graduation-cap' ? GraduationCap : CalendarDays;
+                      let EventIcon = CalendarDays;
+                      if (ev.type === 'birthday') {
+                        EventIcon = Gift;
+                      } else if (ev.type === 'anniversary') {
+                        EventIcon = GraduationCap;
+                      } else if (ev.icon === 'gift') {
+                        EventIcon = Gift;
+                      } else if (ev.icon === 'graduation-cap') {
+                        EventIcon = GraduationCap;
+                      }
+                      
                       const id = ev.documentId ?? ev.id;
                       const isExpanded = String(expandedEventId) === String(id);
                       const detail = isExpanded ? (expandedEvent || ev) : null;
@@ -568,7 +655,7 @@ export default function CalendarPage() {
                             onClick={() => handleToggleEvent(ev)}
                             className="w-full text-left bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition"
                           >
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 items-start">
                               <div
                                 className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white"
                                 style={{ backgroundColor: ev.color ?? '#2563EB' }}
@@ -601,6 +688,11 @@ export default function CalendarPage() {
                                   </div>
                                 ) : null}
                               </div>
+                              <ChevronDown 
+                                className={`w-5 h-5 text-gray-400 transition-transform shrink-0 mt-1 ${
+                                  isExpanded ? 'rotate-180' : ''
+                                }`}
+                              />
                             </div>
                             {isExpanded ? (
                               <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
@@ -610,17 +702,47 @@ export default function CalendarPage() {
                                   </div>
                                 ) : detail ? (
                                   <div className="space-y-2">
-                                    {detail.event_type ? (
-                                      <p className="text-gray-500">{detail.event_type}</p>
-                                    ) : null}
-                                    {detail.description ? (
-                                      <p className="leading-relaxed">{detail.description}</p>
-                                    ) : null}
-                                    {(detail.start_date || detail.end_date) ? (
-                                      <p className="text-gray-500">
-                                        {detail.start_date ? new Date(detail.start_date).toLocaleString() : ''}{detail.end_date ? ` → ${new Date(detail.end_date).toLocaleString()}` : ''}
-                                      </p>
-                                    ) : null}
+                                    {detail.type === 'birthday' && detail.employee ? (
+                                      <div>
+                                        <p className="text-gray-500">Birthday Celebration</p>
+                                        <p className="leading-relaxed">
+                                          Join us in celebrating {detail.employee.name}'s special day!
+                                        </p>
+                                        {detail.employee.department && (
+                                          <p className="text-gray-500">Department: {detail.employee.department}</p>
+                                        )}
+                                        {detail.employee.position && (
+                                          <p className="text-gray-500">Position: {detail.employee.position}</p>
+                                        )}
+                                      </div>
+                                    ) : detail.type === 'anniversary' && detail.employee ? (
+                                      <div>
+                                        <p className="text-gray-500">Work Anniversary</p>
+                                        <p className="leading-relaxed">
+                                          Congratulations to {detail.employee.name} on {detail.yearsOfService} year{detail.yearsOfService > 1 ? 's' : ''} of service!
+                                        </p>
+                                        {detail.employee.department && (
+                                          <p className="text-gray-500">Department: {detail.employee.department}</p>
+                                        )}
+                                        {detail.employee.position && (
+                                          <p className="text-gray-500">Position: {detail.employee.position}</p>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <div>
+                                        {detail.event_type ? (
+                                          <p className="text-gray-500">{detail.event_type}</p>
+                                        ) : null}
+                                        {detail.description ? (
+                                          <p className="leading-relaxed">{detail.description}</p>
+                                        ) : null}
+                                        {(detail.start_date || detail.end_date) ? (
+                                          <p className="text-gray-500">
+                                            {detail.start_date ? new Date(detail.start_date).toLocaleString() : ''}{detail.end_date ? ` → ${new Date(detail.end_date).toLocaleString()}` : ''}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    )}
                                   </div>
                                 ) : (
                                   <p className="text-gray-500">No details available.</p>
@@ -637,7 +759,7 @@ export default function CalendarPage() {
             </div>
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Holidays</h3>
-              {holidaysLoading ? (
+              {isDataLoading ? (
                 <div className="flex justify-center py-6">
                   <Loader />
                 </div>

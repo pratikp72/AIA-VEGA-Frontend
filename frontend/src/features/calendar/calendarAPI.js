@@ -4,6 +4,7 @@
 import api from '@/services/api';
 import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { MOCK_CALENDAR_EVENTS, MOCK_CALENDAR_HOLIDAYS } from '@/services/mockData';
+import { fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/people/peopleAPI';
 
 const EVENT_TYPE_COLORS = {
   'Training session': '#00F078',
@@ -89,3 +90,9 @@ export async function fetchHolidays() {
   const active = raw.filter((h) => h.active !== false);
   return active.map(normalizeHoliday);
 }
+
+/** GET employee birthdays for the calendar */
+export { fetchEmployeeBirthdays };
+
+/** GET employee work anniversaries for the calendar */
+export { fetchEmployeeAnniversaries };

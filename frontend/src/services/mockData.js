@@ -514,7 +514,7 @@ export const MOCK_COURSES_CATEGORY_LIST = {
 };
 // Mock Data for Development
 // Toggle this flag to switch between mock and real API
-export const USE_MOCK_DATA = false;
+export const USE_MOCK_DATA = false; // Use real API data now that backend includes date_of_birth
 
 // Helper to simulate API delay
 export const mockDelay = (ms = 800) => 
