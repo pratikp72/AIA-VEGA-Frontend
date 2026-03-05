@@ -98,6 +98,11 @@ function normalizeCourse(course) {
     minPassingScore: course.min_passing_score || 0,
     languages: course.course_language || [],
     orientationRequired: course.orientation_required || false,
+    orientation_detail: Array.isArray(course.orientation_detail)
+      ? course.orientation_detail
+      : course.orientation_detail
+        ? [course.orientation_detail]
+        : [],
     active: course.active !== false,
   };
 }
@@ -185,6 +190,28 @@ export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModu
 
 export const markModuleProgress = async ({ userId, courseId, moduleId }) => {
   return api.post('/user-progress/mark-module', { userId, courseId, moduleId });
+};
+
+/**
+ * Create or update module-video-progress when user marks a module as read.
+ * Backend expects: userId, courseId (numeric), moduleIndex, moduleTitle?, videoDurationMin?, timeWatchedMin?
+ */
+export const markModuleVideoProgress = async ({
+  userId,
+  courseId,
+  moduleIndex,
+  moduleTitle = null,
+  videoDurationMin = 0,
+  timeWatchedMin = 0,
+}) => {
+  return api.post(API_ENDPOINTS.MODULE_VIDEO_PROGRESS.MARK_AS_READ, {
+    userId: Number(userId),
+    courseId: Number(courseId),
+    moduleIndex: Number(moduleIndex),
+    moduleTitle: moduleTitle ?? null,
+    videoDurationMin: Number(videoDurationMin) || 0,
+    timeWatchedMin: Number(timeWatchedMin) || 0,
+  });
 };
 
 // Returns completed module IDs and progress status for this user+course.

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
+import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 import { globalSearch } from '@/features/search/globalSearchAPI';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -326,6 +327,11 @@ function GlobalSearch() {
 
 function ProfileAvatarDropdown() {
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    setUser(getCurrentUser());
+  }, []);
 
   React.useEffect(() => {
     function handleClick(e) {
@@ -339,19 +345,29 @@ function ProfileAvatarDropdown() {
     };
   }, [open]);
 
+  const { src, initials } = getAvatarPropsForUser(user);
+
   return (
     <div className="relative profile-avatar-dropdown">
       <Avatar
         className="h-10 w-10 border-2 border-gray-700 cursor-pointer"
         onClick={() => setOpen((v) => !v)}
       >
-        <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Erin" />
-        <AvatarFallback className="bg-purple-600 text-white">ER</AvatarFallback>
+        <AvatarImage src={src} alt="" />
+        <AvatarFallback className="bg-primary text-white text-sm">{initials}</AvatarFallback>
       </Avatar>
       {open && (
-        <div className="absolute right-0 mt-2 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+          <Link
+            href="/profile"
+            className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            onClick={() => setOpen(false)}
+          >
+            <User className="w-4 h-4" />
+            Profile
+          </Link>
           <button
-            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
             onClick={() => {
               localStorage.removeItem('authToken');
               localStorage.removeItem('user');

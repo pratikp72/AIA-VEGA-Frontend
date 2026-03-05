@@ -9,6 +9,7 @@ export default function PageHeader({
   breadcrumbs = [],
   showBreadcrumbSeparator = false,
   right,
+  titleRight,
   className,
   containerClassName,
   children,
@@ -20,7 +21,12 @@ export default function PageHeader({
           <Breadcrumbs items={breadcrumbs} showTrailingSeparator={showBreadcrumbSeparator} />
           {right ? right : null}
         </div>
-        {title ? <h1 className="text-h1 text-gray-dark">{title}</h1> : null}
+        {(title || titleRight) ? (
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {title ? <h1 className="text-h1 text-gray-dark">{title}</h1> : null}
+            {titleRight ? <div className="shrink-0">{titleRight}</div> : null}
+          </div>
+        ) : null}
         {children ? <div className="mt-2">{children}</div> : null}
       </PageContainer>
     </div>
