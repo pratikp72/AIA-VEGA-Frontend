@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import PageSection from '@/components/common/PageSection';
 import PageHeader from '@/components/common/PageHeader';
 import SurfaceCard from '@/components/common/SurfaceCard';
@@ -12,6 +12,9 @@ import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadAllCourses } from '@/features/courses/coursesSlice';
 import { selectCoursesList, selectCoursesLoading } from '@/features/courses/coursesSelectors';
+import { fetchUserCourseProgress } from '@/features/courses/coursesAPI';
+import { getLatestSubmission } from '../quizSubmissionAPI';
+import { getCurrentUserId } from '@/lib/auth';
 
 const CATEGORY_LABELS = {
   mandatory: 'Mandatory Training',
@@ -23,6 +26,7 @@ export default function CoursesCategoryPage({ category }) {
   const dispatch = useAppDispatch();
   const allCourses = useAppSelector(selectCoursesList);
   const isLoading = useAppSelector(selectCoursesLoading);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   useEffect(() => {
     dispatch(loadAllCourses());
@@ -43,6 +47,47 @@ export default function CoursesCategoryPage({ category }) {
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
+  };
+
+  const handleFeedbackClick = async (event, course) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+      window.alert('Please log in to submit feedback.');
+      return;
+    }
+
+    const courseNumericId = course.id ?? course.documentId;
+    if (!courseNumericId) {
+      window.alert('Unable to determine course. Please open the course detail page.');
+      return;
+    }
+
+    try {
+      const [progressInfo, latest] = await Promise.all([
+        fetchUserCourseProgress(userId, courseNumericId, { fresh: true }),
+        getLatestSubmission(userId, courseNumericId),
+      ]);
+
+      const progressStatus = progressInfo?.progressStatus;
+      const hasAttempt = !!latest?.submission;
+      const notCompleted = progressStatus !== 'Completed';
+
+      if (hasAttempt && notCompleted) {
+        setOpenMenuId(null);
+        const feedbackUrl = `/courses/${category}/${course.documentId}?feedback=1`;
+        window.location.href = feedbackUrl;
+      } else {
+        window.alert(
+          'Feedback is available only after you have attempted the assessment and before completing the course.'
+        );
+      }
+    } catch (err) {
+      console.error('Failed to check feedback eligibility:', err);
+      window.alert('Could not verify feedback eligibility. Please open the course to continue.');
+    }
   };
 
   return (
@@ -114,7 +159,31 @@ export default function CoursesCategoryPage({ category }) {
                           {course.modules} modules
                         </span>
                         <span className="flex-1" />
-                        <MoreVertical className="text-muted-foreground w-5 h-5 cursor-pointer ml-auto" />
+                        <div className="relative ml-auto">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setOpenMenuId((prev) => (prev === course.id ? null : course.id));
+                            }}
+                            className="p-1 rounded-full hover:bg-gray-100 text-muted-foreground"
+                            title="More options"
+                          >
+                            <MoreVertical className="w-5 h-5" />
+                          </button>
+                          {openMenuId === course.id && (
+                            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                              <button
+                                type="button"
+                                onClick={(e) => handleFeedbackClick(e, course)}
+                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              >
+                                Feedback
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="font-medium text-gray-900 text-lg line-clamp-2">
                         {course.title}
