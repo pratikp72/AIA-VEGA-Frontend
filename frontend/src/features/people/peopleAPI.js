@@ -10,6 +10,8 @@ function normalizeUser(user) {
   const isNew = joinDate
     ? (now - new Date(joinDate)) / (1000 * 60 * 60 * 24) <= 30
     : false;
+  const company = user.company || '';
+  const yearsAtCompany = joinDate ? now.getFullYear() - new Date(joinDate).getFullYear() : null;
   return {
     id: user.id,
     documentId: user.documentId,
@@ -19,12 +21,18 @@ function normalizeUser(user) {
     position: user.designation || '',
     title: user.designation || '',
     department: user.department || '',
-    location: user.working_location || '',
+    // For AIA, treat branch as location; for Vega, use working_location
+    location: company === 'AIA' ? (user.branch || '') : (user.working_location || ''),
+    branch: user.branch || '',
     joinDate,
     dateOfBirth,
-    company: user.company || '',
+    company,
+    emp_code: user.emp_code || '',
+    emp_id: user.emp_id || '',
+    description: user.description || '',
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
     isNew,
+    yearsAtCompany,
   };
 }
 
