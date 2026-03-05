@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
-import { FolderOpen, Clock, Maximize2, Languages } from "lucide-react";
+import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import PageSection from "@/components/common/PageSection";
 import CourseStats from "./CourseStats";
@@ -12,9 +12,55 @@ import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
 import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/features/courses/coursesSlice";
-import { markModuleProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
+import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
+
+function extractOrientationTopics(topicsToCover) {
+  if (!Array.isArray(topicsToCover)) return [];
+  const items = [];
+  topicsToCover.forEach((block) => {
+    const children = block.children || [];
+    children.forEach((node) => {
+      if (node.type === "list-item" && Array.isArray(node.children)) {
+        const text = node.children.map((c) => c.text || "").join("").trim();
+        if (text) items.push(text);
+      }
+    });
+  });
+  return items;
+}
+
+function OrientationDetailCard({ orientation }) {
+  const topics = extractOrientationTopics(orientation.topics_to_cover);
+  const flow = orientation.orientation_flow || "—";
+  const trainer = orientation.trainer_name || "—";
+  return (
+    <div className="bg-white rounded-xl shadow p-6 mt-6">
+      <div className="font-semibold text-gray-800 text-lg mb-3">Orientation details</div>
+      <div className="space-y-3 text-sm text-gray-600">
+        <div className="flex gap-2">
+          
+          <span><strong className="text-gray-700">Orientation flow:</strong> {flow}</span>
+        </div>
+        <div className="flex gap-2">
+          
+          <span><strong className="text-gray-700">Trainer:</strong> {trainer}</span>
+        </div>
+        {topics.length > 0 && (
+          <div>
+            <strong className="text-gray-700">Topics to cover:</strong>
+            <ul className="mt-1.5 list-disc list-inside space-y-0.5 pl-1">
+              {topics.map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function CoursesDetailPage({ category, course, selectedModule, initialLanguage }) {
   const courseLanguages = course?.languages ?? course?.course_language ?? [];
@@ -74,11 +120,12 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const feedbacks = allFeedbacks.filter(
     (fb) => (fb.language || "").trim().toLowerCase() === selectedLangNorm
   );
+  const allOrientationDetails = Array.isArray(course.orientation_detail) ? course.orientation_detail : [];
   const orientation =
-    course.orientation_detail &&
-    (course.orientation_detail.language || "").trim().toLowerCase() === selectedLangNorm
-      ? course.orientation_detail
-      : null;
+    allOrientationDetails.find((o) => (o.language || "").trim().toLowerCase() === selectedLangNorm) ??
+    (allOrientationDetails.length > 0 && courseLanguages.some((l) => (l || "").trim().toLowerCase() === selectedLangNorm)
+      ? allOrientationDetails[0]
+      : null);
   const allModulesCompleted = contents.length > 0 && contents.every((m) => m.mark_as_read);
   const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
   // For debugging:
@@ -132,19 +179,40 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const userId = getCurrentUserId();
     if (!userId) return;
     dispatch(markModuleAsRead({ moduleId: modId })); // instant UI update
+    const courseIdNumeric = course.id != null ? Number(course.id) : null;
+    const courseIdForApi = course.id ?? course.documentId;
+    const module_ = contents.find((m) => String(m.moduleId || m.id) === String(modId));
+    const moduleIndex = module_ != null ? contents.findIndex((m) => String(m.moduleId || m.id) === String(modId)) : -1;
+
     try {
-      await markModuleProgress({ userId, courseId: course.id ?? course.documentId, moduleId: String(modId) });
-      // Refetch progress to ensure UI stays in sync with backend
-      const courseIdForApi = course.id ?? course.documentId;
+      await markModuleProgress({ userId, courseId: courseIdForApi, moduleId: String(modId) });
+    } catch (err) {
+      console.error('Failed to mark module (user-progress):', err?.message ?? err?.status ?? err);
+    }
+
+    if (moduleIndex >= 0 && courseIdNumeric != null) {
+      try {
+        const durationMin = Number(module_?.moduleDuration) || 0;
+        await markModuleVideoProgress({
+          userId,
+          courseId: courseIdNumeric,
+          moduleIndex,
+          moduleTitle: module_?.moduleTitle || module_?.title || null,
+          videoDurationMin: durationMin,
+          timeWatchedMin: durationMin,
+        });
+      } catch (err) {
+        console.error('Failed to mark module (module-video-progress):', err?.message ?? err?.status ?? err);
+      }
+    }
+
+    try {
       if (courseIdForApi) {
         const { completedModules } = await fetchUserCourseProgress(userId, courseIdForApi, { fresh: true });
         skipNextProgressUpdate.current = true;
         dispatch(initializeModuleReadState(completedModules));
       }
     } catch (err) {
-      console.error('Failed to mark module as read:', err);
-      // Refetch to restore actual state (optimistic update may have shown incorrect state)
-      const courseIdForApi = course.id ?? course.documentId;
       if (courseIdForApi) {
         fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }).then(({ completedModules }) => {
           dispatch(initializeModuleReadState(completedModules));
@@ -224,6 +292,33 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     <div className="min-h-screen bg-[#fafafa]" style={courseBgStyle}>
       <PageHeader
         title={course.title}
+        titleRight={
+          languageOptions.length > 0 ? (
+            <div className="flex items-center gap-2 bg-white/90 border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+              <Languages className="w-4 h-4 text-gray-500" aria-hidden />
+              <label htmlFor="course-language-select" className="text-sm font-medium text-gray-700">
+                Language
+              </label>
+              <select
+                id="course-language-select"
+                value={selectedLanguage}
+                onChange={(e) => {
+                  const lang = e.target.value;
+                  setSelectedLanguage(lang);
+                  const params = new URLSearchParams(searchParams?.toString() || "");
+                  params.set("lang", lang);
+                  router.replace(`${pathname}?${params.toString()}`);
+                  dispatch(loadCourseById({ documentId: course.documentId, language: lang }));
+                }}
+                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
+              >
+                {languageOptions.map((lang) => (
+                  <option key={lang} value={lang}>{lang}</option>
+                ))}
+              </select>
+            </div>
+          ) : null
+        }
         breadcrumbs={[
           { label: "Courses", href: "/courses" },
           {
@@ -239,32 +334,6 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         showBreadcrumbSeparator
         containerClassName="pt-xl pb-0 px-xl bg-transparent"
       />
-      {/* Language selection dropdown — always visible so user can switch content language */}
-      <div className="px-xl pb-2 flex items-center justify-end">
-        <div className="flex items-center gap-2 bg-white/90 border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
-          <Languages className="w-4 h-4 text-gray-500" aria-hidden />
-          <label htmlFor="course-language-select" className="text-sm font-medium text-gray-700">
-            Language
-          </label>
-          <select
-            id="course-language-select"
-            value={selectedLanguage}
-            onChange={(e) => {
-              const lang = e.target.value;
-              setSelectedLanguage(lang);
-              const params = new URLSearchParams(searchParams?.toString() || "");
-              params.set("lang", lang);
-              router.replace(`${pathname}?${params.toString()}`);
-              dispatch(loadCourseById({ documentId: course.documentId, language: lang }));
-            }}
-            className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
-          >
-            {languageOptions.map((lang) => (
-              <option key={lang} value={lang}>{lang}</option>
-            ))}
-          </select>
-        </div>
-      </div>
       <main>
         <PageSection>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-10">
@@ -388,6 +457,9 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 selectedLanguage={selectedLanguage}
                 hasQuizInSelectedLanguage={hasQuizInSelectedLanguage}
               />
+              {orientation && (
+                <OrientationDetailCard orientation={orientation} />
+              )}
             </div>
           </div>
         </PageSection>

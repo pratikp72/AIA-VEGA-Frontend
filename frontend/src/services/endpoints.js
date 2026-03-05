@@ -83,6 +83,11 @@ export const API_ENDPOINTS = {
     MY_COURSES: '/courses/my-courses',
   },
 
+  // Module video progress (mark-as-read creates/updates module_video_progress)
+  MODULE_VIDEO_PROGRESS: {
+    MARK_AS_READ: '/module-video-progresses/mark-as-read',
+  },
+
   // Gallery endpoints (baseURL already includes /api)
   GALLERY: {
     LIST: '/gallery-items',
