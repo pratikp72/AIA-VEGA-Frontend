@@ -2,7 +2,7 @@ import React from "react";
 import { Lock, CheckCircle2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
-export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, hasRejectedReattempt, needsFeedbackSubmission, onOpenFeedback }) {
+export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, hasRejectedReattempt, needsFeedbackSubmission, onOpenFeedback, selectedLanguage, hasQuizInSelectedLanguage }) {
   const router = useRouter();
   const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
   if (!unlocked) {
