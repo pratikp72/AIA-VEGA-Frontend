@@ -7,6 +7,7 @@ import LocationCard from './LocationCard';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
 import Select from '@/components/ui/select';
+import Loader from '@/components/common/Loader';
 
 export default function LocationsPage() {
   const locationBgStyle = {
@@ -96,7 +97,9 @@ export default function LocationsPage() {
           </div>
         </div>
         {loading ? (
-          <div className="py-8 text-gray-500">Loading locations...</div>
+          <div className="py-8 flex items-center justify-center">
+            <Loader size="lg" />
+          </div>
         ) : fetchError ? (
           <div className="py-8 text-red-600">
             {fetchError}
@@ -105,7 +108,9 @@ export default function LocationsPage() {
         ) : locations.length === 0 ? (
           <div className="py-8 text-gray-500">No locations found.</div>
         ) : unitsLoading ? (
-          <div className="py-8 text-gray-500">Loading units...</div>
+          <div className="py-8 flex items-center justify-center">
+            <Loader size="lg" />
+          </div>
         ) : units.length > 0 ? (
           <div className="flex flex-wrap gap-6">
             {units.map((unit) => (

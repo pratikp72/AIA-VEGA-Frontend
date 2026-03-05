@@ -4,6 +4,7 @@ import React from "react";
 import PageHeader from "@/components/common/PageHeader";
 import PageContainer from "@/components/layout/PageContainer";
 import Select from "@/components/ui/select";
+import Loader from "@/components/common/Loader";
 import { fetchLocationsList } from "@/features/location/locationAPI";
 import { fetchLocationRoutes } from "@/features/routes/routesAPI";
 
@@ -253,7 +254,9 @@ export default function RoutesPage() {
 
         {/* Map + route list */}
         {loading ? (
-          <div className="py-8 text-gray-500">Loading routes...</div>
+          <div className="py-8 flex items-center justify-center">
+            <Loader size="lg" />
+          </div>
         ) : error ? (
           <div className="py-8 text-red-600">{error}</div>
         ) : !activeUnit ? (

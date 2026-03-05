@@ -18,7 +18,11 @@ export default function FormTemplateCard({ resource, onView }) {
   const item = resource || {};
   const ext = (item.form_type || item.type || '').toLowerCase();
   const formType = (item.form_type || '').toLowerCase();
-  const isDownloadable = item.is_downloadable === true || formType === 'excel' || formType === 'word';
+  // For PDF: only enable download when is_downloadable is true; Excel/Word always allow; others use is_downloadable
+  const isDownloadable =
+    formType === 'pdf'
+      ? item.is_downloadable === true
+      : formType === 'excel' || formType === 'word' || item.is_downloadable === true;
   const isUrlType = item.form_type === 'URL';
   const fileUrl = getFileUrl(item);
 

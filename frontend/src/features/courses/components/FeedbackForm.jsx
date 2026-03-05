@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Star } from "lucide-react";
 import api from '@/services/api';
+import Loader from '@/components/common/Loader';
 
 // Fallback questions used when no API feedback questions are available
 const FALLBACK_QUESTIONS = [
@@ -242,9 +243,16 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[140px]"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Form'}
+                {isSubmitting ? (
+                  <>
+                    <Loader size="sm" className="shrink-0" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Form'
+                )}
               </button>
             </div>
           </form>

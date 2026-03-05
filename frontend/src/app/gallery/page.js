@@ -141,7 +141,7 @@ export default function GalleryPage() {
 
       <main>
         <PageSection className="pt-7">
-          {isLoading && (!items || items.length === 0) ? (
+          {isLoading ? (
             <div className="min-h-[40vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>

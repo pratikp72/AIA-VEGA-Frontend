@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
+import Loader from '@/components/common/Loader';
 
 /**
  * Fetches PDF with auth and displays via blob URL so it works on localhost
@@ -52,7 +53,7 @@ export default function PdfViewer({ fileUrl, title = 'PDF', className = '' }) {
     };
   }, [fileUrl]);
 
-  if (loading) return <div className={`flex items-center justify-center text-gray-500 ${className}`}>Loading PDF...</div>;
+  if (loading) return <div className={`flex items-center justify-center min-h-[200px] ${className}`}><Loader size="lg" /></div>;
   if (error) return <div className={`flex items-center justify-center text-red-600 ${className}`}>{error}</div>;
   if (!blobUrl) return null;
 

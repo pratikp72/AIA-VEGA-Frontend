@@ -236,8 +236,14 @@ export default function PeopleListingPage() {
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-              <PeopleGrid
+            <div className="relative">
+              {isLoading && people.length > 0 && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl min-h-[200px]">
+                  <Loader size="lg" />
+                </div>
+              )}
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+                <PeopleGrid
                 pagedPeople={people}
                 selectedEmployeeId={selectedEmployeeId}
                 handleSelect={handleSelect}
@@ -249,6 +255,7 @@ export default function PeopleListingPage() {
                   onClose={() => setSelectedEmployeeId(null)}
                 />
               )}
+              </div>
             </div>
 
             <Pagination

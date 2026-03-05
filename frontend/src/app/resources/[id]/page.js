@@ -13,6 +13,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
+import Loader from '@/components/common/Loader';
 import PolicyDetail from '@/features/resources/components/PolicyDetail';
 import PdfViewer from '@/features/resources/components/PdfViewer';
 import { fetchPolicyById } from '@/features/resources/policiesAPI';
@@ -23,29 +24,38 @@ export default function ResourceDetailPage() {
   const documentId = params?.id || params?.slug || '';
   const [item, setItem] = useState(null);
   const [isFormTemplate, setIsFormTemplate] = useState(false);
+  const [loading, setLoading] = useState(!!documentId);
 
   useEffect(() => {
     if (!documentId) return;
+    setLoading(true);
     // Try to fetch as form template first
     fetchFormTemplateById(documentId)
       .then((data) => {
         if (data && data.id) {
           setItem(data);
           setIsFormTemplate(true);
+          setLoading(false);
         } else {
           // fallback to policy
-          fetchPolicyById(documentId).then((data) => {
-            setItem(data);
-            setIsFormTemplate(false);
-          }).catch(() => setItem(null));
+          fetchPolicyById(documentId)
+            .then((data) => {
+              setItem(data);
+              setIsFormTemplate(false);
+            })
+            .catch(() => setItem(null))
+            .finally(() => setLoading(false));
         }
       })
       .catch(() => {
         // fallback to policy
-        fetchPolicyById(documentId).then((data) => {
-          setItem(data);
-          setIsFormTemplate(false);
-        }).catch(() => setItem(null));
+        fetchPolicyById(documentId)
+          .then((data) => {
+            setItem(data);
+            setIsFormTemplate(false);
+          })
+          .catch(() => setItem(null))
+          .finally(() => setLoading(false));
       });
   }, [documentId]);
 
@@ -64,13 +74,18 @@ export default function ResourceDetailPage() {
         </div>
       </PageHeader>
       <PageSection>
-        {isFormTemplate && item ? (
+        {loading ? (
+          <div className="min-h-[40vh] flex items-center justify-center">
+            <Loader size="lg" />
+          </div>
+        ) : isFormTemplate && item ? (
           <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-bold mb-2">{item.title}</h2>
             <p className="text-sm text-[#65758B] mb-1">Type: {item.form_type}</p>
             <p className="text-sm text-[#65758B] mb-1">Downloadable: {item.is_downloadable ? 'Yes' : 'No'}</p>
             <p className="text-sm text-[#374151] mt-2">{item.description}</p>
             <p className="text-xs text-[#475569] mt-2">Updated: {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+            {/* Download: only when is_downloadable (e.g. for PDF, only when is_downloadable is true) */}
             {item.is_downloadable && getFormFileUrl(item) && (
               <a
                 href={getFormFileUrl(item)}

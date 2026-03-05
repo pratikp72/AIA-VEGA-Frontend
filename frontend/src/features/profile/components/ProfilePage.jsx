@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/common/PageHeader';
+import Loader from '@/components/common/Loader';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 
@@ -62,7 +63,7 @@ export default function ProfilePage() {
   if (!user) {
     return (
       <PageContainer className="flex justify-center items-center min-h-[50vh]">
-        Loading profile...
+        <Loader size="lg" />
       </PageContainer>
     );
   }

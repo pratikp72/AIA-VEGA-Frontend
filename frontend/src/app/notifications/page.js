@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
+import Loader from '@/components/common/Loader';
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);
@@ -46,8 +47,8 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <div className="px-4 py-8 rounded-xl border border-gray-200 bg-white text-center text-gray-500 text-sm shadow-sm">
-          Loading notifications…
+        <div className="px-4 py-8 rounded-xl border border-gray-200 bg-white flex items-center justify-center min-h-[200px] shadow-sm">
+          <Loader size="lg" />
         </div>
       ) : error ? (
         <div className="px-4 py-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm shadow-sm">

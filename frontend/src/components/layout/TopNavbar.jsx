@@ -9,6 +9,7 @@ import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 import { globalSearch } from '@/features/search/globalSearchAPI';
+import Loader from '@/components/common/Loader';
 
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_MIN_LENGTH = 2;
@@ -135,7 +136,9 @@ function NotificationBellDropdown() {
             </Link>
           </div>
           {loading ? (
-            <div className="px-4 py-6 text-center text-gray-400 text-sm">Loading…</div>
+            <div className="px-4 py-6 flex items-center justify-center">
+              <Loader size="md" />
+            </div>
           ) : notifications.length === 0 ? (
             <div className="px-4 py-6 text-center text-gray-400 text-sm">No notifications</div>
           ) : (
@@ -264,7 +267,9 @@ function GlobalSearch() {
           role="listbox"
         >
           {loading ? (
-            <div className="px-4 py-6 text-center text-gray-400 text-sm">Searching…</div>
+            <div className="px-4 py-6 flex items-center justify-center">
+              <Loader size="md" />
+            </div>
           ) : !hasResults ? (
             <div className="px-4 py-6 text-center text-gray-400 text-sm">No people or courses found</div>
           ) : (
