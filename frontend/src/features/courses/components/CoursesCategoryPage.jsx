@@ -113,10 +113,6 @@ export default function CoursesCategoryPage({ category }) {
                           <BookOpen className="w-4 h-4" />
                           {course.modules} modules
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {course.learners}
-                        </span>
                         <span className="flex-1" />
                         <MoreVertical className="text-muted-foreground w-5 h-5 cursor-pointer ml-auto" />
                       </div>
