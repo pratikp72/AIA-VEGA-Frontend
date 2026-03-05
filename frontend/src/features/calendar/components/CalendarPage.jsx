@@ -612,27 +612,27 @@ export default function CalendarPage() {
           </div>
 
           {/* Right: Sidebar - Events & Holidays */}
-          <aside className="w-full lg:w-[360px] shrink-0 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-[calc(100vh-12rem)]">
+          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 max-h-[calc(100vh-10rem)]">
+            {/* Events card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-[1.55] min-h-0">
+              <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
-                <>
-                  <h3 className="text-lg font-bold text-gray-900 p-4 pb-0">Events</h3>
-                  <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                    <div
-                      className="w-8 h-8 rounded-md flex items-center justify-center text-2xl font-bold text-white mb-2"
-                      style={{ backgroundColor: '#9C2EDB' }}
-                    >
-                      <Info className="w-4 h-4" />
-                    </div>
-                    <p className="text-sm text-gray-500">No Current Events</p>
+                <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
+                  <div
+                    className="w-8 h-8 rounded-md flex items-center justify-center text-2xl font-bold text-white mb-2"
+                    style={{ backgroundColor: '#9C2EDB' }}
+                  >
+                    <Info className="w-4 h-4" />
                   </div>
-                </>
+                  <p className="text-sm text-gray-500">No Current Events</p>
+                </div>
               ) : (
-                <div className="flex flex-col flex-1 min-h-0 overflow-y-auto p-4">
-                  <p className="text-xl font-bold text-gray-900 mb-4">
+                <>
+                  <p className="text-sm text-gray-500 mb-3 px-4">
                     {activeDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                   </p>
-                  <ul className="space-y-3">
+                  <div className="flex flex-col flex-1 min-h-0 overflow-y-auto scrollbar-default px-4 pb-4 pr-2">
+                    <ul className="space-y-3">
                     {currentEvents.map((ev) => {
                       let EventIcon = CalendarDays;
                       if (ev.type === 'birthday') {
@@ -754,19 +754,21 @@ export default function CalendarPage() {
                       );
                     })}
                   </ul>
-                </div>
+                  </div>
+                </>
               )}
             </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Holidays</h3>
+            {/* Holidays card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-[0.9] min-h-0">
+              <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Holidays</h3>
               {isDataLoading ? (
-                <div className="flex justify-center py-6">
+                <div className="flex justify-center py-6 px-4 flex-1">
                   <Loader />
                 </div>
               ) : currentHolidays.length === 0 ? (
-                <p className="text-sm text-gray-500">No holidays this month</p>
+                <p className="text-sm text-gray-500 px-4 pb-4 flex-1">No holidays this month</p>
               ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-2 flex-1 min-h-0 overflow-y-auto scrollbar-default px-4 pb-4 pr-2">
                   {currentHolidays.map((h) => (
                     <li key={h.id} className="flex items-center gap-2 text-sm bg-gray-50 p-4 rounded-2xl">
                       <span className="w-6 h-6 rounded flex items-center justify-center bg-[#EF4444] text-white shrink-0">

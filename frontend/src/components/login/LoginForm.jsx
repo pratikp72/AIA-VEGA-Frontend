@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { apiService } from '../../services/api';
+import { API_ENDPOINTS } from '@/services/endpoints';
 
-const LOGIN_API = '/auth/local';
+const LOGIN_API = API_ENDPOINTS.AUTH.LOGIN;
 
 /**
  * Login form component with glassmorphism design
@@ -90,14 +91,14 @@ const LoginForm = () => {
           </div>
         )}
         
-        {/* Email Field */}
+        {/* Identifier Field: Emp Code / Emp ID */}
         <div style={{ marginBottom: '24px' }}>
           <label className="glass-label">
-            Email
+            Employee ID
           </label>
           <input
-            type="email"
-            placeholder="Enter your email"
+            type="text"
+            placeholder="Enter Emp Code (AIA) or Emp ID (Vega)"
             value={identifier}
             onChange={e => setIdentifier(e.target.value)}
             className="glass-input"
