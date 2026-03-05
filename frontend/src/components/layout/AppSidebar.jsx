@@ -9,6 +9,7 @@ import {
   Folder01Icon,
   Calendar01Icon,
   Image01Icon,
+  NewsIcon,
 } from 'hugeicons-react';
 import { ChevronLeft, ChevronRight, X, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const menuItems = [
   { icon: Location01Icon, label: 'Locations', href: '/locations' },
   { icon: Route01Icon, label: 'Routes', href: '/routes' },
   { icon: Folder01Icon, label: 'Resources', href: '/resources' },
+  { icon: NewsIcon, label: 'News', href: '/news' },
   { icon: Calendar01Icon, label: 'Calendar', href: '/calendar' },
   { icon: Image01Icon, label: 'Gallery', href: '/gallery' },
 ];

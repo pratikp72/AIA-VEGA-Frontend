@@ -92,6 +92,14 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     }
   }, [courseLanguages, selectedLanguage]);
 
+  // If user comes from course card with ?feedback=1, open feedback form directly
+  const feedbackFromQuery = searchParams.get('feedback');
+  useEffect(() => {
+    if (feedbackFromQuery === '1') {
+      setShowFeedbackForm(true);
+    }
+  }, [feedbackFromQuery]);
+
   if (!course) return <div className="p-8">Course not found.</div>;
 
   // Show only modules, quiz, and feedback for the selected language
@@ -223,6 +231,46 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     }
   };
 
+  // Handle language change with context-aware confirmation when user has progress
+  const handleLanguageChange = (lang) => {
+    if (!lang || lang === selectedLanguage) return;
+    const hasProgress =
+      courseProgress.progressStatus === "In_progress" ||
+      courseProgress.progressStatus === "Completed";
+
+    if (hasProgress) {
+      let message;
+      // Case 1: user is leaving the original language where they already progressed
+      if (initialLanguage && selectedLanguage === initialLanguage && lang !== initialLanguage) {
+        message = `If you switch to "${lang}", this course will start again from the beginning in that language. Your existing progress in "${initialLanguage}" will be kept. Do you want to continue?`;
+      }
+      // Case 2: user is switching back to the original language (e.g. Hindi -> English)
+      else if (initialLanguage && lang === initialLanguage) {
+        message = `You already have progress in "${initialLanguage}". Switching back will continue from where you left off in that language. Do you want to continue?`;
+      }
+      // Fallback generic message
+      else {
+        message = 'If you switch the language, this course will start again from the beginning in the new language. Do you want to continue?';
+      }
+
+      const confirmed = window.confirm(message);
+      if (!confirmed) return;
+    }
+
+    setSelectedLanguage(lang);
+
+    const paramsCopy = new URLSearchParams(searchParams?.toString() || "");
+    paramsCopy.set("lang", lang);
+    paramsCopy.delete("moduleId"); // force restart from first module in new language
+
+    const basePath = `/courses/${category}/${course.documentId}`;
+    const queryString = paramsCopy.toString();
+    const target = queryString ? `${basePath}?${queryString}` : basePath;
+    router.replace(target);
+
+    dispatch(loadCourseById({ documentId: course.documentId, language: lang }));
+  };
+
   const handleNextLecture = () => {
     if (!nextModule || !course?.documentId) return;
     const base = `/courses/${category}/${course.documentId}/${nextModule.moduleId || nextModule.id}`;
@@ -242,7 +290,15 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         <PageContainer className="py-8">
           <FeedbackForm
             questions={feedbackQuestions}
-            onCancel={() => setShowFeedbackForm(false)}
+                onCancel={() => {
+                  setShowFeedbackForm(false);
+                  // Remove feedback query param so we don't auto-open again
+                  const paramsCopy = new URLSearchParams(searchParams?.toString() || "");
+                  paramsCopy.delete("feedback");
+                  const queryString = paramsCopy.toString();
+                  const target = queryString ? `${pathname}?${queryString}` : pathname;
+                  router.replace(target);
+                }}
             onSubmit={(response) => {
               setShowFeedbackForm(false);
               // Refetch progress - backend finalizeCourse sets Completed
@@ -304,14 +360,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
               <select
                 id="course-language-select"
                 value={selectedLanguage}
-                onChange={(e) => {
-                  const lang = e.target.value;
-                  setSelectedLanguage(lang);
-                  const params = new URLSearchParams(searchParams?.toString() || "");
-                  params.set("lang", lang);
-                  router.replace(`${pathname}?${params.toString()}`);
-                  dispatch(loadCourseById({ documentId: course.documentId, language: lang }));
-                }}
+                onChange={(e) => handleLanguageChange(e.target.value)}
                 className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
               >
                 {languageOptions.map((lang) => (

@@ -13,7 +13,7 @@ import { globalSearch } from '@/features/search/globalSearchAPI';
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_MIN_LENGTH = 2;
 
-const NOTIFICATION_POLL_INTERVAL_MS = 20000; // 20 seconds – keeps bell count updated in near real time
+const NOTIFICATION_POLL_INTERVAL_MS = 20000;
 
 function NotificationBellDropdown() {
   const [open, setOpen] = useState(false);
