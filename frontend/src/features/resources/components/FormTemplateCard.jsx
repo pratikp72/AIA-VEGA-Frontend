@@ -17,7 +17,8 @@ function getFileUrl(item) {
 export default function FormTemplateCard({ resource, onView }) {
   const item = resource || {};
   const ext = (item.form_type || item.type || '').toLowerCase();
-  const isDownloadable = item.is_downloadable === true;
+  const formType = (item.form_type || '').toLowerCase();
+  const isDownloadable = item.is_downloadable === true || formType === 'excel' || formType === 'word';
   const isUrlType = item.form_type === 'URL';
   const fileUrl = getFileUrl(item);
 
@@ -116,9 +117,9 @@ export default function FormTemplateCard({ resource, onView }) {
         <button
           aria-label="download"
           onClick={handleDownload}
-          disabled={!isDownloadable || !fileUrl}
-          title={isDownloadable && fileUrl ? 'Download' : !isDownloadable ? 'Download not available' : 'No file available'}
-          className={`w-10 h-10 rounded-[8px] bg-primary-purple text-white flex items-center justify-center shadow ${!isDownloadable || !fileUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={!fileUrl || !(isDownloadable)}
+          title={fileUrl && isDownloadable ? 'Download' : !isDownloadable ? 'Download not available' : 'No file available'}
+          className={`w-10 h-10 rounded-[8px] bg-primary-purple text-white flex items-center justify-center shadow ${!fileUrl || !isDownloadable ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <Download className="w-4 h-4" />
         </button>
