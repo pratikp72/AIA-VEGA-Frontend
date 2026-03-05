@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
+
+const NOTIFICATION_POLL_INTERVAL_MS = 20000; // 20 seconds – keeps bell count updated in near real time
 
 function NotificationBellDropdown() {
   const [open, setOpen] = useState(false);
@@ -15,24 +17,49 @@ function NotificationBellDropdown() {
   const ref = useRef(null);
   const router = useRouter();
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (showLoading = false) => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     if (!token) return;
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const data = await api.get(API_ENDPOINTS.NOTIFICATIONS.ME, { params: { limit: 50 } });
       setNotifications(Array.isArray(data?.data) ? data.data : []);
     } catch (e) {
       console.error('Failed to load notifications', e);
       setNotifications([]);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  };
+  }, []);
 
+  // Load count on mount and when dropdown opens (with loading state)
   useEffect(() => {
-    if (open) fetchNotifications();
-  }, [open]);
+    if (open) {
+      fetchNotifications(true);
+    }
+  }, [open, fetchNotifications]);
+
+  // Initial fetch so bell count is visible without opening dropdown
+  useEffect(() => {
+    fetchNotifications(false);
+  }, [fetchNotifications]);
+
+  // Poll so bell count updates in near real time (e.g. when admin approves quiz reattempt)
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    if (!token) return;
+    const interval = setInterval(() => fetchNotifications(false), NOTIFICATION_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Refetch when user returns to the tab so count is fresh
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchNotifications(false);
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchNotifications]);
 
   useEffect(() => {
     function handleClick(e) {

@@ -15,13 +15,25 @@ export const getQuizSubmission = async (documentId) => {
 
 // Send re-attempt request when max attempts reached (custom endpoint - bypasses REST validation)
 export const sendReattemptRequest = async (userId, courseId) => {
-  return api.post('/quiz-reattempt-request/send', { userId: Number(userId), courseId: Number(courseId) });
+  const uid = Number(userId);
+  const cid = Number(courseId);
+  if (!Number.isFinite(uid) || !Number.isFinite(cid)) {
+    throw new Error('Valid userId and courseId are required to send reattempt request.');
+  }
+  const payload = { userId: uid, courseId: cid };
+  return api.post('/quiz-reattempt-request/send', payload, {
+    headers: { 'Content-Type': 'application/json' },
+    timeout: 60000,
+  });
 };
 
-// Check if user has a pending reattempt request (blocks assessment until admin approves)
+// Check if user has pending or rejected reattempt request. Returns { hasPending, hasRejected }.
 export const checkPendingReattemptRequest = async (userId, courseId) => {
   const res = await api.get('/quiz-reattempt-request/pending', {
     params: { userId: Number(userId), courseId: Number(courseId) },
   });
-  return res?.hasPending ?? false;
+  return {
+    hasPending: res?.hasPending ?? false,
+    hasRejected: res?.hasRejected ?? false,
+  };
 };
