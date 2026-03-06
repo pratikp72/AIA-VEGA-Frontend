@@ -5,7 +5,7 @@ import TopNavbar from './TopNavbar';
 import AppSidebar from './AppSidebar';
 import { SidebarProvider } from './SidebarContext';
 
-export default function LayoutShell({ children }) {
+export default function LayoutShell({ children, hideSidebar = false }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -24,19 +24,23 @@ export default function LayoutShell({ children }) {
 
   if (!isClient) return null;
 
+  const showSidebar = !hideSidebar;
+
   return (
     <SidebarProvider value={{ collapsed, isMobile }}>
       <TopNavbar onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} />
-      <AppSidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed((c) => !c)}
-        isMobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-      />
+      {showSidebar && (
+        <AppSidebar
+          collapsed={collapsed}
+          onToggle={() => setCollapsed((c) => !c)}
+          isMobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+        />
+      )}
       <main
         className="pt-16 transition-all duration-300"
         style={{
-          paddingLeft: isMobile ? '0' : collapsed ? '4rem' : '15rem',
+          paddingLeft: !showSidebar || isMobile ? '0' : collapsed ? '4rem' : '15rem',
         }}
       >
         {children}

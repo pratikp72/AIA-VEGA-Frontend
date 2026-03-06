@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import PageSection from '@/components/common/PageSection';
 import PageHeader from '@/components/common/PageHeader';
 import SurfaceCard from '@/components/common/SurfaceCard';
@@ -23,10 +24,19 @@ const CATEGORY_LABELS = {
 };
 
 export default function CoursesCategoryPage({ category }) {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const allCourses = useAppSelector(selectCoursesList);
   const isLoading = useAppSelector(selectCoursesLoading);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [startBlockModal, setStartBlockModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    kind: 'block',
+    courseUrl: '',
+    prerequisites: [],
+  });
 
   useEffect(() => {
     dispatch(loadAllCourses());
@@ -87,6 +97,93 @@ export default function CoursesCategoryPage({ category }) {
     } catch (err) {
       console.error('Failed to check feedback eligibility:', err);
       window.alert('Could not verify feedback eligibility. Please open the course to continue.');
+    }
+  };
+
+  const normalizeFlow = (value) =>
+    String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ');
+
+  const isOrientationRequiredBeforeCourse = (course) => {
+    const details = Array.isArray(course?.orientation_detail) ? course.orientation_detail : [];
+    return details.some((detail) => normalizeFlow(detail?.orientation_flow) === 'before course completion');
+  };
+
+  const prerequisiteCourseName = (item) => {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    return item.title || item.name || item.course_name || '';
+  };
+
+  const findCourseByPrerequisiteRef = (item) => {
+    const byId = item?.id != null ? allCourses.find((c) => c.id === item.id) : null;
+    if (byId) return byId;
+    const byDocumentId = item?.documentId
+      ? allCourses.find((c) => String(c.documentId) === String(item.documentId))
+      : null;
+    if (byDocumentId) return byDocumentId;
+    const name = prerequisiteCourseName(item).trim().toLowerCase();
+    if (!name) return null;
+    return allCourses.find((c) => String(c.title || '').trim().toLowerCase() === name) || null;
+  };
+
+  const handleStartCourse = (event, course, courseUrl) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const prerequisites = Array.isArray(course?.prerequisite_courses) ? course.prerequisite_courses : [];
+    const missingPrerequisites = prerequisites
+      .map((item) => {
+        const matchedCourse = typeof item === 'object' ? findCourseByPrerequisiteRef(item) : findCourseByPrerequisiteRef({ title: item });
+        const done = !!matchedCourse?.completed;
+        if (done) return null;
+        const name = prerequisiteCourseName(item) || matchedCourse?.title || 'Prerequisite course';
+        const link = matchedCourse?.documentId
+          ? `/courses/${String(matchedCourse?.category || 'all').toLowerCase()}/${matchedCourse.documentId}`
+          : '';
+        return { name, link };
+      })
+      .filter(Boolean);
+
+    if (missingPrerequisites.length > 0) {
+      setStartBlockModal({
+        open: true,
+        title: 'Prerequisite Required',
+        message: 'You must complete prerequisite course(s) first:',
+        kind: 'block',
+        courseUrl: '',
+        prerequisites: missingPrerequisites,
+      });
+      return;
+    }
+
+    if (isOrientationRequiredBeforeCourse(course)) {
+      setStartBlockModal({
+        open: true,
+        title: 'Orientation Warning',
+        message: 'You must attend orientation first before starting this course.',
+        kind: 'warning',
+        courseUrl,
+        prerequisites: [],
+      });
+      return;
+    }
+
+    router.push(courseUrl);
+  };
+
+  const closeStartModal = () => {
+    setStartBlockModal({ open: false, title: '', message: '', kind: 'block', courseUrl: '', prerequisites: [] });
+  };
+
+  const handleStartModalOk = () => {
+    const continueUrl = startBlockModal.kind === 'warning' ? startBlockModal.courseUrl : '';
+    closeStartModal();
+    if (continueUrl) {
+      router.push(continueUrl);
     }
   };
 
@@ -205,7 +302,10 @@ export default function CoursesCategoryPage({ category }) {
                         </>
                       )}
                       {isNotStarted && (
-                        <Button className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center">
+                        <Button
+                          onClick={(event) => handleStartCourse(event, course, courseUrl)}
+                          className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center"
+                        >
                           Start Course <ChevronRight className="w-5 h-5" />
                         </Button>
                       )}
@@ -221,7 +321,16 @@ export default function CoursesCategoryPage({ category }) {
                 );
 
                 return (
-                  <Link key={course.id} href={courseUrl} style={{ textDecoration: 'none' }}>
+                  <Link
+                    key={course.id}
+                    href={courseUrl}
+                    style={{ textDecoration: 'none' }}
+                    onClick={(event) => {
+                      if (isNotStarted) {
+                        handleStartCourse(event, course, courseUrl);
+                      }
+                    }}
+                  >
                     {cardContent}
                   </Link>
                 );
@@ -230,6 +339,48 @@ export default function CoursesCategoryPage({ category }) {
           )}
         </PageSection>
       </main>
+
+      {startBlockModal.open && (
+        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/45 px-4">
+          <div className="w-[min(92vw,520px)] rounded-2xl bg-white border border-gray-200 shadow-2xl p-6">
+            <h3 className="text-xl font-semibold text-gray-900 leading-7 break-words">{startBlockModal.title}</h3>
+            <p className="mt-3 text-sm text-gray-600 leading-6 whitespace-normal break-words">
+              {startBlockModal.message}
+            </p>
+            {startBlockModal.kind === 'block' && Array.isArray(startBlockModal.prerequisites) && startBlockModal.prerequisites.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {startBlockModal.prerequisites.map((item, idx) => (
+                  <div key={`${item.name}-${idx}`} className="rounded-md bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+                    <div className="leading-6 break-words"><span className="font-semibold">Course Name:</span> {item.name}</div>
+                    <div className="leading-6 break-all">
+                      <span className="font-semibold">Course Redirection Link:</span>{' '}
+                      {item.link ? (
+                        <Link
+                          href={item.link}
+                          className="text-primary underline"
+                          onClick={closeStartModal}
+                        >
+                          {item.link}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">Not available</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-5 flex justify-end">
+              <Button
+                onClick={handleStartModalOk}
+                className="bg-primary text-white"
+              >
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

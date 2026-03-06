@@ -110,6 +110,11 @@ function normalizeCourse(course) {
       : course.orientation_detail
         ? [course.orientation_detail]
         : [],
+    prerequisite_courses: Array.isArray(course.prerequisite_courses)
+      ? course.prerequisite_courses
+      : course.prerequisite_courses
+        ? [course.prerequisite_courses]
+        : [],
     active: course.active !== false,
   };
 }
@@ -118,6 +123,8 @@ const COURSES_LIST_PARAMS = {
   'populate[thumbnail]': true,
   'populate[quiz][populate][quiz_questions][populate][options]': true,
   'populate[modules]': true,
+  'populate[orientation_detail]': true,
+  'populate[prerequisite_courses]': true,
   'pagination[pageSize]': 50,
 };
 
