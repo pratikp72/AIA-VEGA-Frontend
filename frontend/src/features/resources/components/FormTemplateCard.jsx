@@ -28,6 +28,14 @@ export default function FormTemplateCard({ resource }) {
     ? 'bg-[#34D399]'
     : 'bg-[#A78BFA]';
 
+  const typeIcon = ext.includes('pdf')
+    ? '/pdf-icon.png'
+    : ext.includes('xls') || ext.includes('excel')
+    ? '/excel-icon.png'
+    : ext.includes('word') || ext.includes('doc')
+    ? '/doc-icon.png'
+    : null;
+
   const handleDownload = async (e) => {
     e.stopPropagation();
     if (!fileUrl) return;
@@ -90,8 +98,12 @@ export default function FormTemplateCard({ resource }) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } }}
       className="w-full h-[85px] cursor-pointer p-4 flex flex-row items-center gap-4 py-0 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
-      <div className={`flex items-center justify-center h-12 w-12 rounded-md text-white ${iconBg} flex-shrink-0`}>
-        <span className="font-bold text-sm">{(item.form_type || item.type || 'DOC').slice(0,3).toUpperCase()}</span>
+      <div className={`flex items-center justify-center h-12 w-12 rounded-md overflow-hidden flex-shrink-0 p-1.5 ${typeIcon ? 'bg-gray-50' : iconBg + ' text-white'}`}>
+        {typeIcon ? (
+          <img src={typeIcon} alt={item.form_type || item.type || 'Document'} className="w-full h-full object-contain" />
+        ) : (
+          <span className="font-bold text-sm">{(item.form_type || item.type || 'DOC').slice(0,3).toUpperCase()}</span>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
