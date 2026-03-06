@@ -26,16 +26,49 @@ export const fetchQuickLinks = async () => {
     return MOCK_HOME_DATA.quickLinks;
   }
 
-  const response = await api.get('/important-links');
+  const response = await api.get('/important-links', {
+    params: {
+      'populate[link_icon]': true,
+    },
+  });
   // The API returns { data: [...] }
   const links = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+
+  const resolveIcon = (link) => {
+    const icon = link?.link_icon ?? link?.icon ?? null;
+    if (!icon) return null;
+
+    if (typeof icon === 'string') {
+      return { iconText: icon };
+    }
+
+    if (icon.iconData) {
+      return {
+        iconData: icon.iconData,
+        width: icon.width,
+        height: icon.height,
+        iconName: icon.iconName,
+      };
+    }
+
+    // Strapi media can be flattened or nested under data/attributes depending on API settings.
+    const media = icon?.data?.attributes ?? icon?.data ?? icon;
+    const mediaUrl = media?.formats?.large?.url || media?.formats?.medium?.url || media?.formats?.small?.url || media?.formats?.thumbnail?.url || media?.url;
+    if (mediaUrl) {
+      const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api').replace(/\/api\/?$/, '');
+      return { iconUrl: mediaUrl.startsWith('http') ? mediaUrl : `${base}${mediaUrl.startsWith('/') ? mediaUrl : `/${mediaUrl}`}` };
+    }
+
+    return null;
+  };
+
   // Map to expected frontend format if needed
   return links.map(link => ({
     id: link.id,
     documentId: link.documentId,
     title: link.title,
     url: link.url,
-    icon: link.icon,
+    icon: resolveIcon(link),
     active: link.active,
   }));
 };
