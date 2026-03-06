@@ -75,7 +75,7 @@ export const fetchUpcomingEvents = async () => {
 };
 
 function normalizeUser(user) {
-  const name = user.employee_name || user.username || 'Unknown';
+  const name = user.username || 'Unknown';
   const joinDate = user.joining_date || null;
   const now = new Date();
   const isNew = joinDate
@@ -210,10 +210,10 @@ export const fetchBirthdaysToday = async () => {
     })
     .map(u => ({
       id: u.id,
-      name: u.employee_name || u.username || 'Unknown',
+      name: u.username || 'Unknown',
       position: u.designation || '',
       department: u.department || '',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.employee_name || u.username || 'Unknown')}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.username || 'Unknown')}`,
       date: u.date_of_birth,
     }));
 };
@@ -238,7 +238,7 @@ export const fetchWorkAnniversaries = async () => {
       const yearsCompleted = today.getFullYear() - year;
       return {
         id: u.id,
-        name: u.employee_name || u.username || 'Unknown',
+        name: u.username || 'Unknown',
         position: u.designation || '',
         department: u.department || '',
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.employee_name || u.username || 'Unknown')}`,
