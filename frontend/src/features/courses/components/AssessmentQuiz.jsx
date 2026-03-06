@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Clock,
   ChevronLeft,
@@ -199,6 +199,8 @@ function getQuestionOptions(question) {
 
 export default function AssessmentQuiz({ onExit, courseId, category, courseNumericId, userId, quizQuestions, resultData: resultDataProp, feedbackQuestions, feedbackCompulsory }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
   const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
@@ -374,7 +376,30 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   };
 
   const handleBackToCourses = () => {
+    if (category) {
+      router.push(`/courses/${category}`);
+      return;
+    }
     if (onExit) onExit();
+    else router.push('/courses');
+  };
+
+  const openFeedbackForm = () => {
+    setShowFeedbackForm(true);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    params.set('feedback', '1');
+    const query = params.toString();
+    const target = query ? `${pathname}?${query}` : pathname;
+    router.replace(target, { scroll: false });
+  };
+
+  const closeFeedbackForm = () => {
+    setShowFeedbackForm(false);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    params.delete('feedback');
+    const query = params.toString();
+    const target = query ? `${pathname}?${query}` : pathname;
+    router.replace(target, { scroll: false });
   };
 
   const handleFeedbackSubmit = (formData) => {
@@ -388,7 +413,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   // Success message after feedback submit, then redirect to courses
   if (showFeedbackSuccess) {
     return (
-      <LayoutShell>
+      <LayoutShell hideSidebar>
         <PageContainer className="py-8 flex items-center justify-center min-h-[60vh]">
           <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-2xl w-full text-center">
             <div className="flex justify-center mb-4">
@@ -412,11 +437,11 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   // When user is on feedback screen, show full layout with sidebar
   if (submitted && showFeedbackForm) {
     return (
-      <LayoutShell>
+      <LayoutShell hideSidebar>
         <PageContainer className="py-8">
           <FeedbackForm
             questions={feedbackQuestions}
-            onCancel={() => setShowFeedbackForm(false)}
+            onCancel={closeFeedbackForm}
             onSubmit={handleFeedbackSubmit}
             userId={userId}
             courseId={courseNumericId} // Pass numeric course ID
@@ -458,7 +483,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         onSendReattemptRequest={handleSendReattemptRequest}
         feedbackMandatory={feedbackMandatory}
         feedbackSubmitted={feedbackSubmitted}
-        onOpenFeedback={() => setShowFeedbackForm(true)}
+        onOpenFeedback={openFeedbackForm}
         attemptNumber={attemptNumber}
         maxAttempt={maxAttempt}
         reattemptRequired={reattemptRequired}

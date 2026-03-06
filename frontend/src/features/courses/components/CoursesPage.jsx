@@ -84,7 +84,7 @@ export default function CoursesPage() {
           ) : (
             <div className="flex flex-col gap-6">
               {Object.entries(categoryGroups).map(([category, group]) => {
-                const totalHours = Math.round(group.totalDuration / 60 * 10) / 10;
+                const totalHours = Math.round((group.totalDuration || 0) * 10) / 10;
                 const slug = category.toLowerCase();
                 return (
                   <CourseCategoryCard

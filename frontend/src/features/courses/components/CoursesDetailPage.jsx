@@ -286,7 +286,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const courseNumericId = course.id ?? course.documentId;
 
     return (
-      <LayoutShell>
+      <LayoutShell hideSidebar>
         <PageContainer className="py-8">
           <FeedbackForm
             questions={feedbackQuestions}
