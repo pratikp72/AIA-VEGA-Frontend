@@ -28,11 +28,17 @@ export default function BirthdaysToday({ birthdays = [] }) {
                 className="relative flex flex-row items-center gap-2 h-[59px] w-full mb-4"
               >
                 <div className="flex-shrink-0">
-                  <img
-                    src={person.avatar}
-                    alt={person.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                  {person.avatar ? (
+                    <img
+                      src={person.avatar}
+                      alt={person.name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
+                      {(person.avatarInitial || person.name?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col justify-center pr-24">
                   <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>

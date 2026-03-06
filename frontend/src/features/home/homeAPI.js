@@ -1,6 +1,7 @@
 import api from '@/services/api';
 import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
+import { getAvatarPropsForEmployee } from '@/lib/avatar';
 
 export const fetchDashboardData = async () => {
   const rest = USE_MOCK_DATA
@@ -114,6 +115,7 @@ function normalizeUser(user) {
   const isNew = joinDate
     ? (now - new Date(joinDate)) / (1000 * 60 * 60 * 24) <= 30
     : false;
+  const avatar = getAvatarPropsForEmployee(user);
   return {
     id: user.id,
     documentId: user.documentId,
@@ -126,7 +128,8 @@ function normalizeUser(user) {
     location: user.working_location || '',
     joinDate,
     company: user.company || '',
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+    avatar: avatar.src,
+    avatarInitial: avatar.initials,
     isNew,
   };
 }
@@ -136,7 +139,11 @@ export const fetchNewJoinees = async () => {
     await mockDelay(400);
     return MOCK_HOME_DATA.newJoinees;
   }
-  const response = await api.get(API_ENDPOINTS.USERS.LIST);
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
+    params: {
+      'populate[photograph]': true,
+    },
+  });
   const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const users = raw.map(normalizeUser);
   const sorted = users
@@ -229,7 +236,11 @@ export const fetchMyCourses = async () => {
 
 export const fetchBirthdaysToday = async () => {
   // Fetch all users
-  const response = await api.get(API_ENDPOINTS.USERS.LIST);
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
+    params: {
+      'populate[photograph]': true,
+    },
+  });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
@@ -241,20 +252,28 @@ export const fetchBirthdaysToday = async () => {
       const [year, month, day] = u.date_of_birth.split('-').map(Number);
       return month === todayMonth && day === todayDate;
     })
-    .map(u => ({
-      id: u.id,
-      name: u.username || 'Unknown',
-      position: u.designation || '',
-      department: u.department || '',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.username || 'Unknown')}`,
-      date: u.date_of_birth,
-    }));
+    .map(u => {
+      const avatar = getAvatarPropsForEmployee(u);
+      return {
+        id: u.id,
+        name: u.employee_name || u.username || 'Unknown',
+        position: u.designation || '',
+        department: u.department || '',
+        avatar: avatar.src,
+        avatarInitial: avatar.initials,
+        date: u.date_of_birth,
+      };
+    });
 };
 
 
 export const fetchWorkAnniversaries = async () => {
   // Fetch all users
-  const response = await api.get(API_ENDPOINTS.USERS.LIST);
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
+    params: {
+      'populate[photograph]': true,
+    },
+  });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
@@ -269,12 +288,14 @@ export const fetchWorkAnniversaries = async () => {
     .map(u => {
       const [year, month, day] = u.joining_date.split('-').map(Number);
       const yearsCompleted = today.getFullYear() - year;
+      const avatar = getAvatarPropsForEmployee(u);
       return {
         id: u.id,
         name: u.username || 'Unknown',
         position: u.designation || '',
         department: u.department || '',
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.employee_name || u.username || 'Unknown')}`,
+        avatar: avatar.src,
+        avatarInitial: avatar.initials,
         yearsCompleted,
         joinDate: u.joining_date,
       };

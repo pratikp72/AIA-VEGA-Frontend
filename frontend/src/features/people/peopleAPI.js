@@ -1,6 +1,7 @@
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
+import { getAvatarPropsForEmployee } from '@/lib/avatar';
 
 function normalizeUser(user) {
   const name = user.employee_name || user.username || 'Unknown';
@@ -12,6 +13,7 @@ function normalizeUser(user) {
     : false;
   const company = user.company || '';
   const yearsAtCompany = joinDate ? now.getFullYear() - new Date(joinDate).getFullYear() : null;
+  const avatar = getAvatarPropsForEmployee(user);
   return {
     id: user.id,
     documentId: user.documentId,
@@ -30,7 +32,8 @@ function normalizeUser(user) {
     emp_code: user.emp_code || '',
     emp_id: user.emp_id || '',
     description: user.description || '',
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+    avatar: avatar.src,
+    avatarInitial: avatar.initials,
     isNew,
     yearsAtCompany,
   };

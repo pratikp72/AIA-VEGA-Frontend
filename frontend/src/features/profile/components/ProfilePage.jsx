@@ -8,6 +8,8 @@ import PageHeader from '@/components/common/PageHeader';
 import Loader from '@/components/common/Loader';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
+import api from '@/services/api';
+import { API_ENDPOINTS } from '@/services/endpoints';
 
 import {
   User,
@@ -50,14 +52,79 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const data = getCurrentUser();
+    let isMounted = true;
 
-    if (!data) {
-      router.replace('/login');
-      return;
-    }
+    const loadUser = async () => {
+      const data = getCurrentUser();
 
-    setUser(data);
+      if (!data) {
+        router.replace('/login');
+        return;
+      }
+
+      if (isMounted) setUser(data);
+
+      try {
+        const me = await api.get(API_ENDPOINTS.AUTH.ME, {
+          params: {
+            'populate[photograph]': true,
+          },
+        });
+
+        const freshUser = me?.user || me?.data || me;
+        const userId = freshUser?.id ?? data?.id ?? data?.documentId;
+
+        let mergedUser = freshUser;
+        if (userId) {
+          try {
+            const fullUserRes = await api.get(API_ENDPOINTS.USERS.GET(userId), {
+              params: {
+                'populate[photograph]': true,
+              },
+            });
+            const fullUser = fullUserRes?.data || fullUserRes;
+            if (fullUser) mergedUser = { ...freshUser, ...fullUser };
+          } catch {
+            // Keep auth/me response if users/:id fails.
+          }
+        }
+
+        if (mergedUser && isMounted) {
+          const avatarFromMerged = getAvatarPropsForUser(mergedUser);
+          if (!avatarFromMerged.src) {
+            try {
+              const searchKey = mergedUser?.email || mergedUser?.emp_id || mergedUser?.emp_code || mergedUser?.username || '';
+              if (searchKey) {
+                const analytics = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
+                  params: { search: searchKey, page: 1, pageSize: 25 },
+                });
+                const items = Array.isArray(analytics?.items) ? analytics.items : [];
+                const matched = items.find((emp) =>
+                  (mergedUser?.id && emp?.id === mergedUser.id) ||
+                  (mergedUser?.email && emp?.email === mergedUser.email) ||
+                  (mergedUser?.emp_id && emp?.emp_id === mergedUser.emp_id) ||
+                  (mergedUser?.emp_code && emp?.emp_code === mergedUser.emp_code)
+                ) || items[0];
+                if (matched) mergedUser = { ...mergedUser, ...matched };
+              }
+            } catch {
+              // Keep merged user if analytics fallback fails.
+            }
+          }
+
+          setUser(mergedUser);
+          localStorage.setItem('user', JSON.stringify(mergedUser));
+        }
+      } catch {
+        // Keep local user as fallback when profile fetch fails.
+      }
+    };
+
+    loadUser();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
   if (!user) {

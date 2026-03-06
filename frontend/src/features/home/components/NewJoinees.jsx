@@ -35,11 +35,17 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                 {/* Profile Picture */}
                 <div className="shrink-0">
                   <div className="relative">
-                    <img
-                      src={person.avatar}
-                      alt={person.name}
-                      className="w-20 h-20 rounded object-cover"
-                    />
+                    {person.avatar ? (
+                      <img
+                        src={person.avatar}
+                        alt={person.name}
+                        className="w-20 h-20 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded bg-primary text-white flex items-center justify-center text-h2 font-semibold">
+                        {(person.avatarInitial || person.name?.[0] || '?').toUpperCase()}
+                      </div>
+                    )}
                     <span className="absolute left-1/2 top-1 -translate-x-1/2 -translate-y-1/2 bg-primary text-white text-small px-1 py-1 rounded whitespace-nowrap">
                       New Joinee
                     </span>

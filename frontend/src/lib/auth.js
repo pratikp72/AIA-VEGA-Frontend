@@ -1,4 +1,4 @@
-const DICEBEAR_AVATAR_BASE = 'https://api.dicebear.com/7.x/avataaars/svg';
+import { getAvatarPropsForEmployee } from '@/lib/avatar';
 
 /**
  * Get the current logged-in user from localStorage.
@@ -31,13 +31,6 @@ export function getCurrentUserId() {
  * @returns {{ src: string, initials: string }}
  */
 export function getAvatarPropsForUser(user) {
-  const name = user?.employee_name || user?.username || user?.name || '';
-  const seed = (name || user?.id || user?.email || 'default').toString().trim() || 'default';
-  const initials = name
-    ? name.split(/\s+/).map((s) => s[0]).slice(0, 2).join('').toUpperCase()
-    : (user?.email?.[0] || '?').toUpperCase();
-  return {
-    src: `${DICEBEAR_AVATAR_BASE}?seed=${encodeURIComponent(seed)}`,
-    initials: initials || '—',
-  };
+  const { src, initials } = getAvatarPropsForEmployee(user || {});
+  return { src: src || '', initials: initials || '—' };
 }

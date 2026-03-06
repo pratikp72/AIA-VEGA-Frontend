@@ -28,7 +28,18 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
         >
           <div className="flex items-start gap-4">
             <div className="relative">
-              <img src={person.avatar} alt={person.name} className={cn('rounded-full object-cover', isCompact ? 'h-12 w-12' : 'h-12 w-12')} />
+              {person.avatar ? (
+                <img src={person.avatar} alt={person.name} className={cn('rounded-full object-cover', isCompact ? 'h-12 w-12' : 'h-12 w-12')} />
+              ) : (
+                <div
+                  className={cn(
+                    'rounded-full bg-primary text-white flex items-center justify-center font-semibold',
+                    isCompact ? 'h-12 w-12' : 'h-12 w-12'
+                  )}
+                >
+                  {(person.avatarInitial || person.name?.[0] || '?').toUpperCase()}
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">

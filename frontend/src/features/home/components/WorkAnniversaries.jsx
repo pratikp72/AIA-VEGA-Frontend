@@ -29,11 +29,17 @@ export default function WorkAnniversaries({ anniversaries = [] }) {
                 className="flex flex-col items-start gap-4  w-full h-[130px]"
               >
                 <div className="relative flex items-center gap-4 py-4 px-5 w-full">
-                  <img
-                    src={person.avatar}
-                    alt={person.name}
-                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                  />
+                  {person.avatar ? (
+                    <img
+                      src={person.avatar}
+                      alt={person.name}
+                      className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-semibold flex-shrink-0">
+                      {(person.avatarInitial || person.name?.[0] || '?').toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>
                     <p className="text-small text-gray-500 leading-tight mt-0.5">
