@@ -132,13 +132,15 @@ export const fetchEmployeeBirthdays = async () => {
       .filter(emp => emp.date_of_birth && emp.blocked !== true)
       .map(emp => {
         const birthday = new Date(emp.date_of_birth);
-        // Set birthday to current year for calendar display
-        const thisYearBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
+        // Use UTC to avoid timezone shift (e.g. "1990-03-06" is midnight UTC; getMonth/getDate would give March 5 in US timezones)
+        const month = birthday.getUTCMonth();
+        const day = birthday.getUTCDate();
+        const dateKey = `${currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         
         return {
           id: `birthday-${emp.id}`,
           title: `🎂 ${emp.employee_name || emp.username}'s Birthday`,
-          date: thisYearBirthday.toISOString().slice(0, 10),
+          date: dateKey,
           employee: normalizeUser(emp),
           type: 'birthday',
           color: '#FD8C02',
@@ -175,16 +177,19 @@ export const fetchEmployeeAnniversaries = async () => {
       .filter(emp => emp.joining_date)
       .map(emp => {
         const joinDate = new Date(emp.joining_date);
-        const thisYearAnniversary = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
-        const yearsOfService = currentYear - joinDate.getFullYear();
+        // Use UTC to avoid timezone shift (e.g. "2020-03-06" is midnight UTC; getMonth/getDate would give March 5 in US timezones)
+        const month = joinDate.getUTCMonth();
+        const day = joinDate.getUTCDate();
+        const yearsOfService = currentYear - joinDate.getUTCFullYear();
         
         // Only show if it's been at least 1 year
         if (yearsOfService < 1) return null;
         
+        const dateKey = `${currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         return {
           id: `anniversary-${emp.id}`,
           title: `🏢 ${emp.employee_name || emp.username} - ${yearsOfService} Year${yearsOfService > 1 ? 's' : ''} work anniversary`,
-          date: thisYearAnniversary.toISOString().slice(0, 10),
+          date: dateKey,
           employee: normalizeUser(emp),
           type: 'anniversary',
           color: '#9C2EDB',
@@ -218,12 +223,14 @@ function generateMockBirthdaysAndAnniversaries() {
   
   const birthdays = mockEmployees.map(emp => {
     const birthday = new Date(emp.birthday);
-    const thisYearBirthday = new Date(currentYear, birthday.getMonth(), birthday.getDate());
+    const month = birthday.getUTCMonth();
+    const day = birthday.getUTCDate();
+    const dateKey = `${currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
     return {
       id: `birthday-${emp.id}`,
       title: `🎂 ${emp.name}'s Birthday`,
-      date: thisYearBirthday.toISOString().slice(0, 10),
+      date: dateKey,
       employee: { 
         id: emp.id, 
         name: emp.name,
@@ -239,15 +246,17 @@ function generateMockBirthdaysAndAnniversaries() {
   const anniversaries = mockEmployees
     .map(emp => {
       const joinDate = new Date(emp.joinDate);
-      const thisYearAnniversary = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
-      const yearsOfService = currentYear - joinDate.getFullYear();
+      const month = joinDate.getUTCMonth();
+      const day = joinDate.getUTCDate();
+      const yearsOfService = currentYear - joinDate.getUTCFullYear();
+      const dateKey = `${currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
       if (yearsOfService < 1) return null;
       
       return {
         id: `anniversary-${emp.id}`,
         title: `🏢 ${emp.name} - ${yearsOfService} Year${yearsOfService > 1 ? 's' : ''}`,
-        date: thisYearAnniversary.toISOString().slice(0, 10),
+        date: dateKey,
         employee: { 
           id: emp.id, 
           name: emp.name,

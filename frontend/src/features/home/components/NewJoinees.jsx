@@ -16,7 +16,12 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
   return (
     <section className="h-170.25 flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-h2">New Joinees</h2>
+        <h2 className="text-h2">
+          New Joinees
+          {joinees.length > 0 && (
+            <span className="ml-2 text-muted-foreground font-normal">({joinees.length})</span>
+          )}
+        </h2>
         {!showAll && (
           <Link
             href="/people"

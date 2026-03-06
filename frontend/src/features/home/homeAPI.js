@@ -108,13 +108,31 @@ export const fetchUpcomingEvents = async () => {
   return forHome.map(normalizeEvent);
 };
 
-function normalizeUser(user) {
-  const name = user.username || 'Unknown';
-  const joinDate = user.joining_date || null;
-  const now = new Date();
-  const isNew = joinDate
-    ? (now - new Date(joinDate)) / (1000 * 60 * 60 * 24) <= 30
-    : false;
+const NEW_JOINEE_DAYS = 30;
+
+function getCurrentUserCompany() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.company ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCompanyForFilter(company) {
+  const c = String(company ?? '').trim();
+  if (!c) return null;
+  const upper = c.toUpperCase();
+  if (upper === 'AIA') return 'AIA';
+  if (upper === 'VEGA') return 'Vega';
+  return null;
+}
+
+function normalizeUserForJoinee(user) {
+  const name = user.employee_name || user.username || 'Unknown';
   const avatar = getAvatarPropsForEmployee(user);
   return {
     id: user.id,
@@ -123,33 +141,52 @@ function normalizeUser(user) {
     email: user.email || '',
     phone: user.contact_no || '',
     position: user.designation || '',
-    title: user.designation || '',
     department: user.department || '',
-    location: user.working_location || '',
-    joinDate,
-    company: user.company || '',
+    joinDate: user.joining_date || null,
     avatar: avatar.src,
     avatarInitial: avatar.initials,
-    isNew,
   };
+}
+
+/** Check if joining_date is within the last N days (UTC-based to avoid timezone shift) */
+function isNewJoinee(joiningDateStr, withinDays = NEW_JOINEE_DAYS) {
+  if (!joiningDateStr) return false;
+  const joinDate = new Date(joiningDateStr);
+  const now = new Date();
+  const joinUtc = Date.UTC(joinDate.getUTCFullYear(), joinDate.getUTCMonth(), joinDate.getUTCDate());
+  const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const daysSinceJoin = (nowUtc - joinUtc) / (1000 * 60 * 60 * 24);
+  return daysSinceJoin >= 0 && daysSinceJoin <= withinDays;
 }
 
 export const fetchNewJoinees = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(400);
-    return MOCK_HOME_DATA.newJoinees;
+    const today = new Date();
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() - NEW_JOINEE_DAYS);
+    return MOCK_HOME_DATA.newJoinees
+      .filter((j) => j.joinDate && new Date(j.joinDate) >= cutoff)
+      .sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate))
+      .slice(0, 6);
   }
-  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
+
+  const company = normalizeCompanyForFilter(getCurrentUserCompany());
+  const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
     params: {
-      'populate[photograph]': true,
+      pageSize: 1000,
+      ...(company && { company }),
     },
   });
-  const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
-  const users = raw.map(normalizeUser);
-  const sorted = users
-    .filter(u => u.joinDate)
-    .sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate));
-  return sorted.slice(0, 4);
+
+  const items = response?.items || [];
+  const newJoinees = items
+    .filter((emp) => emp.joining_date && emp.blocked !== true && isNewJoinee(emp.joining_date, NEW_JOINEE_DAYS))
+    .sort((a, b) => new Date(b.joining_date) - new Date(a.joining_date))
+    .slice(0, 6)
+    .map(normalizeUserForJoinee);
+
+  return newJoinees;
 };
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api').replace(/\/api\/?$/, '');
