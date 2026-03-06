@@ -8,7 +8,7 @@ export const fetchDashboardData = async () => {
     ? await mockDelay().then(() => MOCK_HOME_DATA.dashboard)
     : await Promise.resolve(MOCK_HOME_DATA.dashboard);
   if (!USE_MOCK_DATA) {
-    const [events, newJoinees, courses, quickLinks, birthdays, anniversaries] = await Promise.all([
+    const results = await Promise.allSettled([
       fetchUpcomingEvents(),
       fetchNewJoinees(),
       fetchMyCourses(),
@@ -16,6 +16,21 @@ export const fetchDashboardData = async () => {
       fetchBirthdaysToday(),
       fetchWorkAnniversaries(),
     ]);
+    const [eventsRes, newJoineesRes, coursesRes, quickLinksRes, birthdaysRes, anniversariesRes] = results;
+
+    const pickOrEmpty = (res, label) => {
+      if (res.status === 'fulfilled') return Array.isArray(res.value) ? res.value : [];
+      console.warn(`[home] ${label} fetch failed:`, res.reason?.message || res.reason);
+      return [];
+    };
+
+    const events = pickOrEmpty(eventsRes, 'events');
+    const newJoinees = pickOrEmpty(newJoineesRes, 'new joinees');
+    const courses = pickOrEmpty(coursesRes, 'courses');
+    const quickLinks = pickOrEmpty(quickLinksRes, 'quick links');
+    const birthdays = pickOrEmpty(birthdaysRes, 'birthdays');
+    const anniversaries = pickOrEmpty(anniversariesRes, 'anniversaries');
+
     return { ...rest, events, newJoinees, courses, quickLinks, birthdays, anniversaries };
   }
   return { ...rest };
@@ -27,12 +42,22 @@ export const fetchQuickLinks = async () => {
     return MOCK_HOME_DATA.quickLinks;
   }
 
-  const response = await api.get('/important-links', {
-    params: {
-      'populate[link_icon]': true,
-      sort: 'createdAt:desc',
-    },
-  });
+  let response;
+  try {
+    response = await api.get('/important-links', {
+      params: {
+        'populate[link_icon]': true,
+        sort: 'createdAt:desc',
+      },
+    });
+  } catch {
+    // Some custom endpoints may not accept sort - retry without it.
+    response = await api.get('/important-links', {
+      params: {
+        'populate[link_icon]': true,
+      },
+    });
+  }
   // The API returns { data: [...] }
   const links = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
 
@@ -103,12 +128,24 @@ export const fetchUpcomingEvents = async () => {
     return MOCK_HOME_DATA.events;
   }
 
-  const res = await api.get('/events', {
-    params: { sort: 'start_date:asc' },
-  });
+  let res;
+  try {
+    res = await api.get('/events', {
+      params: { sort: 'start_date:asc' },
+    });
+  } catch {
+    // Fallback for endpoints that don't support sort param.
+    res = await api.get('/events');
+  }
   const raw = Array.isArray(res?.data) ? res.data : [];
-  const forHome = raw.filter((e) => e.active !== false && e.visible_on_homepage === true);
-  return forHome.map(normalizeEvent);
+  const active = raw.filter((e) => e.active !== false);
+  const forHome = active.filter((e) => [true, 1, '1', 'true'].includes(e.visible_on_homepage));
+  const picked = (forHome.length > 0 ? forHome : active).sort((a, b) => {
+    const aTime = new Date(a.start_date || 0).getTime();
+    const bTime = new Date(b.start_date || 0).getTime();
+    return aTime - bTime;
+  });
+  return picked.map(normalizeEvent);
 };
 
 const NEW_JOINEE_DAYS = 30;
