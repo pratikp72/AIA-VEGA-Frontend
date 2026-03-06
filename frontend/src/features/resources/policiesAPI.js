@@ -3,7 +3,9 @@ import api from '@/services/api';
 
 // Fetch company policies from backend (filtered by user's company via JWT)
 export async function fetchPolicies() {
-  const res = await api.get('/company-policies');
+  const res = await api.get('/company-policies', {
+    params: { sort: 'createdAt:desc' },
+  });
   const data = Array.isArray(res?.data) ? res.data : [];
   return {
     policies: data,

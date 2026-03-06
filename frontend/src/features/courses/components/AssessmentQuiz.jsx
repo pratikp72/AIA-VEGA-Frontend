@@ -43,6 +43,7 @@ function ResultScreen({
     : "w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed";
 
   if (passed) {
+    const passHeading = score != null ? `Passed ${score}%` : "Passed";
     return (
       <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-lg w-full max-w-147.75 p-4 text-center">
@@ -50,7 +51,7 @@ function ResultScreen({
             <CheckCircle2 className="w-12 h-12 text-success" />
           </div>
           <h2 className="text-2xl font-semibold text-success mb-4">
-            {resultData.pass.title} {score}%
+            {passHeading}
           </h2>
           <p className="font-semibold text-foreground/60 leading-relaxed mb-4">
             {resultData.pass.message}
@@ -105,10 +106,11 @@ function ResultScreen({
         <div className="flex justify-center mb-4">
           <XCircle className="w-12 h-12 text-destructive" />
         </div>
+        {/** Keep heading static so UI does not depend on optional quiz title fields. */}
         <h2 className="text-xl font-bold text-destructive mb-4">
           {reattemptRequired
             ? `Maximum attempts reached`
-            : `${resultData.fail.title} ${score}%`}
+            : `Not Passed ${score}%`}
         </h2>
         <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
           {reattemptRequired

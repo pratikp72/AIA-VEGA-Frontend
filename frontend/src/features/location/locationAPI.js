@@ -49,7 +49,9 @@ function normalizeLocationsList(raw) {
  * Fetch location list for dropdown (GET /unit-locations)
  */
 export const fetchLocationsList = async () => {
-  const response = await apiService.get(API_ENDPOINTS.LOCATION.UNIT_LOCATIONS);
+  const response = await apiService.get(API_ENDPOINTS.LOCATION.UNIT_LOCATIONS, {
+    params: { sort: 'name:asc' },
+  });
   return normalizeLocationsList(response);
 };
 
@@ -71,7 +73,10 @@ export const fetchUnitsByLocation = async (locationId) => {
 
   try {
     const loc = await apiService.get(API_ENDPOINTS.LOCATION.UNIT_LOCATION_BY_ID(locationId), {
-      params: { 'populate[units][populate]': 'unit_img' },
+      params: { 
+        'populate[units][populate]': 'unit_img',
+        sort: 'name:asc',
+      },
     });
     const data = loc?.data ?? loc;
     return locationToUnits(data);

@@ -21,7 +21,7 @@ export default function NotificationsPage() {
         setLoading(true);
         setError(null);
         const data = await api.get(API_ENDPOINTS.NOTIFICATIONS.ALL, {
-          params: { limit: 200 },
+          params: { limit: 200, sort: 'createdAt:desc' },
         });
         setNotifications(Array.isArray(data?.data) ? data.data : []);
       } catch (e) {

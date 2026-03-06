@@ -48,6 +48,7 @@ export async function searchCourses(query) {
         'pagination[pageSize]': SEARCH_COURSES_LIMIT,
         'pagination[page]': 1,
         'populate[thumbnail]': 'url',
+        sort: 'createdAt:desc',
       },
       timeout: 8000,
     });

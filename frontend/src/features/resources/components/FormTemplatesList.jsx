@@ -19,7 +19,6 @@ export default function FormTemplatesList() {
         <SurfaceCard key={template.id} className="p-4 rounded-[12px] shadow-sm">
           <h2 className="text-xl font-bold mb-2">{template.title}</h2>
           <p className="text-sm text-[#65758B] mb-1">Type: {template.form_type}</p>
-          <p className="text-sm text-[#65758B] mb-1">Downloadable: {template.is_downloadable ? 'Yes' : 'No'}</p>
           {template.form_url && (
             <a href={template.form_url} target="_blank" rel="noopener noreferrer" className="text-primary underline text-sm mb-1">Open Form</a>
           )}

@@ -61,6 +61,7 @@ export const fetchLocationRoutes = async (locationId) => {
       'populate[units][populate][routes][populate][bus_sifts]': true,
       'populate[company]': true,
       'populate[city]': true,
+      sort: 'name:asc',
     },
   });
 

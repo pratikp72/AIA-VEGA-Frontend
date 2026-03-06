@@ -132,6 +132,7 @@ const COURSES_LIST_PARAMS = {
   'populate[orientation_detail]': true,
   'populate[prerequisite_courses]': true,
   'pagination[pageSize]': 50,
+  sort: 'createdAt:desc',
 };
 
 export const fetchAllCourses = async () => {

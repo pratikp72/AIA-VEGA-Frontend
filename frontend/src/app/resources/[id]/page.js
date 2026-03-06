@@ -25,6 +25,8 @@ export default function ResourceDetailPage() {
   const [item, setItem] = useState(null);
   const [isFormTemplate, setIsFormTemplate] = useState(false);
   const [loading, setLoading] = useState(!!documentId);
+  const formType = String(item?.form_type || '').toLowerCase();
+  const isFormDownloadable = formType === 'pdf' || formType === 'excel' || formType === 'word';
 
   useEffect(() => {
     if (!documentId) return;
@@ -82,11 +84,9 @@ export default function ResourceDetailPage() {
           <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-bold mb-2">{item.title}</h2>
             <p className="text-sm text-[#65758B] mb-1">Type: {item.form_type}</p>
-            <p className="text-sm text-[#65758B] mb-1">Downloadable: {item.is_downloadable ? 'Yes' : 'No'}</p>
             <p className="text-sm text-[#374151] mt-2">{item.description}</p>
             <p className="text-xs text-[#475569] mt-2">Updated: {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-            {/* Download: only when is_downloadable (e.g. for PDF, only when is_downloadable is true) */}
-            {item.is_downloadable && getFormFileUrl(item) && (
+            {isFormDownloadable && getFormFileUrl(item) && (
               <a
                 href={getFormFileUrl(item)}
                 download={item.form_type !== 'URL'}
