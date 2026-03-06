@@ -78,7 +78,7 @@ function getCompanyFilterParams() {
 // Backend api::news.news has pluralName "news-items" → /api/news-items
 async function fetchNewsInternal(params = {}) {
   const res = await api.get('/news-items', {
-    params: { populate: '*', ...getCompanyFilterParams(), ...params },
+    params: { populate: '*', sort: 'createdAt:desc', ...getCompanyFilterParams(), ...params },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
   return { news: raw.map(normalizeItem) };
@@ -91,7 +91,7 @@ export async function fetchAllNews() {
     return { news: MOCK_NEWS_DATA.map((item) => withImageUrl(item)) };
   }
   const res = await api.get('/news-items', {
-    params: { populate: '*', ...getCompanyFilterParams() },
+    params: { populate: '*', sort: 'createdAt:desc', ...getCompanyFilterParams() },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
   return { news: raw.map(normalizeItem) };

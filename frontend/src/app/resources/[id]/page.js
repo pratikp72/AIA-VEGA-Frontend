@@ -24,6 +24,8 @@ export default function ResourceDetailPage() {
   const [item, setItem] = useState(null);
   const [isFormTemplate, setIsFormTemplate] = useState(false);
   const [loading, setLoading] = useState(!!documentId);
+  const formType = String(item?.form_type || '').toLowerCase();
+  const isFormDownloadable = formType === 'pdf' || formType === 'excel' || formType === 'word';
 
   useEffect(() => {
     if (!documentId) return;

@@ -77,6 +77,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, needsFeedbackSubmission: false });
   const skipNextProgressUpdate = useRef(false);
+  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState('');
+  const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
 
   // If initialLanguage (e.g. English) is not actually available for this course
   // but the backend reports a single language (e.g. Gujarati), automatically
@@ -149,6 +151,49 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     ? contents.findIndex((m) => String(m.moduleId || m.id) === String(currentModule.moduleId || currentModule.id))
     : -1;
   const nextModule = currentModuleIdx >= 0 ? contents[currentModuleIdx + 1] || null : null;
+
+  useEffect(() => {
+    const sourceUrl = currentModule?.pdf_file?.url;
+    const isPdf = String(currentModule?.moduleType || '').toLowerCase() === 'pdf';
+
+    if (!isPdf || !sourceUrl) {
+      setPdfPreviewBlobUrl('');
+      setPdfPreviewLoading(false);
+      return;
+    }
+
+    let active = true;
+    let nextBlobUrl = '';
+    const controller = new AbortController();
+
+    const loadPdfPreview = async () => {
+      setPdfPreviewLoading(true);
+      try {
+        const headers = {};
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('authToken');
+          if (token) headers.Authorization = `Bearer ${token}`;
+        }
+        const response = await fetch(sourceUrl, { headers, signal: controller.signal });
+        if (!response.ok) throw new Error(`PDF request failed: ${response.status}`);
+        const blob = await response.blob();
+        nextBlobUrl = URL.createObjectURL(blob);
+        if (active) setPdfPreviewBlobUrl(nextBlobUrl);
+      } catch {
+        if (active) setPdfPreviewBlobUrl('');
+      } finally {
+        if (active) setPdfPreviewLoading(false);
+      }
+    };
+
+    loadPdfPreview();
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (nextBlobUrl) URL.revokeObjectURL(nextBlobUrl);
+    };
+  }, [currentModule?.pdf_file?.url, currentModule?.moduleType]);
 
   // Fetch per-user read state from user-progress whenever the course loads.
   // This replaces the shared mark_as_read from the course schema.
@@ -423,6 +468,41 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                     />
                     Your browser does not support the video tag.
                   </video>
+                </div>
+              ) : String(currentModule?.moduleType || '').toLowerCase() === 'pdf' ? (
+                <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
+                  {currentModule?.pdf_file?.url ? (
+                    <>
+                      <div className="w-full h-[467px] overflow-hidden">
+                        {pdfPreviewLoading ? (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            Loading PDF preview...
+                          </div>
+                        ) : pdfPreviewBlobUrl ? (
+                          <iframe
+                            src={pdfPreviewBlobUrl}
+                            title={currentModule.moduleTitle || 'PDF preview'}
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500 px-4 text-center">
+                            Inline PDF preview is not available. Use full view or open it in a new tab.
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <button
+                          onClick={() => setShowFullReadingView(true)}
+                          className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
+                        >
+                          <Maximize2 className="w-4 h-4" />
+                          View Full PDF
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-8 text-gray-500 italic">No PDF file available.</div>
+                  )}
                 </div>
               ) : currentModule?.moduleType === 'Text' ? (
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">

@@ -50,7 +50,9 @@ export async function fetchEvents() {
     await mockDelay(400);
     return MOCK_CALENDAR_EVENTS;
   }
-  const res = await api.get('/events');
+  const res = await api.get('/events', {
+    params: { sort: 'start_date:asc' },
+  });
   const raw = Array.isArray(res?.data) ? res.data : [];
   const active = raw.filter((e) => e.active !== false);
   return active.map(normalizeEvent);
@@ -85,7 +87,9 @@ export async function fetchHolidays() {
     await mockDelay(300);
     return MOCK_CALENDAR_HOLIDAYS;
   }
-  const res = await api.get('/holidays');
+  const res = await api.get('/holidays', {
+    params: { sort: 'date:asc' },
+  });
   const raw = Array.isArray(res?.data) ? res.data : [];
   const active = raw.filter((h) => h.active !== false);
   return active.map(normalizeHoliday);

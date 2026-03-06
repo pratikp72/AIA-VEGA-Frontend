@@ -56,6 +56,7 @@ export async function fetchGalleryByFilters(filters = {}) {
   if (company) params.set('company', company);
   if (type) params.set('type', type.toLowerCase());
   if (sortBy) params.set('sortBy', sortBy);
+  else params.set('sortBy', 'newest'); // Default to newest first when no sort specified
   if (search?.trim()) params.set('search', search.trim());
   if (date) params.set('date', typeof date === 'string' ? date.slice(0, 10) : (date?.toISOString?.().slice(0, 10) ?? ''));
 

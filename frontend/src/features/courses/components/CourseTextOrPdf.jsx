@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft } from "lucide-react";
 
@@ -7,7 +7,51 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
 
   const contents = Array.isArray(course.modulesList) ? course.modulesList : [];
   const contentToDisplay = selectedModule?.content || course.content || "";
+  const isPdfModule = String(selectedModule?.moduleType || '').toLowerCase() === 'pdf';
   const markEnabled = !isRead;
+  const [pdfBlobUrl, setPdfBlobUrl] = useState('');
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  useEffect(() => {
+    const sourceUrl = selectedModule?.pdf_file?.url;
+    if (!isPdfModule || !sourceUrl) {
+      setPdfBlobUrl('');
+      setPdfLoading(false);
+      return;
+    }
+
+    let active = true;
+    let nextBlobUrl = '';
+    const controller = new AbortController();
+
+    const loadPdf = async () => {
+      setPdfLoading(true);
+      try {
+        const headers = {};
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('authToken');
+          if (token) headers.Authorization = `Bearer ${token}`;
+        }
+        const response = await fetch(sourceUrl, { headers, signal: controller.signal });
+        if (!response.ok) throw new Error(`PDF request failed: ${response.status}`);
+        const blob = await response.blob();
+        nextBlobUrl = URL.createObjectURL(blob);
+        if (active) setPdfBlobUrl(nextBlobUrl);
+      } catch {
+        if (active) setPdfBlobUrl('');
+      } finally {
+        if (active) setPdfLoading(false);
+      }
+    };
+
+    loadPdf();
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (nextBlobUrl) URL.revokeObjectURL(nextBlobUrl);
+    };
+  }, [isPdfModule, selectedModule?.pdf_file?.url]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -86,11 +130,44 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
 
       
       <div className="mx-auto px-xl py-8">
-        
         <div className="space-y-6">
-             <div className="text-lg text-gray-700 leading-relaxed">
-             {contentToDisplay || "No content available for this reading module."}
-             </div>
+          {isPdfModule ? (
+            selectedModule?.pdf_file?.url ? (
+              <>
+                {pdfLoading ? (
+                  <div className="w-full h-[78vh] rounded-xl border border-gray-200 bg-white overflow-hidden flex items-center justify-center text-gray-500">
+                    Loading PDF preview...
+                  </div>
+                ) : pdfBlobUrl ? (
+                  <div className="w-full h-[78vh] rounded-xl border border-gray-200 bg-white overflow-hidden">
+                    <iframe
+                      src={pdfBlobUrl}
+                      title={selectedModule?.moduleTitle || 'PDF'}
+                      className="w-full h-full"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full rounded-xl border border-gray-200 bg-white p-6 text-gray-600">
+                    Inline PDF preview is not available in this browser. Please open it in a new tab.
+                  </div>
+                )}
+                <a
+                  href={selectedModule.pdf_file.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary/90"
+                >
+                  Open PDF In New Tab
+                </a>
+              </>
+            ) : (
+              <div className="text-lg text-gray-700 leading-relaxed">No PDF file available for this module.</div>
+            )
+          ) : (
+            <div className="text-lg text-gray-700 leading-relaxed">
+              {contentToDisplay || "No content available for this reading module."}
+            </div>
+          )}
         </div>
       </div>
     </div>

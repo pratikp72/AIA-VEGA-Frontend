@@ -18,6 +18,7 @@ export default function FormTemplateCard({ resource }) {
   const item = resource || {};
   const ext = (item.form_type || item.type || '').toLowerCase();
   const formType = (item.form_type || '').toLowerCase();
+  const isDownloadable = formType === 'pdf' || formType === 'excel' || formType === 'word';
   const isUrlType = item.form_type === 'URL';
   const fileUrl = getFileUrl(item);
 

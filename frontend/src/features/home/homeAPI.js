@@ -30,6 +30,7 @@ export const fetchQuickLinks = async () => {
   const response = await api.get('/important-links', {
     params: {
       'populate[link_icon]': true,
+      sort: 'createdAt:desc',
     },
   });
   // The API returns { data: [...] }
@@ -102,7 +103,9 @@ export const fetchUpcomingEvents = async () => {
     return MOCK_HOME_DATA.events;
   }
 
-  const res = await api.get('/events');
+  const res = await api.get('/events', {
+    params: { sort: 'start_date:asc' },
+  });
   const raw = Array.isArray(res?.data) ? res.data : [];
   const forHome = raw.filter((e) => e.active !== false && e.visible_on_homepage === true);
   return forHome.map(normalizeEvent);
@@ -222,6 +225,7 @@ export const fetchMyCourses = async () => {
     params: {
       'populate[thumbnail]': true,
       'populate[modules]': true,
+      sort: 'createdAt:desc',
     },
   });
   const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -276,6 +280,7 @@ export const fetchBirthdaysToday = async () => {
   const response = await api.get(API_ENDPOINTS.USERS.LIST, {
     params: {
       'populate[photograph]': true,
+      sort: 'employee_name:asc',
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -309,6 +314,7 @@ export const fetchWorkAnniversaries = async () => {
   const response = await api.get(API_ENDPOINTS.USERS.LIST, {
     params: {
       'populate[photograph]': true,
+      sort: 'employee_name:asc',
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
