@@ -39,6 +39,11 @@ function normalizeModule(module, index) {
   const videoUrl = rawUrl
     ? (rawUrl.startsWith('http') ? rawUrl : BASE_URL + (rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`))
     : null;
+  const pdfFile = Array.isArray(module.pdf_file) ? module.pdf_file[0] : module.pdf_file;
+  const rawPdfUrl = pdfFile?.url;
+  const pdfUrl = rawPdfUrl
+    ? (rawPdfUrl.startsWith('http') ? rawPdfUrl : BASE_URL + (rawPdfUrl.startsWith('/') ? rawPdfUrl : `/${rawPdfUrl}`))
+    : null;
 
   return {
     id: module.id,
@@ -51,6 +56,7 @@ function normalizeModule(module, index) {
     content: extractTextContent(module.text_content),
     text_content: module.text_content || null,
     video_file: videoFile && videoUrl ? { ...videoFile, url: videoUrl } : null,
+    pdf_file: pdfFile && pdfUrl ? { ...pdfFile, url: pdfUrl } : null,
     mark_as_read: module.mark_as_read || false,
     language: module.language || '',
   };
