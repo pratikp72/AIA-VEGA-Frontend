@@ -8,6 +8,21 @@ import { TRANSITION_DURATION } from '../../constants/loginImages';
  * @param {string[]} props.images - Array of image filenames to display
  */
 const BackgroundGrid = ({ images }) => {
+  // Show loading state while images are being initialized
+  if (!images || images.length === 0) {
+    return (
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: '#000',
+        zIndex: 0,
+      }} />
+    );
+  }
+
   return (
     <div style={{
       position: 'absolute',

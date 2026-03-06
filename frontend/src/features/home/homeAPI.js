@@ -109,7 +109,7 @@ export const fetchUpcomingEvents = async () => {
 };
 
 function normalizeUser(user) {
-  const name = user.employee_name || user.username || 'Unknown';
+  const name = user.username || 'Unknown';
   const joinDate = user.joining_date || null;
   const now = new Date();
   const isNew = joinDate
@@ -291,7 +291,7 @@ export const fetchWorkAnniversaries = async () => {
       const avatar = getAvatarPropsForEmployee(u);
       return {
         id: u.id,
-        name: u.employee_name || u.username || 'Unknown',
+        name: u.username || 'Unknown',
         position: u.designation || '',
         department: u.department || '',
         avatar: avatar.src,

@@ -32,18 +32,17 @@ api.interceptors.response.use(
     return response.data; // Return only data portion
   },
   (error) => {
-    // Handle different error scenarios
     if (error.response) {
-      // Server responded with error status
       const { status, data } = error.response;
-      
+
       switch (status) {
         case 400:
-          console.error('Bad Request:', data?.message || 'Invalid request parameters');
+          console.error('Bad Request:', data?.error?.message || data?.message || 'Invalid request parameters');
           break;
         case 401:
-          // Unauthorized - clear token and redirect to login
-          if (typeof window !== 'undefined') {
+          // ✅ Only redirect if NOT already on the login page
+          // This prevents a redirect loop when the user submits wrong credentials
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
             localStorage.removeItem('authToken');
             window.location.href = '/login';
           }
@@ -55,7 +54,7 @@ api.interceptors.response.use(
           console.warn('Resource not found:', error.config?.url);
           break;
         case 422:
-          console.error('Validation Error:', data?.message || 'Invalid data provided');
+          console.error('Validation Error:', data?.error?.message || data?.message || 'Invalid data provided');
           break;
         case 500:
           console.error('Server error');
@@ -67,27 +66,29 @@ api.interceptors.response.use(
           console.error('Service Unavailable - Server temporarily down');
           break;
         default:
-          console.error(`HTTP ${status} Error at ${error.config?.url}:`, data?.message || data || 'Unknown error');
+          console.error(`HTTP ${status} Error at ${error.config?.url}:`, data?.error?.message || data?.message || data || 'Unknown error');
       }
-      
-      const rejectPayload = typeof data === 'object' && data !== null ? { ...data, status } : { message: data || error.message, status };
+
+      const rejectPayload =
+        typeof data === 'object' && data !== null
+          ? { ...data, status }
+          : { message: data || error.message, status };
+
       return Promise.reject(rejectPayload);
     } else if (error.request) {
-      // Request made but no response received
       console.error('Network error - No response from server');
       return Promise.reject({ message: 'Network error. Please check your connection.' });
     } else {
-      // Something else happened
       console.error('Error:', error.message);
       return Promise.reject(error);
     }
   }
 );
 
-// Deduplicate GET requests: same url+params within a short window = one request (fixes double calls from Strict Mode / double mount)
+// Deduplicate GET requests
 const DEDUPE_MS = 300;
 const inFlight = new Map();
-const recentCache = new Map(); // key -> { promise, at }
+const recentCache = new Map();
 const originalGet = api.get.bind(api);
 api.get = function (url, config) {
   const params = config?.params ?? {};
@@ -108,7 +109,6 @@ api.get = function (url, config) {
 
 export default api;
 
-// Helper functions for different HTTP methods
 export const apiService = {
   get: (url, config) => api.get(url, config),
   post: (url, data, config) => api.post(url, data, config),

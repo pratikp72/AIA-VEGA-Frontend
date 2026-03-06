@@ -75,7 +75,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
         <div className="flex items-center gap-2 text-gray-700">
           <FolderOpen className="w-5 h-5 text-primary" />
           <span className="text-sm">
-            {lines.length} {lines.length === 1 ? "section" : "sections"}
+            {contents.length} {contents.length === 1 ? "section" : "sections"}
           </span>
         </div>
         <div className="flex items-center gap-2 text-gray-700">
