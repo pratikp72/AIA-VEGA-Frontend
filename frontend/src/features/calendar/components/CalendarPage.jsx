@@ -614,7 +614,7 @@ export default function CalendarPage() {
           {/* Right: Sidebar - Events & Holidays */}
           <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 max-h-[calc(100vh-10rem)]">
             {/* Events card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-[1.55] min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-[1.60] min-h-0">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
