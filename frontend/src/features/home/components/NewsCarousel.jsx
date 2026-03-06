@@ -7,22 +7,25 @@ import { Button } from '@/components/ui/button';
 import MarkdownIt from 'markdown-it';
 
 export default function NewsCarousel({ news = [] }) {
+  // ✅ Cap at 6 items
+  const visibleNews = news.slice(0, 6);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  
+
   const md = new MarkdownIt({ html: true });
 
   useEffect(() => {
-    if (!isAutoPlaying || news.length === 0) return;
+    if (!isAutoPlaying || visibleNews.length === 0) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % news.length);
+      setCurrentIndex((prev) => (prev + 1) % visibleNews.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [isAutoPlaying, news.length]);
+  }, [isAutoPlaying, visibleNews.length]);
 
-  if (news.length === 0) return null;
+  if (visibleNews.length === 0) return null;
 
-  const currentNews = news[currentIndex];
+  const currentNews = visibleNews[currentIndex];
 
   return (
     <div className="relative rounded-2xl overflow-hidden min-h-[360px] w-full">
@@ -37,11 +40,9 @@ export default function NewsCarousel({ news = [] }) {
       ) : (
         <div className="absolute inset-0 bg-primary-opacity-10" aria-hidden />
       )}
+
       {/* Dark semi-transparent overlay */}
-      <div
-        className="absolute inset-0 bg-[#1a0a2e]/85"
-        aria-hidden
-      />
+      <div className="absolute inset-0 bg-[#1a0a2e]/85" aria-hidden />
 
       {/* Content layer */}
       <div className="relative flex flex-col min-h-[360px] pt-8 px-8 pb-8">
@@ -49,7 +50,7 @@ export default function NewsCarousel({ news = [] }) {
         <div className="flex items-start justify-between gap-4 mb-10">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-normal text-white bg-primary-opacity-20">
-              Important
+              {}{currentNews.category ?? currentNews.news_category?.name ?? 'News'}
             </span>
             <span className="text-white text-body">
               {new Date(currentNews.createdAt || currentNews.date).toLocaleDateString('en-US', {
@@ -72,8 +73,16 @@ export default function NewsCarousel({ news = [] }) {
           {currentNews.title}
         </h2>
 
-        {/* Description */}
-        <p className="text-white text-body leading-relaxed mb-8" dangerouslySetInnerHTML={{ __html: md.render(currentNews.description || '') }} />
+        <p
+          className="text-white text-body leading-relaxed mb-8"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+          dangerouslySetInnerHTML={{ __html: md.render(currentNews.description || '') }}
+        />
 
         {/* Read More button */}
         <div className="mt-auto">
@@ -89,11 +98,11 @@ export default function NewsCarousel({ news = [] }) {
           </Button>
         </div>
 
-        {/* Bottom: pagination dots (center) + arrow buttons (right) */}
-        {news.length > 1 && (
+        {/* Pagination dots (center) */}
+        {visibleNews.length > 1 && (
           <div className="absolute bottom-8 left-0 right-0 flex items-center justify-center pointer-events-none">
             <div className="flex gap-2 pointer-events-auto">
-              {news.map((_, index) => (
+              {visibleNews.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => {
@@ -110,7 +119,8 @@ export default function NewsCarousel({ news = [] }) {
           </div>
         )}
 
-        {news.length > 1 && (
+        {/* Arrow buttons (right) */}
+        {visibleNews.length > 1 && (
           <div className="absolute right-8 bottom-8 flex gap-2">
             <Button
               type="button"
@@ -118,7 +128,7 @@ export default function NewsCarousel({ news = [] }) {
               size="icon"
               className="rounded-full h-10 w-10 bg-white/20 border-white/40 text-white hover:bg-white/30 hover:text-white"
               onClick={() => {
-                setCurrentIndex((prev) => (prev - 1 + news.length) % news.length);
+                setCurrentIndex((prev) => (prev - 1 + visibleNews.length) % visibleNews.length);
                 setIsAutoPlaying(false);
               }}
               aria-label="Previous news"
@@ -131,7 +141,7 @@ export default function NewsCarousel({ news = [] }) {
               size="icon"
               className="rounded-full h-10 w-10 bg-white/20 border-white/40 text-white hover:bg-white/30 hover:text-white"
               onClick={() => {
-                setCurrentIndex((prev) => (prev + 1) % news.length);
+                setCurrentIndex((prev) => (prev + 1) % visibleNews.length);
                 setIsAutoPlaying(false);
               }}
               aria-label="Next news"

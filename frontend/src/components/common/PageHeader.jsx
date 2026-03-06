@@ -8,6 +8,7 @@ export default function PageHeader({
   title,
   breadcrumbs = [],
   showBreadcrumbSeparator = false,
+  left,
   right,
   titleRight,
   className,
@@ -18,7 +19,10 @@ export default function PageHeader({
     <div className={cn('bg-card', className)}>
       <PageContainer className={cn('pt-xl pb-md px-xl', containerClassName)}>
         <div className="flex items-center justify-between gap-4 mb-2">
-          <Breadcrumbs items={breadcrumbs} showTrailingSeparator={showBreadcrumbSeparator} />
+          <div className="flex items-center gap-4 min-w-0">
+            {left ? <div className="shrink-0">{left}</div> : null}
+            <Breadcrumbs items={breadcrumbs} showTrailingSeparator={showBreadcrumbSeparator} />
+          </div>
           {right ? right : null}
         </div>
         {(title || titleRight) ? (

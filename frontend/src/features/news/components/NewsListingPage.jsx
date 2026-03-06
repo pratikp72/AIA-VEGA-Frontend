@@ -1,24 +1,42 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loadAllNews } from '@/features/news/newsSlice';
+import { loadAllNews, loadNewsByCategory } from '@/features/news/newsSlice';
 import { selectNewsList, selectNewsLoading } from '@/features/news/newsSelectors';
+import { fetchNewsCategories } from '@/features/news/newsAPI';
 import NewsCard from './NewsCard';
 import Loader from '@/components/common/Loader';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
-import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import Select from '@/components/ui/select';
 
 export default function NewsListingPage() {
   const dispatch = useAppDispatch();
   const newsList = useAppSelector(selectNewsList);
   const isLoading = useAppSelector(selectNewsLoading);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
 
   useEffect(() => {
-    dispatch(loadAllNews());
-  }, [dispatch]);
+    fetchNewsCategories()
+      .then((list) => setCategories(list || []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
+    if (selectedCategory === 'All Categories' || !selectedCategory) {
+      dispatch(loadAllNews());
+    } else {
+      dispatch(loadNewsByCategory(selectedCategory));
+    }
+  }, [dispatch, selectedCategory]);
+
+  const handleCategoryChange = useCallback((value) => {
+    setSelectedCategory(value === '' ? 'All Categories' : value);
+  }, []);
+
+  const categoryOptions = ['All Categories', ...categories.map((c) => c.name)];
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,13 +44,14 @@ export default function NewsListingPage() {
         title="News"
         breadcrumbs={[{ label: 'Home', href: '/home' }, { label: 'News' }]}
         right={
-          <Link
-            href="/home"
-            className="flex items-center gap-2 text-small font-medium text-gray-medium hover:text-gray-dark hover:underline shrink-0"
-          >
-            <ChevronRight className="w-4 h-4 rotate-180" />
-            Back
-          </Link>
+          <div className="w-[200px]">
+            <Select
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              options={categoryOptions}
+              placeholder="All Categories"
+            />
+          </div>
         }
       />
 

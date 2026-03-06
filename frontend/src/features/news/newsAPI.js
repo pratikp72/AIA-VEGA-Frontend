@@ -4,8 +4,30 @@
  */
 import api from '@/services/api';
 import { USE_MOCK_DATA, mockDelay, MOCK_NEWS_DATA } from '@/services/mockData';
+import { STORAGE_KEYS } from '@/lib/constants';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
+
+function getCurrentUserCompany() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.company ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCompanyForFilter(company) {
+  const c = String(company ?? '').trim();
+  if (!c) return null;
+  const upper = c.toUpperCase();
+  if (upper === 'AIA') return 'AIA';
+  if (upper === 'VEGA') return 'Vega';
+  return null;
+}
 
 // Helpers: normalize Strapi v4/v5 response (v5 = flat, no attributes; resolve image URL)
 function unwrapMedia(attrs) {
@@ -47,40 +69,74 @@ function normalizeDetail(item) {
   return withImageUrl(flat, 'medium');
 }
 
+function getCompanyFilterParams() {
+  const company = normalizeCompanyForFilter(getCurrentUserCompany());
+  if (!company) return {};
+  return { 'filters[company][name][$eq]': company };
+}
+
 // Backend api::news.news has pluralName "news-items" → /api/news-items
 async function fetchNewsInternal(params = {}) {
   const res = await api.get('/news-items', {
-    params: { populate: '*', ...params },
+    params: { populate: '*', ...getCompanyFilterParams(), ...params },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
-  const news = raw.map(normalizeItem);
-  return { news };
+  return { news: raw.map(normalizeItem) };
 }
 
-/** Fetch ALL news (no filter). Used for the "View all news" listing page. */
+/** Fetch ALL news (no filter). Used for the "View all news" listing page. Filters by user company (AIA/Vega) when applicable. */
 export async function fetchAllNews() {
   if (USE_MOCK_DATA) {
     await mockDelay();
     return { news: MOCK_NEWS_DATA.map((item) => withImageUrl(item)) };
   }
-  const res = await api.get('/news-items', { params: { populate: '*' } });
+  const res = await api.get('/news-items', {
+    params: { populate: '*', ...getCompanyFilterParams() },
+  });
   const raw = Array.isArray(res?.data) ? res.data : [];
   return { news: raw.map(normalizeItem) };
 }
 
 
-export async function fetchNewsByCategory(category) {
+/** Fetch news categories for the filter dropdown. Filters by user company (AIA/Vega) when applicable. */
+export async function fetchNewsCategories() {
+  if (USE_MOCK_DATA) {
+    await mockDelay(200);
+    return [];
+  }
+  const company = normalizeCompanyForFilter(getCurrentUserCompany());
+  const params = { 'filters[active][$eq]': true, sort: 'name:asc' };
+  if (company) {
+    params['filters[company][name][$eq]'] = company;
+  }
+  const res = await api.get('/news-categories', { params });
+  const raw = Array.isArray(res?.data) ? res.data : [];
+  return raw.map((c) => ({ id: c.id, documentId: c.documentId, name: c.name }));
+}
+
+export async function fetchNewsByCategory(categoryIdOrName) {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
     const filtered =
-      category === 'all'
+      !categoryIdOrName || categoryIdOrName === 'all'
         ? MOCK_NEWS_DATA
         : MOCK_NEWS_DATA.filter(
-            (n) => n.category?.toLowerCase() === category.toLowerCase()
+            (n) =>
+              n.news_category?.name?.toLowerCase() === String(categoryIdOrName).toLowerCase() ||
+              String(n.news_category?.id) === String(categoryIdOrName)
           );
     return { news: filtered.map((item) => withImageUrl(item)) };
   }
-  const params = category !== 'all' ? { 'filters[category][$eq]': category } : {};
+  // Strapi: filter by news_category relation (by name or documentId)
+  let params = {};
+  if (categoryIdOrName && categoryIdOrName !== 'all') {
+    const isNumeric = /^\d+$/.test(String(categoryIdOrName));
+    if (isNumeric) {
+      params = { 'filters[news_category][id][$eq]': Number(categoryIdOrName) };
+    } else {
+      params = { 'filters[news_category][name][$eq]': categoryIdOrName };
+    }
+  }
   return fetchNewsInternal(params);
 }
 
@@ -131,6 +187,7 @@ export async function fetchNewsLikesCounts(documentIds) {
 
 export default {
   fetchAllNews,
+  fetchNewsCategories,
   fetchNewsByCategory,
   fetchNewsById,
   likeNews,
