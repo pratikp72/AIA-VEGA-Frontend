@@ -630,7 +630,7 @@ export default function CalendarPage() {
           {/* Right: Sidebar - Events & Holidays */}
           <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 max-h-[calc(100vh-10rem)]">
             {/* Events card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-20">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-[350px]">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
@@ -775,7 +775,7 @@ export default function CalendarPage() {
               )}
             </div>
             {/* Holidays card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-[220px]">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Holidays</h3>
               {isDataLoading ? (
                 <div className="flex justify-center py-6 px-4 flex-1">
