@@ -15,7 +15,6 @@ import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
 import PolicyDetail from '@/features/resources/components/PolicyDetail';
-import PdfViewer from '@/features/resources/components/PdfViewer';
 import { fetchPolicyById } from '@/features/resources/policiesAPI';
 import { fetchFormTemplateById } from '@/features/resources/formTemplatesAPI';
 
@@ -82,33 +81,26 @@ export default function ResourceDetailPage() {
           <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
             <h2 className="text-2xl font-bold mb-2">{item.title}</h2>
             <p className="text-sm text-[#65758B] mb-1">Type: {item.form_type}</p>
-            <p className="text-sm text-[#65758B] mb-1">Downloadable: {item.is_downloadable ? 'Yes' : 'No'}</p>
             <p className="text-sm text-[#374151] mt-2">{item.description}</p>
             <p className="text-xs text-[#475569] mt-2">Updated: {new Date(item.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-            {/* Download: only when is_downloadable (e.g. for PDF, only when is_downloadable is true) */}
-            {item.is_downloadable && getFormFileUrl(item) && (
+            {item.form_type === 'URL' && item.form_url ? (
+              <a
+                href={item.form_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-4 text-primary hover:underline break-all"
+              >
+                {item.form_url}
+              </a>
+            ) : getFormFileUrl(item) && (
               <a
                 href={getFormFileUrl(item)}
-                download={item.form_type !== 'URL'}
-                target={item.form_type === 'URL' ? '_blank' : undefined}
+                download
                 rel="noopener noreferrer"
                 className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
               >
                 Download
               </a>
-            )}
-            {item.form_type === 'URL' && item.form_url && (
-              <a
-                href={item.form_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark ml-2"
-              >
-                Go to Form
-              </a>
-            )}
-            {item.form_type === 'PDF' && getFormFileUrl(item) && (
-              <PdfViewer fileUrl={getFormFileUrl(item)} title="PDF Preview" className="w-full h-96 mt-4 border rounded" />
             )}
           </div>
         ) : (

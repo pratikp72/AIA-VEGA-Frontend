@@ -29,13 +29,38 @@ function getMonthMatrix(year, month) {
   return rows;
 }
 
+/** Parse YYYY-MM-DD as local date (avoids UTC midnight shifting the day) */
+function parseLocalDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return null;
+  const parts = dateStr.slice(0, 10).split('-').map(Number);
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts;
+  const date = new Date(y, m - 1, d);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+/** Format Date to YYYY-MM-DD in local time (avoids toISOString UTC shift) */
+function formatLocalDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 export default function DatePicker({ value, onChange, placeholder = 'Date', textSize = 'text-sm' }) {
   const [open, setOpen] = useState(false);
+  const selected = parseLocalDate(value);
   const [view, setView] = useState(() => {
-    const d = value ? new Date(value) : new Date();
+    const d = selected || new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
   });
   const ref = useRef(null);
+
+  useEffect(() => {
+    if (selected && (view.year !== selected.getFullYear() || view.month !== selected.getMonth())) {
+      setView({ year: selected.getFullYear(), month: selected.getMonth() });
+    }
+  }, [value, selected, view.year, view.month]);
 
   useEffect(() => {
     function onDoc(e) {
@@ -55,8 +80,6 @@ export default function DatePicker({ value, onChange, placeholder = 'Date', text
   }, [open]);
 
   const monthMatrix = useMemo(() => getMonthMatrix(view.year, view.month), [view]);
-
-  const selected = value ? new Date(value) : null;
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -70,7 +93,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Date', text
     const dZero = new Date(d);
     dZero.setHours(0, 0, 0, 0);
     if (dZero > today) return;
-    onChange(d.toISOString().split('T')[0]);
+    onChange(formatLocalDate(d));
     setOpen(false);
   }
 

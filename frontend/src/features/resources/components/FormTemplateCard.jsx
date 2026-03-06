@@ -14,15 +14,10 @@ function getFileUrl(item) {
   return raw.startsWith('http') ? raw : `${API_BASE}${raw.startsWith('/') ? '' : '/'}${raw}`;
 }
 
-export default function FormTemplateCard({ resource, onView }) {
+export default function FormTemplateCard({ resource }) {
   const item = resource || {};
   const ext = (item.form_type || item.type || '').toLowerCase();
   const formType = (item.form_type || '').toLowerCase();
-  // For PDF: only enable download when is_downloadable is true; Excel/Word always allow; others use is_downloadable
-  const isDownloadable =
-    formType === 'pdf'
-      ? item.is_downloadable === true
-      : formType === 'excel' || formType === 'word' || item.is_downloadable === true;
   const isUrlType = item.form_type === 'URL';
   const fileUrl = getFileUrl(item);
 
@@ -34,7 +29,7 @@ export default function FormTemplateCard({ resource, onView }) {
 
   const handleDownload = async (e) => {
     e.stopPropagation();
-    if (!isDownloadable || !fileUrl) return;
+    if (!fileUrl) return;
     const filename = (item.title && item.title.replace(/[^a-z0-9\-_\.]/gi, '_')) || '';
     try {
       const a = document.createElement('a');
@@ -61,12 +56,6 @@ export default function FormTemplateCard({ resource, onView }) {
     }
   };
 
-  const handleOpen = (e) => {
-    e.stopPropagation();
-    if (!isUrlType || !fileUrl) return;
-    window.open(fileUrl, '_blank', 'noopener');
-  };
-
   const triggerDownload = () => {
     if (!fileUrl) return;
     const ext = (item.form_type || '').toLowerCase();
@@ -85,15 +74,9 @@ export default function FormTemplateCard({ resource, onView }) {
   const handleCardClick = () => {
     if (!fileUrl) return;
     const formType = (item.form_type || '').toLowerCase();
-    if (formType === 'pdf' && onView) {
-      onView(item);
-    } else if (formType === 'excel' || formType === 'word') {
+    if (formType === 'pdf' || formType === 'excel' || formType === 'word') {
       triggerDownload();
-    } else if (formType === 'url' && onView) {
-      onView(item);
-    } else if (onView) {
-      onView(item);
-    } else {
+    } else if (formType === 'url') {
       window.open(fileUrl, '_blank', 'noopener');
     }
   };
@@ -118,25 +101,31 @@ export default function FormTemplateCard({ resource, onView }) {
       </div>
 
       <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-        <button
-          aria-label="download"
-          onClick={handleDownload}
-          disabled={!fileUrl || !(isDownloadable)}
-          title={fileUrl && isDownloadable ? 'Download' : !isDownloadable ? 'Download not available' : 'No file available'}
-          className={`w-10 h-10 rounded-[8px] bg-primary-purple text-white flex items-center justify-center shadow ${!fileUrl || !isDownloadable ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <Download className="w-4 h-4" />
-        </button>
-
-        <button
-          aria-label="open"
-          onClick={handleOpen}
-          disabled={!isUrlType || !fileUrl}
-          title={isUrlType && fileUrl ? 'Open in new tab' : !isUrlType ? 'Redirect only for URL type' : 'No link available'}
-          className={`w-10 h-10 rounded-[8px] border border-primary-purple text-primary-purple bg-white flex items-center justify-center ${!isUrlType || !fileUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <ExternalLink className="w-4 h-4" />
-        </button>
+        {isUrlType ? (
+          fileUrl && (
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open URL"
+              title="Open link"
+              onClick={(e) => e.stopPropagation()}
+              className="w-10 h-10 rounded-[8px] bg-primary-purple text-white flex items-center justify-center shadow shrink-0 hover:opacity-90 transition-opacity"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )
+        ) : (
+          <button
+            aria-label="download"
+            onClick={handleDownload}
+            disabled={!fileUrl}
+            title={fileUrl ? 'Download' : 'No file available'}
+            className={`w-10 h-10 rounded-[8px] bg-primary-purple text-white flex items-center justify-center shadow shrink-0 ${!fileUrl ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </SurfaceCard>
   );
