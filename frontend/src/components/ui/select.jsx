@@ -12,8 +12,8 @@ export default function Select({ value, onChange, options = [], placeholder = 'S
     function onDoc(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     }
-    function onScroll() {
-      setOpen(false);
+    function onScroll(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     }
     document.addEventListener('mousedown', onDoc);
     if (open) {
@@ -40,7 +40,7 @@ export default function Select({ value, onChange, options = [], placeholder = 'S
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full rounded-lg bg-white shadow-md ring-1 ring-black/5">
+        <div className="absolute z-50 mt-2 w-full rounded-lg bg-white shadow-md ring-1 ring-black/5 max-h-[280px] overflow-y-auto">
           <div className="flex flex-col py-2">
             <button
               type="button"

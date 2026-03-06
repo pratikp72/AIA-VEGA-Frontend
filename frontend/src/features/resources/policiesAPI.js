@@ -1,37 +1,20 @@
 // policiesAPI.js
+import api from '@/services/api';
 
-
-// Fetch company policies from backend
+// Fetch company policies from backend (filtered by user's company via JWT)
 export async function fetchPolicies() {
-  const url = `http://localhost:1337/api/company-policies`;
-  const getToken = () => localStorage.getItem('authToken') || '';
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) throw new Error('Failed to fetch policies');
-  const json = await res.json();
+  const res = await api.get('/company-policies');
+  const data = Array.isArray(res?.data) ? res.data : [];
   return {
-    policies: json.data,
+    policies: data,
     totalPages: 1,
-    totalItems: Array.isArray(json.data) ? json.data.length : 0,
+    totalItems: data.length,
     currentPage: 1,
   };
 }
 
-// Fetch a single policy by documentId
+// Fetch a single policy by documentId (filtered by user's company via JWT)
 export async function fetchPolicyById(documentId) {
-  const url = `http://localhost:1337/api/company-policies/${documentId}`;
-  const getToken = () => localStorage.getItem('authToken') || '';
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) throw new Error('Failed to fetch policy');
-  const json = await res.json();
-  return json.data;
+  const res = await api.get(`/company-policies/${documentId}`);
+  return res?.data ?? null;
 }

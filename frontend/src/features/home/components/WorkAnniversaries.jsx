@@ -16,7 +16,7 @@ export default function WorkAnniversaries({ anniversaries = [] }) {
           View Calendar →
         </Link>
       </div>
-      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col items-center gap-4 self-stretch p-4 flex-1 min-h-[320px]">
+      <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col items-center gap-4 self-stretch p-4 flex-1 max-h-[320px]">
         {anniversaries.length === 0 ? (
           <div className="text-gray-500 text-center w-full py-6">No anniversary today</div>
         ) : (

@@ -2,6 +2,26 @@ import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
+function getCurrentUserCompany() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.company ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeCompanyForFilter(company) {
+  const c = String(company ?? '').trim();
+  if (!c) return null;
+  const upper = c.toUpperCase();
+  if (upper === 'AIA') return 'AIA';
+  if (upper === 'VEGA') return 'Vega';
+  return null;
+}
 
 function normalizeUser(user) {
   const name = user.employee_name || user.username || 'Unknown';
@@ -96,11 +116,12 @@ export const fetchEmployeeBirthdays = async () => {
   }
 
   try {
-    // Use analytics endpoint which now includes date_of_birth
+    const company = normalizeCompanyForFilter(getCurrentUserCompany());
     const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-      params: { 
-        pageSize: 1000 // Get all employees for calendar events
-      }
+      params: {
+        pageSize: 1000,
+        ...(company && { company }),
+      },
     });
 
     const employees = response?.items || [];
@@ -138,9 +159,12 @@ export const fetchEmployeeAnniversaries = async () => {
   }
 
   try {
-    // Use analytics endpoint for anniversaries
+    const company = normalizeCompanyForFilter(getCurrentUserCompany());
     const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-      params: { pageSize: 1000 } // Get all employees for calendar events
+      params: {
+        pageSize: 1000,
+        ...(company && { company }),
+      },
     });
 
     const employees = response?.items || [];

@@ -57,7 +57,7 @@ api.interceptors.response.use(
           console.error('Validation Error:', data?.error?.message || data?.message || 'Invalid data provided');
           break;
         case 500:
-          console.error('Server error');
+          console.error('Server error:', error.config?.url, data?.error?.message || data?.message || data);
           break;
         case 502:
           console.error('Bad Gateway - Server unavailable');
