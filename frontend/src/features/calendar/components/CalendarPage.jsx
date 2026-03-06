@@ -297,18 +297,26 @@ export default function CalendarPage() {
     if (viewMode === 'day') {
       setActiveDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
     } else if (viewMode === 'year') {
-      setActiveStartDate((d) => new Date(d.getFullYear() - 1, d.getMonth(), 1));
+      const next = new Date(activeStartDate.getFullYear() - 1, activeStartDate.getMonth(), 1);
+      setActiveStartDate(next);
+      setActiveDate(next);
     } else {
-      setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
+      const next = new Date(activeStartDate.getFullYear(), activeStartDate.getMonth() - 1, 1);
+      setActiveStartDate(next);
+      setActiveDate(next);
     }
   };
   const goNext = () => {
     if (viewMode === 'day') {
       setActiveDate((d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1));
     } else if (viewMode === 'year') {
-      setActiveStartDate((d) => new Date(d.getFullYear() + 1, d.getMonth(), 1));
+      const next = new Date(activeStartDate.getFullYear() + 1, activeStartDate.getMonth(), 1);
+      setActiveStartDate(next);
+      setActiveDate(next);
     } else {
-      setActiveStartDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
+      const next = new Date(activeStartDate.getFullYear(), activeStartDate.getMonth() + 1, 1);
+      setActiveStartDate(next);
+      setActiveDate(next);
     }
   };
 
@@ -522,7 +530,15 @@ export default function CalendarPage() {
                 onClickMonth={viewMode === 'year' ? handleYearViewMonthClick : undefined}
                 onChange={viewMode === 'year' ? undefined : setActiveDate}
                 activeStartDate={activeStartDate}
-                onActiveStartDateChange={({ activeStartDate: next }) => next && setActiveStartDate(next)}
+                onActiveStartDateChange={({ activeStartDate: next }) => {
+                  if (!next) return;
+                  setActiveStartDate(next);
+                  if (viewMode === 'month') {
+                    setActiveDate(new Date(next.getFullYear(), next.getMonth(), 1));
+                  } else if (viewMode === 'year') {
+                    setActiveDate(new Date(next.getFullYear(), 0, 1));
+                  }
+                }}
                 calendarType="gregory"
                 formatShortWeekday={(_, date) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()]}
                 prevLabel={null}
@@ -614,7 +630,7 @@ export default function CalendarPage() {
           {/* Right: Sidebar - Events & Holidays */}
           <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 max-h-[calc(100vh-10rem)]">
             {/* Events card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-[1.60] min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col h-20">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
@@ -759,7 +775,7 @@ export default function CalendarPage() {
               )}
             </div>
             {/* Holidays card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-[0.9] min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Holidays</h3>
               {isDataLoading ? (
                 <div className="flex justify-center py-6 px-4 flex-1">

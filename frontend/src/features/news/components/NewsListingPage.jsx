@@ -36,7 +36,7 @@ export default function NewsListingPage() {
     setSelectedCategory(value === '' ? 'All Categories' : value);
   }, []);
 
-  const categoryOptions = ['All Categories', ...categories.map((c) => c.name)];
+  const categoryOptions = [...categories.map((c) => c.name)];
 
   return (
     <div className="min-h-screen bg-background">
