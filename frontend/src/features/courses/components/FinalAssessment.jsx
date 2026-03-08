@@ -50,7 +50,7 @@ export default function FinalAssessment({ unlocked, category, courseId, isComple
           </button>
         </div>
         <p className="text-xs text-muted-foreground text-center mt-2">
-          You will not be able to attend the quiz or re-apply.
+          You will not be able to attend the quiz right now. Wait for 24hrs to re-apply.
         </p>
       </div>
     );

@@ -43,6 +43,7 @@ export default function AssessmentInstructions(props) {
   const [quizStarted, setQuizStarted] = useState(false);
   const [blockStartPendingReattempt, setBlockStartPendingReattempt] = useState(false);
   const [blockRejectedReattempt, setBlockRejectedReattempt] = useState(false);
+  const [canRequestAgainAt, setCanRequestAgainAt] = useState(null);
   const [blockCheckLoading, setBlockCheckLoading] = useState(true);
   const [startingAssessment, setStartingAssessment] = useState(false);
 
@@ -123,10 +124,12 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
         const hasRejected = reattemptStatus?.hasRejected ?? false;
         setBlockStartPendingReattempt(atMaxAttempts && hasPending);
         setBlockRejectedReattempt(hasRejected);
+        setCanRequestAgainAt(reattemptStatus?.canRequestAgainAt ?? null);
       } catch {
         if (!cancelled) {
           setBlockStartPendingReattempt(false);
           setBlockRejectedReattempt(false);
+          setCanRequestAgainAt(null);
         }
       } finally {
         if (!cancelled) setBlockCheckLoading(false);
@@ -324,10 +327,15 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
                   </div>
                   <div>
                     <span className="font-semibold text-lg text-red-700">
-                      Your request is rejected
+                      Your reattempt request was rejected
                     </span>
                     <p className="text-gray mt-1">
-                      You will not be able to attend the quiz or re-apply.
+                      You can submit a new request after 24 hours. The assessment button will be enabled again after that.
+                      {canRequestAgainAt && (
+                        <span className="block mt-1 text-sm text-red-600">
+                          You can request again after {new Date(canRequestAgainAt).toLocaleString()}.
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
