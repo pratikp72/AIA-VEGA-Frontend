@@ -68,7 +68,6 @@ function normalizeModule(module, index) {
 }
 
 function normalizeCourse(course) {
-  const durationMin = course.course_duration_min || 0;
   const rawModules =
     Array.isArray(course.modules) ? course.modules
     : Array.isArray(course?.attributes?.modules) ? course.attributes.modules
@@ -82,10 +81,13 @@ function normalizeCourse(course) {
     : rawModules;
   const effectiveModulesForStats = modulesForStats.length > 0 ? modulesForStats : rawModules;
   const totalModuleDuration = effectiveModulesForStats.reduce((total, module) => {
-    const moduleTime = typeof module.module_duration_min === 'number' ? module.module_duration_min : 0;
-    return total + moduleTime;
+    const moduleTimeRaw = module?.module_duration_min;
+    const moduleTime = Number(moduleTimeRaw);
+    return total + (Number.isFinite(moduleTime) && moduleTime > 0 ? moduleTime : 0);
   }, 0);
-  const durationMinutes = totalModuleDuration > 0 ? totalModuleDuration : (durationMin > 0 ? durationMin : 0);
+  const durationMinutes = Number.isFinite(totalModuleDuration) && totalModuleDuration > 0
+    ? totalModuleDuration
+    : 0;
   // Normalize quiz array to always include quiz_questions if present
   const quiz = Array.isArray(course.quiz)
     ? course.quiz.map(q => ({
@@ -100,8 +102,8 @@ function normalizeCourse(course) {
     category: course.course_category || 'Other',
     // UI fields expected by CoursesCategoryPage (original card design)
     image: withImageUrl(course.thumbnail),
-    moduleDuration: durationMin || '',
-    duration: totalModuleDuration > 0 ? Math.ceil(totalModuleDuration / 60) : (durationMin > 0 ? Math.ceil(durationMin / 60) : 0), // Convert minutes to hours and round up
+    moduleDuration: durationMinutes || '',
+    duration: durationMinutes > 0 ? Math.round((durationMinutes / 60) * 10) / 10 : 0,
     durationMinutes,
     modules: effectiveModulesForStats.length || 0,
     rawModules,                              // raw Strapi format — needed for PUT updates
