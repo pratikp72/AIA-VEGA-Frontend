@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadAllCourses } from '@/features/courses/coursesSlice';
 import { selectCoursesList, selectCoursesLoading } from '@/features/courses/coursesSelectors';
-import { fetchUserCourseProgress } from '@/features/courses/coursesAPI';
+import { fetchUserCourseProgress, confirmOrientationAttendance } from '@/features/courses/coursesAPI';
 import { getLatestSubmission } from '../quizSubmissionAPI';
 import { getCurrentUserId } from '@/lib/auth';
 
@@ -36,6 +36,9 @@ export default function CoursesCategoryPage({ category }) {
     message: '',
     kind: 'block',
     courseUrl: '',
+    courseId: null,
+    courseDocumentId: null,
+    language: null,
     prerequisites: [],
   });
 
@@ -241,18 +244,29 @@ export default function CoursesCategoryPage({ category }) {
         message: 'You must complete prerequisite course(s) first:',
         kind: 'block',
         courseUrl: '',
+        courseId: null,
+        courseDocumentId: null,
+        language: null,
         prerequisites: missingPrerequisites,
       });
       return;
     }
 
     if (isOrientationRequiredBeforeCourse(course)) {
+      const orientationDetails = Array.isArray(course?.orientation_detail) ? course.orientation_detail : [];
+      const beforeCompletion = orientationDetails.find(
+        (detail) => normalizeFlow(detail?.orientation_flow) === 'before course completion'
+      );
+      const orientationLanguage = beforeCompletion?.language || course?.languages?.[0] || null;
       setStartBlockModal({
         open: true,
         title: 'Orientation Warning',
         message: 'You must attend orientation first before starting this course.',
         kind: 'warning',
         courseUrl,
+        courseId: course?.id ?? null,
+        courseDocumentId: course?.documentId ?? null,
+        language: orientationLanguage,
         prerequisites: [],
       });
       return;
@@ -262,15 +276,50 @@ export default function CoursesCategoryPage({ category }) {
   };
 
   const closeStartModal = () => {
-    setStartBlockModal({ open: false, title: '', message: '', kind: 'block', courseUrl: '', prerequisites: [] });
+    setStartBlockModal({
+      open: false,
+      title: '',
+      message: '',
+      kind: 'block',
+      courseUrl: '',
+      courseId: null,
+      courseDocumentId: null,
+      language: null,
+      prerequisites: [],
+    });
   };
 
-  const handleStartModalOk = () => {
-    const continueUrl = startBlockModal.kind === 'warning' ? startBlockModal.courseUrl : '';
-    closeStartModal();
-    if (continueUrl) {
-      router.push(continueUrl);
+  const handleStartModalOk = async () => {
+    if (startBlockModal.kind === 'warning') {
+      const { courseUrl, courseId, courseDocumentId, language } = startBlockModal;
+      closeStartModal();
+      const confirmed = window.confirm(
+        'Final warning: by continuing, you confirm you have attended orientation. This confirmation will be recorded. Do you want to continue?'
+      );
+      if (!confirmed) return;
+
+      const userId = getCurrentUserId();
+      if (!userId) {
+        window.alert('Please log in again to continue.');
+        return;
+      }
+
+      try {
+        await confirmOrientationAttendance({
+          userId,
+          courseId,
+          courseDocumentId,
+          language,
+        });
+        if (courseUrl) router.push(courseUrl);
+      } catch (err) {
+        const message = err?.error?.message || err?.message || 'Could not save orientation confirmation. Please try again.';
+        window.alert(message);
+      }
+      return;
     }
+
+    closeStartModal();
   };
 
   return (

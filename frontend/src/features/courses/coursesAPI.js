@@ -265,8 +265,20 @@ export const fetchAllUserProgress = async (userId) => {
 
 export const fetchCourseCategories = fetchAllCourses;
 
+// Create a backend audit entry that the user acknowledged orientation warning.
+export const confirmOrientationAttendance = async ({ userId, courseId, courseDocumentId, language }) => {
+  return api.post(API_ENDPOINTS.ORIENTATION.CONFIRM, {
+    userId: userId != null ? Number(userId) : null,
+    courseId: courseId != null ? Number(courseId) : null,
+    courseDocumentId: courseDocumentId ?? null,
+    language: language ?? null,
+    confirmedAt: new Date().toISOString(),
+  });
+};
+
 export default {
   fetchAllCourses,
   fetchCourseCategories,
   fetchCourseById,
+  confirmOrientationAttendance,
 };
