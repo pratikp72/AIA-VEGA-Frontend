@@ -29,6 +29,7 @@ export default function CoursesCategoryPage({ category }) {
   const allCourses = useAppSelector(selectCoursesList);
   const isLoading = useAppSelector(selectCoursesLoading);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [feedbackEligibility, setFeedbackEligibility] = useState({});
   const [startBlockModal, setStartBlockModal] = useState({
     open: false,
     title: '',
@@ -82,21 +83,106 @@ export default function CoursesCategoryPage({ category }) {
       ]);
 
       const progressStatus = progressInfo?.progressStatus;
-      const hasAttempt = !!latest?.submission;
+      const passedQuiz = latest?.submission?.passed === true;
       const notCompleted = progressStatus !== 'Completed';
 
-      if (hasAttempt && notCompleted) {
+      if (passedQuiz && notCompleted) {
         setOpenMenuId(null);
         const feedbackUrl = `/courses/${category}/${course.documentId}?feedback=1`;
         window.location.href = feedbackUrl;
       } else {
         window.alert(
-          'Feedback is available only after you have attempted the assessment and before completing the course.'
+          'Feedback will be enabled only after you pass the assessment and before completing the course.'
         );
       }
     } catch (err) {
       console.error('Failed to check feedback eligibility:', err);
       window.alert('Could not verify feedback eligibility. Please open the course to continue.');
+    }
+  };
+
+  const ensureFeedbackEligibility = async (course) => {
+    const key = String(course.id ?? course.documentId ?? '');
+    if (!key) return;
+
+    const existing = feedbackEligibility[key];
+    if (existing && (existing.loading || existing.checked)) return;
+
+    const userId = getCurrentUserId();
+    const courseNumericId = course.id ?? course.documentId;
+
+    if (!userId) {
+      setFeedbackEligibility((prev) => ({
+        ...prev,
+        [key]: {
+          checked: true,
+          loading: false,
+          canSubmit: false,
+          reason: 'Please log in to submit feedback.',
+        },
+      }));
+      return;
+    }
+
+    if (!courseNumericId) {
+      setFeedbackEligibility((prev) => ({
+        ...prev,
+        [key]: {
+          checked: true,
+          loading: false,
+          canSubmit: false,
+          reason: 'Course information is incomplete.',
+        },
+      }));
+      return;
+    }
+
+    setFeedbackEligibility((prev) => ({
+      ...prev,
+      [key]: {
+        checked: false,
+        loading: true,
+        canSubmit: false,
+        reason: '',
+      },
+    }));
+
+    try {
+      const [progressInfo, latest] = await Promise.all([
+        fetchUserCourseProgress(userId, courseNumericId, { fresh: true }),
+        getLatestSubmission(userId, courseNumericId),
+      ]);
+      const progressStatus = progressInfo?.progressStatus;
+      const passedQuiz = latest?.submission?.passed === true;
+      const notCompleted = progressStatus !== 'Completed';
+      const canSubmit = passedQuiz && notCompleted;
+
+      let reason = '';
+      if (!passedQuiz) {
+        reason = 'Enable after passing this course assessment.';
+      } else if (!notCompleted) {
+        reason = 'Feedback is not available after course completion.';
+      }
+
+      setFeedbackEligibility((prev) => ({
+        ...prev,
+        [key]: {
+          checked: true,
+          loading: false,
+          canSubmit,
+          reason,
+        },
+      }));
+    } catch {
+      setFeedbackEligibility((prev) => ({
+        ...prev,
+        [key]: {
+          checked: true,
+          loading: false,
+          canSubmit: false,
+          reason: 'Could not verify eligibility right now.',
+        },
+      }));
     }
   };
 
@@ -214,6 +300,14 @@ export default function CoursesCategoryPage({ category }) {
                 const isNotStarted = !course.completed && (!course.progress || course.progress === 0);
                 const isInProgress = !course.completed && course.progress > 0;
                 const isCompleted = !!course.completed;
+                const canShowCardMenu = !isCompleted;
+                const feedbackKey = String(course.id ?? course.documentId ?? '');
+                const feedbackState = feedbackEligibility[feedbackKey] || {
+                  checked: false,
+                  loading: false,
+                  canSubmit: false,
+                  reason: '',
+                };
                 const courseUrl = `/courses/${category}/${course.documentId}`;
                 const cardContent = (
                   <SurfaceCard key={course.id} className="flex flex-col h-full rounded-2xl p-0 overflow-hidden cursor-pointer">
@@ -256,31 +350,45 @@ export default function CoursesCategoryPage({ category }) {
                           {course.modules} modules
                         </span>
                         <span className="flex-1" />
-                        <div className="relative ml-auto">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setOpenMenuId((prev) => (prev === course.id ? null : course.id));
-                            }}
-                            className="p-1 rounded-full hover:bg-gray-100 text-muted-foreground"
-                            title="More options"
-                          >
-                            <MoreVertical className="w-5 h-5" />
-                          </button>
-                          {openMenuId === course.id && (
-                            <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-20">
-                              <button
-                                type="button"
-                                onClick={(e) => handleFeedbackClick(e, course)}
-                                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                              >
-                                Feedback
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        {canShowCardMenu && (
+                          <div className="relative ml-auto">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setOpenMenuId((prev) => {
+                                  const next = prev === course.id ? null : course.id;
+                                  if (next === course.id) {
+                                    ensureFeedbackEligibility(course);
+                                  }
+                                  return next;
+                                });
+                              }}
+                              className="p-1 rounded-full hover:bg-gray-100 text-muted-foreground"
+                              title="More options"
+                            >
+                              <MoreVertical className="w-5 h-5" />
+                            </button>
+                            {openMenuId === course.id && (
+                              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleFeedbackClick(e, course)}
+                                  disabled={feedbackState.loading || !feedbackState.canSubmit}
+                                  title={feedbackState.reason || undefined}
+                                  className={`w-full text-left px-3 py-2 text-sm ${
+                                    feedbackState.loading || !feedbackState.canSubmit
+                                      ? 'text-gray-400 cursor-not-allowed bg-gray-50'
+                                      : 'text-gray-700 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  {feedbackState.loading ? 'Checking...' : 'Feedback'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="font-medium text-gray-900 text-lg line-clamp-2">
                         {course.title}

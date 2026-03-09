@@ -6,7 +6,7 @@ import api from '@/services/api';
 import { USE_MOCK_DATA, mockDelay, MOCK_NEWS_DATA } from '@/services/mockData';
 import { STORAGE_KEYS } from '@/lib/constants';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
 
 function getCurrentUserCompany() {
   if (typeof window === 'undefined') return null;
@@ -36,14 +36,25 @@ function unwrapMedia(attrs) {
   if (!cov) return attrs;
   const data = cov?.data;
   if (data == null) return { ...attrs, cover_image: cov };
-  const mediaAttrs = Array.isArray(data) ? data[0]?.attributes : data?.attributes;
-  return mediaAttrs ? { ...attrs, cover_image: mediaAttrs } : attrs;
+  const first = Array.isArray(data) ? data[0] : data;
+  const mediaAttrs = first?.attributes || first;
+  return mediaAttrs ? { ...attrs, cover_image: mediaAttrs } : { ...attrs, cover_image: cov };
 }
 
 function withImageUrl(item, preferSize = 'medium') {
   if (!item) return item;
-  const cov = item.cover_image;
-  const url = cov?.formats?.[preferSize]?.url || cov?.url;
+  const cov = item.cover_image ?? item.image;
+  const formats = cov?.formats ?? cov?.data?.formats ?? cov?.attributes?.formats;
+  const rawUrl =
+    formats?.[preferSize]?.url ||
+    formats?.small?.url ||
+    formats?.thumbnail?.url ||
+    cov?.url ||
+    cov?.data?.url ||
+    cov?.attributes?.url ||
+    item?.imageUrl ||
+    item?.image;
+  const url = typeof rawUrl === 'string' ? rawUrl : null;
   const imageUrl = url
     ? url.startsWith('http')
       ? url
