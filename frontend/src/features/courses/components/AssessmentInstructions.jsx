@@ -174,6 +174,7 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
         resultData={resultData}
         feedbackQuestions={feedbackQuestions}
         feedbackCompulsory={feedbackCompulsory}
+        quizDuration={props.quiz?.completion_time}
       />
     );
   }

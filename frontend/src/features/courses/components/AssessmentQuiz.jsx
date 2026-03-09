@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Clock,
@@ -199,7 +199,7 @@ function getQuestionOptions(question) {
   });
 }
 
-export default function AssessmentQuiz({ onExit, courseId, category, courseNumericId, userId, quizQuestions, resultData: resultDataProp, feedbackQuestions, feedbackCompulsory }) {
+export default function AssessmentQuiz({ onExit, courseId, category, courseNumericId, userId, quizQuestions, resultData: resultDataProp, feedbackQuestions, feedbackCompulsory, quizDuration }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -208,10 +208,11 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const totalQuestions = questions.length;
   // Use compulsory flag from the backend feedback component; fall back to mock for legacy/dev
   const feedbackMandatory = feedbackCompulsory ?? getCourseFeedbackConfig(courseId).mandatory;
+  const quizDurationSeconds = (quizDuration != null && quizDuration > 0 ? quizDuration : 30) * 60;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(30 * 60);
+  const [timeLeft, setTimeLeft] = useState(quizDurationSeconds);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [score, setScore] = useState(0);
@@ -226,6 +227,13 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const [reattemptLoading, setReattemptLoading] = useState(false);
   const [reattemptError, setReattemptError] = useState(null);
   const [showReattemptSuccessModal, setShowReattemptSuccessModal] = useState(false);
+  const [violationWarning, setViolationWarning] = useState(false);
+
+  // Refs for stable access inside event-handler closures (avoid stale state)
+  const isSubmittingRef = useRef(false);
+  const submittedRef = useRef(false);
+  const answersRef = useRef({});
+  const timeLeftRef = useRef(quizDurationSeconds);
 
   const currentQuestion = questions[currentIndex];
 
@@ -238,6 +246,10 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }, 5500);
     return () => clearTimeout(timer);
   }, [reattemptSent, category, courseId, router]);
+
+  // Keep refs in sync with state so event-handler closures always see fresh values
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
 
   useEffect(() => {
     if (timeLeft <= 0 || submitted) return;
@@ -252,6 +264,25 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }, 1000);
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
+
+  // ── Fullscreen: request on mount, exit when quiz is submitted ──────────────
+  useEffect(() => {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
+    return () => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (submitted && document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, [submitted]);
 
   const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -279,15 +310,17 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }
   };
 
-  const handleSubmit = async () => {
-    if (!hasAnswered || isSubmitting) return;
+  // ── Core submit logic (used by both manual Submit and auto-submit) ─────────
+  const performSubmit = useCallback(async (currentAnswers, currentTimeLeft) => {
+    if (isSubmittingRef.current || submittedRef.current) return;
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
 
     const answersArr = questions.map((q) => {
-      const selectedIdx = answers[q.id];
+      const selectedIdx = currentAnswers[q.id];
       const opts = getQuestionOptions(q);
       const selectedOption = selectedIdx !== undefined ? opts[selectedIdx] : null;
       const selectedKey = selectedOption?.option_key ?? String(selectedIdx ?? "");
-
       return {
         question_id: String(q.question_id || q.id),
         question: q.question_text || q.question,
@@ -301,10 +334,9 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       userId: Number(userId),
       courseId: Number(courseNumericId),
       answers: answersArr,
-      time_taken_minutes: Math.round((30 * 60 - timeLeft) / 60),
+      time_taken_minutes: Math.round((quizDurationSeconds - currentTimeLeft) / 60),
     };
 
-    setIsSubmitting(true);
     try {
       // Step 1: Submit the quiz — read the response to detect blocked attempts
       const submitRes = await submitQuiz(payload);
@@ -336,7 +368,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         setScore(submission?.score ?? 0);
         setIsPassed(submission?.passed ?? false);
         if (attemptNum != null) setAttemptNumber(attemptNum);
-        // Show re-attempt button when current attempt === max_attempt and failed (e.g. max_attempt=1, failed 1st time)
+        // Show re-attempt button when current attempt === max_attempt and failed
         if (!submission?.passed && currentEqualsMax) {
           setReattemptRequired(true);
           const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
@@ -346,20 +378,76 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     } catch (e) {
       console.error('Quiz submission failed', e);
     } finally {
+      isSubmittingRef.current = false;
+      submittedRef.current = true;
       setIsSubmitting(false);
       setSubmitted(true);
     }
+  }, [questions, userId, courseNumericId, quizDurationSeconds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Manual submit — requires current question answered
+  const handleSubmit = async () => {
+    if (!hasAnswered || isSubmitting) return;
+    await performSubmit(answers, timeLeft);
   };
+
+  // Auto-submit triggered by security violations (tab switch / fullscreen exit)
+  const handleAutoSubmit = useCallback(() => {
+    if (submittedRef.current || isSubmittingRef.current) return;
+    setViolationWarning(true);
+    performSubmit(answersRef.current, timeLeftRef.current);
+  }, [performSubmit]);
+
+  // ── Security: auto-submit on fullscreen exit ───────────────────────────────
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement && !submittedRef.current) {
+        handleAutoSubmit();
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, [handleAutoSubmit]);
+
+  // ── Security: auto-submit on tab switch / window blur ─────────────────────
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && !submittedRef.current) {
+        handleAutoSubmit();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [handleAutoSubmit]);
+
+  // ── Security: warn on page refresh / navigation away ──────────────────────
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (submittedRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
   const handleTryAgain = () => {
     setCurrentIndex(0);
     setAnswers({});
-    setTimeLeft(30 * 60);
+    setTimeLeft(quizDurationSeconds);
     setSubmitted(false);
     setIsSubmitting(false);
     setScore(0);
     setIsPassed(false);
     setAttemptNumber(undefined);
     setReattemptRequired(false);
+    setViolationWarning(false);
+    submittedRef.current = false;
+    isSubmittingRef.current = false;
+    // Re-enter fullscreen for next attempt
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    }
   };
 
   const handleSendReattemptRequest = async () => {
@@ -500,6 +588,18 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col">
+      {/* Violation warning overlay — shown briefly when quiz is auto-submitted */}
+      {violationWarning && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+            <XCircle className="w-14 h-14 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Quiz Auto-Submitted</h2>
+            <p className="text-gray-600 text-sm">
+              You switched tabs or exited fullscreen mode. Your quiz has been automatically submitted and scored based on your current answers.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Top Bar — floating card */}
       <div className="px-6 pt-6">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 px-6 py-4">
