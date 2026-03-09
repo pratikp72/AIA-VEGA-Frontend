@@ -16,12 +16,11 @@ const VIEW_MODES = [
 ];
 
 const CATEGORY_LEGEND = [
-  { key: 'conferences', label: 'Conferences', color: '#2563EB' },
-  { key: 'birthdays', label: 'Birthdays', color: '#FD8C02' },
-  { key: 'work_anniversaries', label: 'Work Anniversaries', color: '#9C2EDB' },
-  { key: 'training', label: 'Training Sessions', color: '#00F078' },
-  { key: 'loreum', label: 'Loreum ipsum', color: '#F0C51A' },
-  { key: 'loreum_blue', label: 'Loreum ipsum', color: '#2563EB' },
+  { key: 'conference', label: 'Conferences', color: '#2563EB' },
+  { key: 'birthday', label: 'Birthdays', color: '#FD8C02' },
+  { key: 'work_anniversary', label: 'Work Anniversaries', color: '#9C2EDB' },
+  { key: 'training_session', label: 'Training Sessions', color: '#00F078' },
+  { key: 'workshop', label: 'Workshop', color: '#F0C51A' },
   { key: 'holidays', label: 'Holidays', color: '#EF4444' },
 ];
 
@@ -504,7 +503,11 @@ export default function CalendarPage() {
                             }}
                           >
                             <div className="px-2 py-0.5 flex items-center gap-1.5">
-                              <EventIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                              {ev.event_image ? (
+                                <img src={ev.event_image} alt="" className="w-3.5 h-3.5 shrink-0 rounded object-cover" />
+                              ) : (
+                                <EventIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                              )}
                               <span className="font-semibold text-xs truncate text-gray-900">{ev.fullTitle || ev.title}</span>
                             </div>
                             {timeLabel && (
@@ -673,10 +676,14 @@ export default function CalendarPage() {
                           >
                             <div className="flex gap-3 items-start">
                               <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white"
-                                style={{ backgroundColor: ev.color ?? '#2563EB' }}
+                                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-gray-100"
+                                style={!ev.event_image ? { backgroundColor: ev.color ?? '#2563EB' } : undefined}
                               >
-                                <EventIcon className="w-5 h-5" />
+                                {ev.event_image ? (
+                                  <img src={ev.event_image} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <EventIcon className="w-5 h-5 text-white" />
+                                )}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-gray-900 text-base leading-tight">
@@ -718,6 +725,11 @@ export default function CalendarPage() {
                                   </div>
                                 ) : detail ? (
                                   <div className="space-y-2">
+                                    {detail.event_image && detail.type !== 'birthday' && detail.type !== 'anniversary' ? (
+                                      <div className="mb-2 rounded-lg overflow-hidden">
+                                        <img src={detail.event_image} alt={detail.title} className="w-full h-32 object-cover" />
+                                      </div>
+                                    ) : null}
                                     {detail.type === 'birthday' && detail.employee ? (
                                       <div>
                                         <p className="text-gray-500">Birthday Celebration</p>

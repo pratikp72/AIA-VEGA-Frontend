@@ -317,7 +317,7 @@ export const fetchBirthdaysToday = async () => {
   const response = await api.get(API_ENDPOINTS.USERS.LIST, {
     params: {
       'populate[photograph]': true,
-      sort: 'employee_name:asc',
+      sort: 'username:asc',
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -351,7 +351,7 @@ export const fetchWorkAnniversaries = async () => {
   const response = await api.get(API_ENDPOINTS.USERS.LIST, {
     params: {
       'populate[photograph]': true,
-      sort: 'employee_name:asc',
+      sort: 'username:asc',
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);

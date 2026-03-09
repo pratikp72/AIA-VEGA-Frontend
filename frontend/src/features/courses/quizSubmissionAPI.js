@@ -27,7 +27,9 @@ export const sendReattemptRequest = async (userId, courseId) => {
   });
 };
 
-// Check if user has pending or rejected reattempt request. Returns { hasPending, hasRejected }.
+// Check if user has pending or rejected reattempt request.
+// Returns { hasPending, hasRejected, canRequestAgainAt }.
+// hasRejected is true only when rejection was within last 24h; after 24h the assessment button is enabled again.
 export const checkPendingReattemptRequest = async (userId, courseId) => {
   const res = await api.get('/quiz-reattempt-request/pending', {
     params: { userId: Number(userId), courseId: Number(courseId) },
@@ -35,5 +37,6 @@ export const checkPendingReattemptRequest = async (userId, courseId) => {
   return {
     hasPending: res?.hasPending ?? false,
     hasRejected: res?.hasRejected ?? false,
+    canRequestAgainAt: res?.canRequestAgainAt ?? null,
   };
 };

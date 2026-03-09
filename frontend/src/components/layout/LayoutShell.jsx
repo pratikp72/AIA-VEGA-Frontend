@@ -6,7 +6,7 @@ import AppSidebar from './AppSidebar';
 import { SidebarProvider } from './SidebarContext';
 
 export default function LayoutShell({ children, hideSidebar = false }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

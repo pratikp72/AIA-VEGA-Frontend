@@ -5,6 +5,7 @@ import LayoutShell from '@/components/layout/LayoutShell';
 import ReduxProvider from '@/components/providers/ReduxProvider';
 import ToastProvider from '@/components/providers/ToastProvider';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
+import AuthGuard from '@/components/auth/AuthGuard';
 
 const RootLayoutClient = ({ children }) => {
   const pathname = usePathname();
@@ -14,11 +15,13 @@ const RootLayoutClient = ({ children }) => {
   return (
     <ErrorBoundary>
       <ReduxProvider>
-        {isLoginPage ? (
-          <>{children}</>
-        ) : (
-          <LayoutShell hideSidebar={isFeedbackScreen}>{children}</LayoutShell>
-        )}
+        <AuthGuard>
+          {isLoginPage ? (
+            <>{children}</>
+          ) : (
+            <LayoutShell hideSidebar={isFeedbackScreen}>{children}</LayoutShell>
+          )}
+        </AuthGuard>
         <ToastProvider />
       </ReduxProvider>
     </ErrorBoundary>

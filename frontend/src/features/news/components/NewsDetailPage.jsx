@@ -89,20 +89,26 @@ export default function NewsDetailPage() {
     if (!userId || !article) return;
     const documentId = article.documentId ?? article.id;
     if (!documentId) return;
+
+    // Optimistic update: change UI immediately so like feels instant
+    const prevLiked = liked;
+    const prevCount = likesCount;
+    setLiked(!liked);
+    setLikesCount((c) => (liked ? Math.max(0, c - 1) : c + 1));
+
     try {
-      if (liked) {
+      if (prevLiked) {
         const res = await unlikeNews(documentId);
         if (typeof res?.likesCount === 'number') setLikesCount(res.likesCount);
-        else setLikesCount((c) => Math.max(0, c - 1));
-        setLiked(false);
       } else {
         const res = await likeNews(documentId);
         if (typeof res?.likesCount === 'number') setLikesCount(res.likesCount);
-        else setLikesCount((c) => c + 1);
-        setLiked(true);
       }
     } catch (err) {
       console.error('Failed to toggle like', err);
+      // Revert on failure
+      setLiked(prevLiked);
+      setLikesCount(prevCount);
     }
   };
 
@@ -178,7 +184,7 @@ export default function NewsDetailPage() {
                     className={`w-5 h-5 ${liked ? 'fill-current text-primary-purple' : ''}`}
                     strokeWidth={1.8}
                   />
-                  <span className="font-medium">{likesCount}</span>
+                  {/* <span className="font-medium">{likesCount}</span> */}
                   <span className="text-sm text-gray-500">
                     {likesCount === 1 ? 'like' : 'likes'}
                   </span>
@@ -186,7 +192,7 @@ export default function NewsDetailPage() {
               ) : (
                 <div className="flex items-center gap-2 text-gray-500">
                   <Heart className="w-5 h-5" strokeWidth={1.8} />
-                  <span className="font-medium">{likesCount}</span>
+                  {/* <span className="font-medium">{likesCount}</span> */}
                   <span className="text-sm">{likesCount === 1 ? 'like' : 'likes'}</span>
                 </div>
               )}

@@ -6,12 +6,26 @@ import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { MOCK_CALENDAR_EVENTS, MOCK_CALENDAR_HOLIDAYS } from '@/services/mockData';
 import { fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/people/peopleAPI';
 
+/** Event type → color. Keys normalized to lowercase for matching. */
 const EVENT_TYPE_COLORS = {
-  'Training session': '#00F078',
-  Conference: '#2563EB',
-  Workshop: '#9C2EDB',
+  conference: '#2563EB',
+  workshop: '#F0C51A',
+  'training session': '#00F078',
+  birthday: '#FD8C02',
+  'work anniversary': '#9C2EDB',
+  anniversary: '#9C2EDB',
+  holidays: '#EF4444',
 };
 const DEFAULT_EVENT_COLOR = '#2563EB';
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
+
+function getEventImageUrl(eventImage) {
+  if (!eventImage) return '';
+  const raw = eventImage?.url ?? eventImage?.data?.attributes?.url ?? eventImage?.formats?.thumbnail?.url ?? eventImage?.formats?.small?.url;
+  if (!raw) return '';
+  return raw.startsWith('http') ? raw : `${API_BASE}${raw.startsWith('/') ? '' : '/'}${raw}`;
+}
 
 function formatEventTime(isoDate) {
   if (!isoDate) return '';
@@ -20,13 +34,16 @@ function formatEventTime(isoDate) {
 }
 
 function colorForEventType(eventType) {
-  return (eventType && EVENT_TYPE_COLORS[eventType]) || DEFAULT_EVENT_COLOR;
+  if (!eventType) return DEFAULT_EVENT_COLOR;
+  const key = String(eventType).toLowerCase().trim();
+  return EVENT_TYPE_COLORS[key] || DEFAULT_EVENT_COLOR;
 }
 
 function normalizeEvent(item) {
   const start = item.start_date;
   const eventType = item.event_type;
   const color = colorForEventType(eventType);
+  const eventImageUrl = getEventImageUrl(item.event_image);
   return {
     id: item.documentId ?? item.id,
     documentId: item.documentId,
@@ -41,6 +58,7 @@ function normalizeEvent(item) {
     color,
     fullTitle: item.title,
     icon: 'calendar',
+    event_image: eventImageUrl,
   };
 }
 
