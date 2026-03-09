@@ -59,6 +59,11 @@ function normalizeModule(module, index) {
     pdf_file: pdfFile && pdfUrl ? { ...pdfFile, url: pdfUrl } : null,
     mark_as_read: module.mark_as_read || false,
     language: module.language || '',
+    description: typeof module.video_description === 'string' && module.video_description
+      ? module.video_description
+      : Array.isArray(module.description) && module.description.length > 0
+        ? extractTextContent(module.description)
+        : null,
   };
 }
 
@@ -85,7 +90,6 @@ function normalizeCourse(course) {
     id: course.id,
     documentId: course.documentId,
     title: course.title || '',
-    description: extractRichText(course.description),
     category: course.course_category || 'Other',
     // UI fields expected by CoursesCategoryPage (original card design)
     image: withImageUrl(course.thumbnail),

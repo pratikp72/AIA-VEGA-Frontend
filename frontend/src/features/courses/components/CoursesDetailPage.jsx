@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import MarkdownIt from "markdown-it";
 import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
@@ -15,6 +16,8 @@ import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/f
 import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
+
+const md = new MarkdownIt({ html: true, breaks: true });
 
 function extractOrientationTopics(topicsToCover) {
   if (!Array.isArray(topicsToCover)) return [];
@@ -457,18 +460,28 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
               {/* Show content based on moduleType */}
               {currentModule?.moduleType === 'Video' ? (
-                <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
-                  <video
-                    controls
-                    className="w-full h-full object-cover rounded-xl"
-                  >
-                    <source
-                      src={currentModule.video_file?.url || "https://www.w3schools.com/html/mov_bbb.mp4"}
-                      type="video/mp4"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
+                <>
+                  <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
+                    <video
+                      controls
+                      className="w-full h-full object-cover rounded-xl"
+                    >
+                      <source
+                        src={currentModule.video_file?.url || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                        type="video/mp4"
+                      />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                  {currentModule?.description && (
+                    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-5">
+                      <div
+                        className="rich-content"
+                        dangerouslySetInnerHTML={{ __html: md.render(currentModule.description) }}
+                      />
+                    </div>
+                  )}
+                </>
               ) : String(currentModule?.moduleType || '').toLowerCase() === 'pdf' ? (
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {currentModule?.pdf_file?.url ? (
