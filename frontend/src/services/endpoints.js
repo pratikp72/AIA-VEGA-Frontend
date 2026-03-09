@@ -11,7 +11,7 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
     VERIFY_EMAIL: '/auth/verify-email',
-    ME: '/auth/me',
+    ME: '/users/me',
   },
 
   // User endpoints
