@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import LayoutShell from '@/components/layout/LayoutShell';
 import ReduxProvider from '@/components/providers/ReduxProvider';
@@ -7,21 +7,29 @@ import ToastProvider from '@/components/providers/ToastProvider';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import AuthGuard from '@/components/auth/AuthGuard';
 
-const RootLayoutClient = ({ children }) => {
+const RootLayoutInner = ({ children }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isLoginPage = pathname.startsWith('/login');
   const isFeedbackScreen = searchParams.get('feedback') === '1';
   return (
+    <AuthGuard>
+      {isLoginPage ? (
+        <>{children}</>
+      ) : (
+        <LayoutShell hideSidebar={isFeedbackScreen}>{children}</LayoutShell>
+      )}
+    </AuthGuard>
+  );
+};
+
+const RootLayoutClient = ({ children }) => {
+  return (
     <ErrorBoundary>
       <ReduxProvider>
-        <AuthGuard>
-          {isLoginPage ? (
-            <>{children}</>
-          ) : (
-            <LayoutShell hideSidebar={isFeedbackScreen}>{children}</LayoutShell>
-          )}
-        </AuthGuard>
+        <Suspense fallback={null}>
+          <RootLayoutInner>{children}</RootLayoutInner>
+        </Suspense>
         <ToastProvider />
       </ReduxProvider>
     </ErrorBoundary>
