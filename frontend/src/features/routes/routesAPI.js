@@ -60,7 +60,6 @@ export const fetchLocationRoutes = async (locationId) => {
       'populate[units][populate][unit_img]': true,
       'populate[units][populate][routes][populate][bus_sifts]': true,
       'populate[company]': true,
-      'populate[city]': true,
       sort: 'name:asc',
     },
   });
@@ -75,7 +74,6 @@ export const fetchLocationRoutes = async (locationId) => {
     active: data?.attributes?.active ?? data?.active ?? true,
     note: data?.attributes?.note ?? data?.note ?? null,
     company: data?.attributes?.company ?? data?.company ?? null,
-    city: data?.attributes?.city ?? data?.city ?? null,
     units: unitsArr.map(normalizeUnitWithRoutes),
   };
 };
