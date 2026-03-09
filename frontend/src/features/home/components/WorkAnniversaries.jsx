@@ -5,6 +5,8 @@ import { Trophy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 export default function WorkAnniversaries({ anniversaries = [] }) {
+  const validAnniversaries = anniversaries.filter((person) => Number(person?.yearsCompleted) > 0);
+
   return (
     <section className="w-full h-full min-h-0 flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -17,13 +19,13 @@ export default function WorkAnniversaries({ anniversaries = [] }) {
         </Link>
       </div>
       <Card className="rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow flex flex-col items-center gap-4 self-stretch p-4 flex-1 max-h-[320px]">
-        {anniversaries.length === 0 ? (
+        {validAnniversaries.length === 0 ? (
           <div className="text-gray-500 text-center w-full py-6">No anniversary today</div>
         ) : (
           <div
-            className={anniversaries.length > 2 ? "max-h-[280px] overflow-y-auto w-full pr-2" : "w-full"}
+            className={validAnniversaries.length > 2 ? "max-h-[280px] overflow-y-auto w-full pr-2" : "w-full"}
           >
-            {anniversaries.map((person) => (
+            {validAnniversaries.map((person) => (
               <div
                 key={person.id}
                 className="flex flex-col items-start gap-4  w-full h-[130px]"

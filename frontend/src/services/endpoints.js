@@ -88,6 +88,10 @@ export const API_ENDPOINTS = {
     MARK_AS_READ: '/module-video-progresses/mark-as-read',
   },
 
+  ORIENTATION: {
+    CONFIRM: '/orientation-confirmations/confirm',
+  },
+
   // Gallery endpoints (baseURL already includes /api)
   GALLERY: {
     LIST: '/gallery-items',
