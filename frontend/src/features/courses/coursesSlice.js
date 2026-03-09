@@ -14,6 +14,7 @@ export const loadAllCourses = createAsyncThunk(
           ...c,
           completed: progressByCourse[c.id]?.completed ?? c.completed,
           certificationGenerated: progressByCourse[c.id]?.certificate_issued ?? c.certificationGenerated,
+          progressStatus: progressByCourse[c.id]?.progress_status ?? null,
         }));
       }
       return courses;

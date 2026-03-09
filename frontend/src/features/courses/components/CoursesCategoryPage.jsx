@@ -297,9 +297,9 @@ export default function CoursesCategoryPage({ category }) {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => {
-                const isNotStarted = !course.completed && (!course.progress || course.progress === 0);
-                const isInProgress = !course.completed && course.progress > 0;
-                const isCompleted = !!course.completed;
+                const isNotStarted = !course.completed && (!course.progressStatus || course.progressStatus === 'Not_started');
+                const isInProgress = !course.completed && (course.progressStatus === 'In_progress' || course.progressStatus === 'Failed');
+                const isCompleted = !!course.completed || course.progressStatus === 'Completed';
                 const canShowCardMenu = !isCompleted;
                 const feedbackKey = String(course.id ?? course.documentId ?? '');
                 const feedbackState = feedbackEligibility[feedbackKey] || {
@@ -394,20 +394,11 @@ export default function CoursesCategoryPage({ category }) {
                         {course.title}
                       </div>
                       {isInProgress && (
-                        <>
-                          <div className="flex items-center justify-between mb-2 mt-2">
-                            <span className="text-small font-semibold text-primary">{Math.min(100, course.progress)}% Completed</span>
-                            <span className="text-small text-muted-foreground">{course.time}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-2 bg-primary rounded-full transition-all"
-                                style={{ width: `${Math.min(100, course.progress)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </>
+                        <Button
+                          className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center"
+                        >
+                          Continue Course <ChevronRight className="w-5 h-5" />
+                        </Button>
                       )}
                       {isNotStarted && (
                         <Button
