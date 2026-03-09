@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Calendar from 'react-calendar';
 import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap, Info } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
@@ -34,6 +35,20 @@ function toMonthKey(d) {
   if (!d) return '';
   const date = d instanceof Date ? d : new Date(d);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function parseDateForCalendar(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number);
+    const localDate = new Date(y, m - 1, d);
+    return Number.isNaN(localDate.getTime()) ? null : localDate;
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -86,9 +101,17 @@ function layoutDayEvents(events, dayDate) {
 }
 
 export default function CalendarPage() {
+  const searchParams = useSearchParams();
+  const requestedEventId = searchParams.get('eventId');
+  const requestedDateRaw = searchParams.get('date');
+  const requestedDate = useMemo(() => parseDateForCalendar(requestedDateRaw), [requestedDateRaw]);
+
   const [viewMode, setViewMode] = useState('month');
-  const [activeDate, setActiveDate] = useState(() => new Date());
-  const [activeStartDate, setActiveStartDate] = useState(() => new Date());
+  const [activeDate, setActiveDate] = useState(() => requestedDate || new Date());
+  const [activeStartDate, setActiveStartDate] = useState(() => {
+    const d = requestedDate || new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
   const [calendarView, setCalendarView] = useState('month');
   const [eventsList, setEventsList] = useState([]);
   const [holidaysList, setHolidaysList] = useState([]);
@@ -102,6 +125,17 @@ export default function CalendarPage() {
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
+  const [pendingSelectedEventId, setPendingSelectedEventId] = useState(() => requestedEventId || null);
+
+  useEffect(() => {
+    if (requestedDate) {
+      setActiveDate(requestedDate);
+      setActiveStartDate(new Date(requestedDate.getFullYear(), requestedDate.getMonth(), 1));
+      setViewMode('month');
+      setCalendarView('month');
+    }
+    setPendingSelectedEventId(requestedEventId || null);
+  }, [requestedDate, requestedEventId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -361,6 +395,37 @@ export default function CalendarPage() {
     }
   };
 
+  useEffect(() => {
+    if (!pendingSelectedEventId || eventsLoading) return;
+
+    const match = (eventsList || []).find(
+      (ev) => String(ev.documentId ?? ev.id) === String(pendingSelectedEventId)
+    );
+
+    if (!match) return;
+
+    const dateFromEvent = parseDateForCalendar(match.date);
+    if (dateFromEvent) {
+      setActiveDate(dateFromEvent);
+      setActiveStartDate(new Date(dateFromEvent.getFullYear(), dateFromEvent.getMonth(), 1));
+      setViewMode('month');
+      setCalendarView('month');
+    }
+
+    const id = match.documentId ?? match.id;
+    setExpandedEventId(id);
+    setExpandedEvent(null);
+    setDetailLoading(true);
+
+    fetchEventById(id)
+      .then((data) => setExpandedEvent(data || match))
+      .catch(() => setExpandedEvent(match))
+      .finally(() => {
+        setDetailLoading(false);
+        setPendingSelectedEventId(null);
+      });
+  }, [pendingSelectedEventId, eventsLoading, eventsList]);
+
   return (
     <div className="min-h-screen bg-[#e8e8e8]">
       <PageHeader
@@ -375,15 +440,15 @@ export default function CalendarPage() {
       </PageHeader>
 
       <PageContainer className="pb-xl px-xl">
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-8">
           {/* Left: Calendar */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 lg:h-[calc(100vh-10rem)]">
             {isDataLoading ? (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px]">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px] lg:h-full">
                 <Loader size="lg" />
               </div>
             ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden calendar-card">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden calendar-card lg:h-full flex flex-col">
               <div className="calendar-custom-header flex items-center justify-between px-4 py-4 border-b border-gray-200">
                 <div className="flex items-center gap-1">
                   <button
@@ -439,7 +504,7 @@ export default function CalendarPage() {
               </div>
 
               {viewMode === 'day' ? (
-                <div className="day-view-grid flex flex-col min-h-[500px]">
+                <div className="day-view-grid flex flex-col min-h-[500px] lg:min-h-0 lg:flex-1">
                   {/* All-day row */}
                   {(allDayEvents.length > 0) && (
                     <div className="flex border-b border-gray-200 min-h-[44px] shrink-0">
@@ -623,7 +688,7 @@ export default function CalendarPage() {
                   if (isHoliday) classes.push('text-[#EF4444] font-semibold');
                   return classes.join(' ');
                 }}
-                className="calendar-widget border-0 w-full"
+                className="calendar-widget border-0 w-full lg:flex-1"
               />
               )}
             </div>
@@ -631,9 +696,9 @@ export default function CalendarPage() {
           </div>
 
           {/* Right: Sidebar - Events & Holidays */}
-          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 max-h-[calc(100vh-10rem)]">
+          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 lg:h-[calc(100vh-10rem)]">
             {/* Events card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-[350px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 basis-1/2 min-h-0">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
@@ -787,7 +852,7 @@ export default function CalendarPage() {
               )}
             </div>
             {/* Holidays card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 min-h-[220px]">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 basis-1/2 min-h-0">
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Holidays</h3>
               {isDataLoading ? (
                 <div className="flex justify-center py-6 px-4 flex-1">

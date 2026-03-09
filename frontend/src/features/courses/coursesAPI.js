@@ -68,12 +68,19 @@ function normalizeCourse(course) {
     Array.isArray(course.modules) ? course.modules
     : Array.isArray(course?.attributes?.modules) ? course.attributes.modules
     : [];
-  
-  // Calculate total duration from all modules
-  const totalModuleDuration = rawModules.reduce((total, module) => {
+  const courseLanguages = Array.isArray(course.course_language) ? course.course_language : [];
+
+  // Card stats should represent one language track, not all language variants together.
+  const primaryLanguage = (courseLanguages[0] || '').trim().toLowerCase();
+  const modulesForStats = primaryLanguage
+    ? rawModules.filter((module) => String(module?.language || '').trim().toLowerCase() === primaryLanguage)
+    : rawModules;
+  const effectiveModulesForStats = modulesForStats.length > 0 ? modulesForStats : rawModules;
+  const totalModuleDuration = effectiveModulesForStats.reduce((total, module) => {
     const moduleTime = typeof module.module_duration_min === 'number' ? module.module_duration_min : 0;
     return total + moduleTime;
   }, 0);
+  const durationMinutes = totalModuleDuration > 0 ? totalModuleDuration : (durationMin > 0 ? durationMin : 0);
   // Normalize quiz array to always include quiz_questions if present
   const quiz = Array.isArray(course.quiz)
     ? course.quiz.map(q => ({
@@ -91,7 +98,8 @@ function normalizeCourse(course) {
     image: withImageUrl(course.thumbnail),
     moduleDuration: durationMin || '',
     duration: totalModuleDuration > 0 ? Math.ceil(totalModuleDuration / 60) : (durationMin > 0 ? Math.ceil(durationMin / 60) : 0), // Convert minutes to hours and round up
-    modules: rawModules.length || 0,
+    durationMinutes,
+    modules: effectiveModulesForStats.length || 0,
     rawModules,                              // raw Strapi format — needed for PUT updates
     modulesList: rawModules.map(normalizeModule),
     quiz,
@@ -109,7 +117,7 @@ function normalizeCourse(course) {
     time: null,
     // Additional metadata
     minPassingScore: course.min_passing_score || 0,
-    languages: course.course_language || [],
+    languages: courseLanguages,
     orientationRequired: course.orientation_required || false,
     orientation_detail: Array.isArray(course.orientation_detail)
       ? course.orientation_detail

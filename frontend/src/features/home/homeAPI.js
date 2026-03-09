@@ -131,7 +131,7 @@ export const fetchUpcomingEvents = async () => {
   let res;
   try {
     res = await api.get('/events', {
-      params: { sort: 'start_date:asc' },
+      params: { sort: 'start_date:desc' },
     });
   } catch {
     // Fallback for endpoints that don't support sort param.
@@ -143,7 +143,7 @@ export const fetchUpcomingEvents = async () => {
   const picked = (forHome.length > 0 ? forHome : active).sort((a, b) => {
     const aTime = new Date(a.start_date || 0).getTime();
     const bTime = new Date(b.start_date || 0).getTime();
-    return aTime - bTime;
+    return bTime - aTime;
   });
   return picked.map(normalizeEvent);
 };

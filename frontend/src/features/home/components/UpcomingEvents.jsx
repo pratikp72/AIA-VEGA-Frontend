@@ -36,7 +36,11 @@ export default function UpcomingEvents({ events = [] }) {
       {/* Grid of event cards – 24px gap from header */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
         {events.slice(0, 6).map((event, index) => (
-          <Link key={event.id} href={`/calendar/${event.id}`} className="w-full">
+          <Link
+            key={event.id}
+            href={`/calendar?eventId=${encodeURIComponent(String(event.documentId ?? event.id ?? ''))}${event.date ? `&date=${encodeURIComponent(event.date)}` : ''}`}
+            className="w-full"
+          >
             <div className="flex flex-row items-stretch min-h-[165px] w-full hover:shadow-md transition-shadow cursor-pointer overflow-hidden border border-gray-200 bg-white rounded-[20px] shadow-sm">
               {/* Left: Date + colored vertical bar */}
               <div className="flex flex-shrink-0 self-stretch">

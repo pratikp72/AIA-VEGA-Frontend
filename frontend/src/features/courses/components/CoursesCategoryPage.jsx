@@ -392,7 +392,9 @@ export default function CoursesCategoryPage({ category }) {
                       <div className="flex items-center gap-6 text-small text-muted-foreground mb-4">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {course.duration} hours
+                          {Number(course.durationMinutes) > 0 && Number(course.durationMinutes) < 60
+                            ? `${Math.round(Number(course.durationMinutes))} mins`
+                            : `${course.duration} hours`}
                         </span>
                         <span className="flex items-center gap-1">
                           <BookOpen className="w-4 h-4" />
