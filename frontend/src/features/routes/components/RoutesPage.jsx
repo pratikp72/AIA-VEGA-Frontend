@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import MarkdownIt from "markdown-it";
 import PageHeader from "@/components/common/PageHeader";
 import PageContainer from "@/components/layout/PageContainer";
 import Select from "@/components/ui/select";
@@ -20,18 +21,22 @@ export default function RoutesPage() {
 
   const breadcrumbs = [{ label: "Routes" }];
 
-  // Flatten Strapi blocks (note) into plain text lines for display
-  const noteLines = React.useMemo(() => {
-    const blocks = locationDetail?.note;
-    if (!Array.isArray(blocks)) return [];
-    const lines = [];
-    blocks.forEach((block) => {
-      const children = Array.isArray(block.children) ? block.children : [];
-      const text = children.map((c) => c.text || "").join("").trim();
-      if (text) lines.push(text);
-    });
-    return lines;
-  }, [locationDetail]);
+  const md = React.useMemo(() => new MarkdownIt({ html: true, breaks: true }), []);
+
+  // Show notes from backend location `note` field as markdown.
+  const noteHtml = React.useMemo(() => {
+    const note = locationDetail?.note;
+    if (typeof note !== "string" || !note.trim()) return "";
+    const normalizedNote = note
+      .replace(/\r\n/g, "\n")
+      // Convert malformed bullet prefixes like ".-text" or "-text" into valid markdown "- text".
+      .replace(/^\s*[.।]??\s*[-*+]\s*(\S.*)$/gm, "- $1")
+      // Convert malformed ordered prefixes like "1.text" into valid markdown "1. text".
+      .replace(/^\s*(\d+)[.)]\s*(\S.*)$/gm, "$1. $2")
+      // Ensure numbered/bulleted lists start as a markdown block after plain text lines.
+      .replace(/([^\n])\n((?:\d+[.)]|[-*+])\s+)/g, "$1\n\n$2");
+    return md.render(normalizedNote);
+  }, [locationDetail, md]);
 
   
 
@@ -310,41 +315,13 @@ export default function RoutesPage() {
         )}
 
         {/* Bottom panel – route description from backend note field */}
-        <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-6">
-          <h2 className="text-xl font-semibold text-[#111827] mb-3">નૉૅધ</h2>
-          <div className="text-sm text-[#4B5563] leading-relaxed space-y-2">
-            {noteLines.length ? (
-              <>
-                <p>{noteLines[0]}</p>
-                {noteLines.length > 1 && (
-                  <ul className="list-disc pl-5 space-y-1 text-[13px] text-[#374151]">
-                    {noteLines.slice(1).map((line, idx) => (
-                      <li key={idx}>{line}</li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            ) : (
-              <>
-                <p>
-                  નીચે આપેલા બસ રૂટ્સ છે, જે અલગ–અલગ શિફ્ટ અને પ્લાન્ટ માટે લાગુ પડશે.
-                </p>
-                <ul className="list-disc pl-5 space-y-1 text-[13px] text-[#374151]">
-                  <li>કર્મચારીઓ માટે પિક‑અપ અને ડ્રોપ‑ઓફ માટે ચોક્કસ સમય રહેશે.</li>
-                  <li>
-                    દરેક રૂટ માટે સ્ટાર્ટિંગ પોઇન્ટ, રસ્તામાં આવતા તમામ સ્ટોપ અને અંતિમ ગંતવ્ય હશે.
-                  </li>
-                  <li>
-                    કૃપા કરી કંપની દ્વારા જાહેર થયેલા શેડ્યુલ પ્રમાણે બસમાં બેસવાનું રહેશે.
-                  </li>
-                  <li>
-                    વિશેષ સૂચનાઓ અને અપડેટ્સ માટે HR બુલેટિન અથવા પોર્ટલ ચેક કરશો.
-                  </li>
-                </ul>
-              </>
-            )}
+        {noteHtml ? (
+          <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-6">
+            <div className="text-sm text-[#4B5563] leading-relaxed space-y-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-1">
+              <div dangerouslySetInnerHTML={{ __html: noteHtml }} />
+            </div>
           </div>
-        </div>
+        ) : null}
       </PageContainer>
     </div>
   );
