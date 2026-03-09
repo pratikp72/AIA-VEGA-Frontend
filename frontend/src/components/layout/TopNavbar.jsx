@@ -10,63 +10,20 @@ import { API_ENDPOINTS } from '@/services/endpoints';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 import { globalSearch } from '@/features/search/globalSearchAPI';
 import Loader from '@/components/common/Loader';
+import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_MIN_LENGTH = 2;
 
-const NOTIFICATION_POLL_INTERVAL_MS = 20000;
-
 function NotificationBellDropdown() {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
   const ref = useRef(null);
   const router = useRouter();
 
-  const fetchNotifications = useCallback(async (showLoading = false) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (!token) return;
-    try {
-      if (showLoading) setLoading(true);
-      const data = await api.get(API_ENDPOINTS.NOTIFICATIONS.ME, { params: { limit: 50 } });
-      setNotifications(Array.isArray(data?.data) ? data.data : []);
-    } catch (e) {
-      console.error('Failed to load notifications', e);
-      setNotifications([]);
-    } finally {
-      if (showLoading) setLoading(false);
-    }
-  }, []);
+  // Real-time notifications via socket.io — no polling
+  const { notifications, unreadCount, loading, markRead, markAllRead } = useNotificationSocket();
 
-  // Load count on mount and when dropdown opens (with loading state)
-  useEffect(() => {
-    if (open) {
-      fetchNotifications(true);
-    }
-  }, [open, fetchNotifications]);
-
-  // Initial fetch so bell count is visible without opening dropdown
-  useEffect(() => {
-    fetchNotifications(false);
-  }, [fetchNotifications]);
-
-  // Poll so bell count updates in near real time (e.g. when admin approves quiz reattempt)
-  useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (!token) return;
-    const interval = setInterval(() => fetchNotifications(false), NOTIFICATION_POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
-
-  // Refetch when user returns to the tab so count is fresh
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') fetchNotifications(false);
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [fetchNotifications]);
-
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClick(e) {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -75,31 +32,14 @@ function NotificationBellDropdown() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
   const handleNotificationClick = async (notification) => {
-    const id = notification.id ?? notification.documentId;
-    if (!id) return;
-    try {
-      // Mark this notification as read on the backend
-      await api.post(API_ENDPOINTS.NOTIFICATIONS.MARK_READ, { id });
-      // Optimistically remove it from the unread dropdown
-      setNotifications((prev) => prev.filter((n) => (n.id ?? n.documentId) !== id));
-    } catch (e) {
-      console.error('Failed to mark notification as read', e);
-    }
+    await markRead(notification);
   };
 
   const handleSeeAllClick = async (e) => {
     e.preventDefault();
     try {
-      const ids = notifications
-        .map((n) => n.id ?? n.documentId)
-        .filter((id) => id != null);
-      if (ids.length) {
-        await api.post(API_ENDPOINTS.NOTIFICATIONS.MARK_READ, { ids });
-        setNotifications([]);
-      }
+      await markAllRead();
     } catch (err) {
       console.error('Failed to mark all notifications as read', err);
     } finally {
