@@ -31,7 +31,7 @@ export default function NewsCard({ news }) {
             <Calendar className="w-4 h-4" />
             <span>
               {(() => {
-                const date = news.createdAt || news.date;
+                const date = news.publish_date || news.date;
                 if (!date) return '';
                 const d = new Date(date);
                 return d.toLocaleDateString('en-US', {

@@ -44,6 +44,13 @@ function normalizeEvent(item) {
   const eventType = item.event_type;
   const color = colorForEventType(eventType);
   const eventImageUrl = getEventImageUrl(item.event_image);
+  // Resolve department name from relation (Strapi v5 flat or v4 nested)
+  const deptRaw = item.department;
+  const department_name =
+    deptRaw?.name ||
+    deptRaw?.data?.attributes?.name ||
+    deptRaw?.attributes?.name ||
+    null;
   return {
     id: item.documentId ?? item.id,
     documentId: item.documentId,
@@ -59,6 +66,9 @@ function normalizeEvent(item) {
     fullTitle: item.title,
     icon: 'calendar',
     event_image: eventImageUrl,
+    // Department visibility fields
+    event_created_for: item.event_created_for || 'All',
+    department_name,
   };
 }
 
