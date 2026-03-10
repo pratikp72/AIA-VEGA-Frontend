@@ -10,9 +10,6 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
     return null;
   }
 
-  // Only show top 4 unless showAll is true
-  const displayJoinees = showAll ? joinees : joinees.slice(0, 4);
-
   return (
     <section className="h-170.25 flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-4">
@@ -33,7 +30,7 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
       </div>
 
       <div className="flex flex-col items-start gap-6 flex-1 min-h-0 w-full overflow-y-auto scrollbar-hide">
-        {displayJoinees.map((person) => (
+        {joinees.map((person) => (
           <div key={person.id} className="w-full min-w-0">
             <Card className="w-full min-w-0 p-4 border border-gray-200 bg-white rounded-4xl h-35 flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
               <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">

@@ -223,7 +223,6 @@ export const fetchNewJoinees = async () => {
   const newJoinees = items
     .filter((emp) => emp.joining_date && emp.blocked !== true && isNewJoinee(emp.joining_date, NEW_JOINEE_DAYS))
     .sort((a, b) => new Date(b.joining_date) - new Date(a.joining_date))
-    .slice(0, 6)
     .map(normalizeUserForJoinee);
 
   return newJoinees;
