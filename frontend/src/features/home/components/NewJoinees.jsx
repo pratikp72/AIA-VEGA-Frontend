@@ -11,7 +11,7 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
   }
 
   return (
-    <section className="h-170.25 flex flex-col min-h-0">
+    <section className="flex flex-col min-h-0">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-h2">
           New Joinees
@@ -29,7 +29,7 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
         )}
       </div>
 
-      <div className="flex flex-col items-start gap-6 flex-1 min-h-0 w-full overflow-y-auto scrollbar-hide">
+      <div className="flex flex-col items-start gap-6 w-full overflow-y-auto scrollbar-hide" style={{ maxHeight: '632px' }}>
         {joinees.map((person) => (
           <div key={person.id} className="w-full min-w-0">
             <Card className="w-full min-w-0 p-4 border border-gray-200 bg-white rounded-4xl h-35 flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
