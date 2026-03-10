@@ -5,6 +5,18 @@ import SurfaceCard from '@/components/common/SurfaceCard';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
+
+function stripImagesFromPreview(text = '', lineLimit = 3) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    if (i >= lineLimit) return line;
+    return line
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // markdown images
+      .replace(/<img\b[^>]*\/?>/gi, '');        // HTML <img> tags
+  }).join('\n');
+}
+
 export default function NewsCard({ news }) {
     const md = new MarkdownIt({ html: true, breaks: true });
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
@@ -51,7 +63,7 @@ export default function NewsCard({ news }) {
           {/* Description - max 3 lines with ellipsis */}
             <div
               className="text-body text-gray-medium mb-2 line-clamp-3 overflow-hidden"
-              dangerouslySetInnerHTML={{ __html: md.render(news.description || '') }}
+              dangerouslySetInnerHTML={{ __html: md.render(stripImagesFromPreview(news.description || '')) }}
             />
 
           {/* Read More Link */}

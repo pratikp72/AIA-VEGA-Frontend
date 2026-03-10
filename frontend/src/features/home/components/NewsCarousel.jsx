@@ -6,6 +6,18 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MarkdownIt from 'markdown-it';
 
+function stripImagesFromPreview(text = '', lineLimit = 3) {
+  if (!text) return '';
+  const lines = text.split('\n');
+  const cleaned = lines.map((line, i) => {
+    if (i >= lineLimit) return line;
+    return line
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // markdown images
+      .replace(/<img\b[^>]*\/?>/gi, '');       // HTML <img> tags
+  });
+  return cleaned.join('\n');
+}
+
 export default function NewsCarousel({ news = [] }) {
   // ✅ Cap at 6 items
   const visibleNews = news.slice(0, 6);
@@ -81,7 +93,7 @@ export default function NewsCarousel({ news = [] }) {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}
-          dangerouslySetInnerHTML={{ __html: md.render(currentNews.description || '') }}
+          dangerouslySetInnerHTML={{ __html: md.render(stripImagesFromPreview(currentNews.description || '')) }}
         />
 
         {/* Read More button */}

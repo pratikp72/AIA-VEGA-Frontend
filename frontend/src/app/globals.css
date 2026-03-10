@@ -795,3 +795,12 @@
   border-color: #E5E7EB;
   margin: 1.5rem 0;
 }
+.rich-content img {
+  display: block;
+  max-width: 100%;
+  max-height: 400px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  margin: 1rem 0;
+}

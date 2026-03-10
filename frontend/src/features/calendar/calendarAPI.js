@@ -6,16 +6,6 @@ import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { MOCK_CALENDAR_EVENTS, MOCK_CALENDAR_HOLIDAYS } from '@/services/mockData';
 import { fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/people/peopleAPI';
 
-/** Event type → color. Keys normalized to lowercase for matching. */
-const EVENT_TYPE_COLORS = {
-  conference: '#2563EB',
-  workshop: '#F0C51A',
-  'training session': '#00F078',
-  birthday: '#FD8C02',
-  'work anniversary': '#9C2EDB',
-  anniversary: '#9C2EDB',
-  holidays: '#EF4444',
-};
 const DEFAULT_EVENT_COLOR = '#2563EB';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
@@ -33,16 +23,12 @@ function formatEventTime(isoDate) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function colorForEventType(eventType) {
-  if (!eventType) return DEFAULT_EVENT_COLOR;
-  const key = String(eventType).toLowerCase().trim();
-  return EVENT_TYPE_COLORS[key] || DEFAULT_EVENT_COLOR;
-}
-
 function normalizeEvent(item) {
   const start = item.start_date;
-  const eventType = item.event_type;
-  const color = colorForEventType(eventType);
+  // Resolve event type from the populated type_of_event relation
+  const typeRel = item.type_of_event;
+  const eventTypeName = typeRel?.name || typeRel?.data?.attributes?.name || typeRel?.attributes?.name || item.event_type || '';
+  const color = typeRel?.color_for_event || typeRel?.data?.attributes?.color_for_event || typeRel?.attributes?.color_for_event || DEFAULT_EVENT_COLOR;
   const eventImageUrl = getEventImageUrl(item.event_image);
   // Resolve department name from relation (Strapi v5 flat or v4 nested)
   const deptRaw = item.department;
@@ -59,7 +45,7 @@ function normalizeEvent(item) {
     date: start ? new Date(start).toISOString().slice(0, 10) : '',
     time: formatEventTime(start),
     location: item.event_location || '',
-    event_type: eventType,
+    event_type: eventTypeName,
     start_date: item.start_date,
     end_date: item.end_date,
     color,
@@ -70,6 +56,25 @@ function normalizeEvent(item) {
     event_created_for: item.event_created_for || 'All',
     department_name,
   };
+}
+
+/** GET /event-types – all event types with their colors for the legend */
+export async function fetchEventTypes() {
+  try {
+    const res = await api.get('/event-types', {
+      params: { sort: 'name:asc' },
+    });
+    const raw = Array.isArray(res?.data) ? res.data : [];
+    return raw.map((et) => ({
+      key: (et.name || '').toLowerCase().replace(/\s+/g, '_'),
+      label: et.name || '',
+      color: et.color_for_event || DEFAULT_EVENT_COLOR,
+      documentId: et.documentId,
+      id: et.id,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /** GET /events – all events for the calendar (no homepage filter) */

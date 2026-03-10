@@ -6,7 +6,7 @@ import Calendar from 'react-calendar';
 import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap, Info } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
-import { fetchEvents, fetchEventById, fetchHolidays, fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/calendar/calendarAPI';
+import { fetchEvents, fetchEventById, fetchHolidays, fetchEmployeeBirthdays, fetchEmployeeAnniversaries, fetchEventTypes } from '@/features/calendar/calendarAPI';
 import Loader from '@/components/common/Loader';
 import MarkdownIt from 'markdown-it';
 import 'react-calendar/dist/Calendar.css';
@@ -17,15 +17,6 @@ const VIEW_MODES = [
   { key: 'day', label: 'Day' },
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
-];
-
-const CATEGORY_LEGEND = [
-  { key: 'conference', label: 'Conferences', color: '#2563EB' },
-  { key: 'birthday', label: 'Birthdays', color: '#FD8C02' },
-  { key: 'work_anniversary', label: 'Work Anniversaries', color: '#9C2EDB' },
-  { key: 'training_session', label: 'Training Sessions', color: '#00F078' },
-  { key: 'workshop', label: 'Workshop', color: '#F0C51A' },
-  { key: 'holidays', label: 'Holidays', color: '#EF4444' },
 ];
 
 function toDateKey(d) {
@@ -124,6 +115,7 @@ export default function CalendarPage() {
   const [holidaysLoading, setHolidaysLoading] = useState(true);
   const [birthdaysLoading, setBirthdaysLoading] = useState(true);
   const [anniversariesLoading, setAnniversariesLoading] = useState(true);
+  const [categoryLegend, setCategoryLegend] = useState([]);
   const [expandedEventId, setExpandedEventId] = useState(null);
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -139,6 +131,10 @@ export default function CalendarPage() {
     }
     setPendingSelectedEventId(requestedEventId || null);
   }, [requestedDate, requestedEventId]);
+
+  useEffect(() => {
+    fetchEventTypes().then((types) => setCategoryLegend(types)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -955,7 +951,7 @@ export default function CalendarPage() {
 
         {/* Bottom legend */}
         <div className="mt-8 flex flex-wrap items-center gap-6 bg-white rounded-xl border border-gray-200 px-6 py-4 shadow-sm">
-          {CATEGORY_LEGEND.map((item) => (
+          {categoryLegend.map((item) => (
             <div key={item.key} className="flex items-center gap-2">
               <span
                 className="w-3 h-3 rounded-full shrink-0"
