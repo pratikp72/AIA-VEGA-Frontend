@@ -61,6 +61,7 @@ export const API_ENDPOINTS = {
     EMPLOYEES: '/analytics/employees',
     DEPARTMENTS: '/analytics/departments',
     UNIT_LOCATIONS: '/analytics/unit-locations',
+    EVENTS_INGEST: '/analytics/events/ingest',
   },
 
   // Location endpoints – Strapi unit_locations content-type

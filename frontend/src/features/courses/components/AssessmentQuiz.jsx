@@ -17,6 +17,7 @@ import { submitQuiz, getLatestSubmission, sendReattemptRequest, checkPendingReat
 import FeedbackForm from "./FeedbackForm";
 import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
+import telemetryService from '@/services/telemetry';
 
 function ResultScreen({
   passed,
@@ -375,8 +376,36 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
           if (reattemptStatus?.hasPending) setReattemptSent(true);
         }
       }
+
+      telemetryService.trackLearningEvent('quiz_submitted', {
+        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
+        entityType: 'quiz',
+        entityId: String(courseNumericId),
+        pageType: 'CourseAssessment',
+        durationSeconds: Math.max(0, Math.round(quizDurationSeconds - currentTimeLeft)),
+        metadata: {
+          course_id: Number(courseNumericId),
+          user_id: Number(userId),
+          passed: userPassed,
+          score: submission?.score ?? 0,
+          attempt_number: attemptNum ?? null,
+          max_attempt: maxAttemptVal ?? null,
+          auto_submitted: Boolean(violationWarning),
+        },
+      });
     } catch (e) {
       console.error('Quiz submission failed', e);
+      telemetryService.trackLearningEvent('quiz_submission_failed', {
+        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
+        entityType: 'quiz',
+        entityId: String(courseNumericId),
+        pageType: 'CourseAssessment',
+        metadata: {
+          course_id: Number(courseNumericId),
+          user_id: Number(userId),
+          error: e?.message || 'Quiz submission failed',
+        },
+      });
     } finally {
       isSubmittingRef.current = false;
       submittedRef.current = true;
@@ -457,6 +486,16 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     try {
       await sendReattemptRequest(Number(userId), Number(courseNumericId));
       setReattemptSent(true);
+      telemetryService.trackLearningEvent('quiz_reattempt_requested', {
+        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
+        entityType: 'quiz',
+        entityId: String(courseNumericId),
+        pageType: 'CourseAssessment',
+        metadata: {
+          course_id: Number(courseNumericId),
+          user_id: Number(userId),
+        },
+      });
     } catch (err) {
       const msg = err?.error?.message || err?.message || "Failed to send re-attempt request.";
       setReattemptError(msg);

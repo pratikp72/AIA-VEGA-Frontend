@@ -1,4 +1,5 @@
 import "./globals.css";
+import { Suspense } from 'react';
 import { Roboto } from "next/font/google";
 import RootLayoutClient from '@/components/layout/RootLayoutClient';
 
@@ -19,7 +20,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={roboto.variable}>
       <body className={roboto.className}>
-        <RootLayoutClient>{children}</RootLayoutClient>
+        <Suspense fallback={null}>
+          <RootLayoutClient>{children}</RootLayoutClient>
+        </Suspense>
       </body>
     </html>
   );

@@ -16,6 +16,7 @@ import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/f
 import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
+import telemetryService from '@/services/telemetry';
 
 const md = new MarkdownIt({ html: true, breaks: true });
 
@@ -225,9 +226,22 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const courseIdForApi = course.id ?? course.documentId;
     const module_ = contents.find((m) => String(m.moduleId || m.id) === String(modId));
     const moduleIndex = module_ != null ? contents.findIndex((m) => String(m.moduleId || m.id) === String(modId)) : -1;
+    const routePath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
 
     try {
       await markModuleProgress({ userId, courseId: courseIdForApi, moduleId: String(modId) });
+      telemetryService.trackLearningEvent('module_marked_read', {
+        routePath,
+        entityType: 'module',
+        entityId: String(modId),
+        metadata: {
+          course_document_id: course?.documentId,
+          course_id: course?.id,
+          module_title: module_?.moduleTitle || module_?.title || null,
+          module_index: moduleIndex,
+          language: selectedLanguage,
+        },
+      });
     } catch (err) {
       console.error('Failed to mark module (user-progress):', err?.message ?? err?.status ?? err);
     }
@@ -242,6 +256,21 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
           moduleTitle: module_?.moduleTitle || module_?.title || null,
           videoDurationMin: durationMin,
           timeWatchedMin: durationMin,
+        });
+        telemetryService.trackLearningEvent('video_progress_marked', {
+          routePath,
+          entityType: 'video',
+          entityId: String(modId),
+          durationSeconds: Math.round(durationMin * 60),
+          metadata: {
+            course_document_id: course?.documentId,
+            course_id: course?.id,
+            module_title: module_?.moduleTitle || module_?.title || null,
+            module_index: moduleIndex,
+            language: selectedLanguage,
+            video_duration_min: durationMin,
+            time_watched_min: durationMin,
+          },
         });
       } catch (err) {
         console.error('Failed to mark module (module-video-progress):', err?.message ?? err?.status ?? err);

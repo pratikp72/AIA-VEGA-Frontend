@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Star } from "lucide-react";
 import api from '@/services/api';
 import Loader from '@/components/common/Loader';
+import telemetryService from '@/services/telemetry';
 
 // Fallback questions used when no API feedback questions are available
 const FALLBACK_QUESTIONS = [
@@ -140,9 +141,31 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
     setSubmitError(null);
     try {
       const response = await api.post('/feedback-submission/submit', payload);
+      telemetryService.trackLearningEvent('feedback_submitted', {
+        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
+        entityType: 'feedback',
+        entityId: String(courseId || ''),
+        pageType: 'CourseFeedback',
+        metadata: {
+          course_id: Number(courseId),
+          user_id: Number(userId),
+          question_count: activeQuestions.length,
+        },
+      });
       onSubmit?.(response);
     } catch (error) {
       setSubmitError(error?.error?.message || error?.message || 'Failed to submit feedback. Please try again.');
+      telemetryService.trackLearningEvent('feedback_submission_failed', {
+        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
+        entityType: 'feedback',
+        entityId: String(courseId || ''),
+        pageType: 'CourseFeedback',
+        metadata: {
+          course_id: Number(courseId),
+          user_id: Number(userId),
+          error: error?.message || 'Feedback submission failed',
+        },
+      });
     } finally {
       setIsSubmitting(false);
     }
