@@ -6,7 +6,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { Calendar } from "lucide-react";
 import MarkdownIt from "markdown-it";
 import Loader from "@/components/common/Loader";
-const md = new MarkdownIt();
+const md = new MarkdownIt({ html: true });
 
 export default function PolicyDetail({ item, fetchPolicyById }) {
   const [policy, setPolicy] = useState(null);
@@ -117,7 +117,7 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
               <div className="mb-3">
                 <h3 className="text-lg font-semibold">Policy Details</h3>
               </div>
-              <div className="prose max-w-none leading-relaxed text-sm text-[#374151]">
+              <div className="rich-content">
                 <div
                   dangerouslySetInnerHTML={{
                     __html:

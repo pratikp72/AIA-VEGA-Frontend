@@ -1,6 +1,8 @@
 import "./globals.css";
 import { Roboto } from "next/font/google";
 import RootLayoutClient from '@/components/layout/RootLayoutClient';
+import { icons } from "lucide-react";
+
 
 const roboto = Roboto({
   weight: ["400", "500", "700"],
@@ -10,8 +12,11 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  title: "Your App Name",
-  description: "Your app description",
+  title: "Information Management Portal",
+  description: "Information Management Portal for AIA and Vega.",
+  icons: {
+    icon: "/aia-favicon.png",
+  },
 };
 
 

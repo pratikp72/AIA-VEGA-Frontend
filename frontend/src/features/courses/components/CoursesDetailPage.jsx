@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import MarkdownIt from "markdown-it";
 import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
@@ -16,23 +17,10 @@ import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress } 
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 
-function extractOrientationTopics(topicsToCover) {
-  if (!Array.isArray(topicsToCover)) return [];
-  const items = [];
-  topicsToCover.forEach((block) => {
-    const children = block.children || [];
-    children.forEach((node) => {
-      if (node.type === "list-item" && Array.isArray(node.children)) {
-        const text = node.children.map((c) => c.text || "").join("").trim();
-        if (text) items.push(text);
-      }
-    });
-  });
-  return items;
-}
+const md = new MarkdownIt({ html: true, breaks: true });
 
 function OrientationDetailCard({ orientation }) {
-  const topics = extractOrientationTopics(orientation.topics_to_cover);
+  const topicsHtml = md.render(orientation?.topics_to_cover || "");
   const flow = orientation.orientation_flow || "—";
   const trainer = orientation.trainer_name || "—";
   return (
@@ -47,14 +35,13 @@ function OrientationDetailCard({ orientation }) {
           
           <span><strong className="text-gray-700">Trainer:</strong> {trainer}</span>
         </div>
-        {topics.length > 0 && (
+        {topicsHtml && (
           <div>
             <strong className="text-gray-700">Topics to cover:</strong>
-            <ul className="mt-1.5 list-disc list-inside space-y-0.5 pl-1">
-              {topics.map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
+            <div
+              className="mt-1.5 rich-content"
+              dangerouslySetInnerHTML={{ __html: topicsHtml }}
+            />
           </div>
         )}
       </div>
@@ -457,18 +444,28 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
               {/* Show content based on moduleType */}
               {currentModule?.moduleType === 'Video' ? (
-                <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
-                  <video
-                    controls
-                    className="w-full h-full object-cover rounded-xl"
-                  >
-                    <source
-                      src={currentModule.video_file?.url || "https://www.w3schools.com/html/mov_bbb.mp4"}
-                      type="video/mp4"
-                    />
-                    Your browser does not support the video tag.
-                  </video>
-                </div>
+                <>
+                  <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
+                    <video
+                      controls
+                      className="w-full h-full object-cover rounded-xl"
+                    >
+                      <source
+                        src={currentModule.video_file?.url || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                        type="video/mp4"
+                      />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                  {currentModule?.description && (
+                    <div className="mt-4 bg-white rounded-xl border border-gray-200 p-5">
+                      <div
+                        className="rich-content"
+                        dangerouslySetInnerHTML={{ __html: md.render(currentModule.description) }}
+                      />
+                    </div>
+                  )}
+                </>
               ) : String(currentModule?.moduleType || '').toLowerCase() === 'pdf' ? (
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {currentModule?.pdf_file?.url ? (

@@ -397,18 +397,40 @@ function ProfileAvatarDropdown() {
 }
 
 export default function TopNavbar({ onMobileMenuToggle }) {
+  const getUserCompany = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return String(user?.company ?? '').trim().toUpperCase();
+    } catch {
+      return '';
+    }
+  };
+
+  const company = typeof window !== 'undefined' ? getUserCompany() : '';
+  const isVega = company === 'VEGA';
+
+  const aiaLogo = (
+    <div className="flex items-center">
+      <img src="/aia_logo.png" alt="AIA" className="h-10 w-auto object-contain" />
+    </div>
+  );
+  const separator = <div className="hidden sm:block w-px h-8 bg-gray-700"></div>;
+  const vegaLogo = (
+    <div className="hidden sm:flex items-center">
+      <img src="/vega_logo.png" alt="VEGA" className="h-10 w-auto object-contain" />
+    </div>
+  );
+
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-[#000000] border-b border-gray-800 z-50">
       <div className="h-full px-4 sm:px-6 flex items-center">
         {/* LEFT LOGOS */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center">
-            <img src="/aia_logo.png" alt="AIA" className="h-10 w-auto object-contain" />
-          </div>
-          <div className="hidden sm:block w-px h-8 bg-gray-700"></div>
-          <div className="hidden sm:flex items-center">
-            <img src="/vega_logo.png" alt="VEGA" className="h-10 w-auto object-contain" />
-          </div>
+          {isVega ? (
+            <>{vegaLogo}{separator}{aiaLogo}</>
+          ) : (
+            <>{aiaLogo}{separator}{vegaLogo}</>
+          )}
         </div>
 
         {/* RIGHT SECTION */}

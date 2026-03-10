@@ -19,8 +19,8 @@ export default function MyCourses({ courses = [] }) {
       {/* ── Empty State ── */}
       {courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 h-[677px] w-full bg-white rounded-[20px] border border-gray-200">
-          <p className="text-gray-800 font-semibold text-base mb-1">No courses available</p>
-          <p className="text-gray-400 text-sm text-center max-w-[200px]">
+          <p className="text-gray-800 font-semibold text-base mb-1 pt-3">No courses available</p>
+          <p className="text-gray-400 text-sm text-center max-w-[200px] pb-3">
             You haven't been enrolled in any courses yet.
           </p>
         </div>
@@ -67,13 +67,15 @@ export default function MyCourses({ courses = [] }) {
                       </span>
                     </div>
 
-                    <p className="text-small text-muted-foreground mt-1.5">
-                      Due {new Date(course.deadline).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </p>
+                    {course.deadline ? (
+                      <p className="text-small text-muted-foreground mt-1.5">
+                        Due {new Date(course.deadline).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </Card>

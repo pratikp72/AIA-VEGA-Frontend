@@ -131,7 +131,7 @@ export const fetchUpcomingEvents = async () => {
   let res;
   try {
     res = await api.get('/events', {
-      params: { sort: 'start_date:asc' },
+      params: { sort: 'start_date:desc' },
     });
   } catch {
     // Fallback for endpoints that don't support sort param.
@@ -143,7 +143,7 @@ export const fetchUpcomingEvents = async () => {
   const picked = (forHome.length > 0 ? forHome : active).sort((a, b) => {
     const aTime = new Date(a.start_date || 0).getTime();
     const bTime = new Date(b.start_date || 0).getTime();
-    return aTime - bTime;
+    return bTime - aTime;
   });
   return picked.map(normalizeEvent);
 };
@@ -223,7 +223,6 @@ export const fetchNewJoinees = async () => {
   const newJoinees = items
     .filter((emp) => emp.joining_date && emp.blocked !== true && isNewJoinee(emp.joining_date, NEW_JOINEE_DAYS))
     .sort((a, b) => new Date(b.joining_date) - new Date(a.joining_date))
-    .slice(0, 6)
     .map(normalizeUserForJoinee);
 
   return newJoinees;
@@ -253,18 +252,105 @@ function getCurrentUserId() {
   }
 }
 
+function getCurrentUserInfo() {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Fetch all active course-assignments and build a map of courseId → earliest due_date.
+ * Filters only assignments that apply to the current user (by company, department,
+ * work_location, or individual user id).
+ */
+async function fetchCourseDueDateMap() {
+  const user = getCurrentUserInfo();
+  const userId = user?.id ?? null;
+  const userDept = String(user?.department ?? '').trim().toLowerCase();
+  const userCompany = String(user?.company ?? '').trim().toLowerCase();
+  const userWorkLocation = String(user?.work_location ?? user?.work_location_id ?? '').trim().toLowerCase();
+
+  let assignments = [];
+  try {
+    const res = await api.get('/course-assignments', {
+      params: {
+        'populate[courses]': true,
+        'populate[departments]': true,
+        'populate[individual_user]': true,
+        'populate[companies]': true,
+        'populate[work_locations]': true,
+        'filters[active][$eq]': true,
+        'pagination[pageSize]': 1000,
+        'pagination[page]': 1,
+      },
+    });
+    assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+  } catch {
+    return {};
+  }
+
+  const dueDateMap = {};
+
+  for (const assignment of assignments) {
+    const dueDate = assignment.due_date;
+    if (!dueDate) continue;
+
+    const targetType = assignment.assignment_target_type;
+    let applicable = false;
+
+    if (targetType === 'Company') {
+      const names = (Array.isArray(assignment.companies) ? assignment.companies : [])
+        .map(c => String(c?.name ?? c?.title ?? '').trim().toLowerCase());
+      applicable = userCompany && names.some(n => n === userCompany || n.includes(userCompany) || userCompany.includes(n));
+    } else if (targetType === 'Department') {
+      const names = (Array.isArray(assignment.departments) ? assignment.departments : [])
+        .map(d => String(d?.name ?? d?.title ?? '').trim().toLowerCase());
+      applicable = userDept && names.some(n => n === userDept || n.includes(userDept) || userDept.includes(n));
+    } else if (targetType === 'Individual') {
+      const users = Array.isArray(assignment.individual_user) ? assignment.individual_user : [];
+      applicable = userId != null && users.some(u => String(u?.id) === String(userId) || String(u?.documentId) === String(userId));
+    } else if (targetType === 'Location') {
+      const names = (Array.isArray(assignment.work_locations) ? assignment.work_locations : [])
+        .map(l => String(l?.name ?? l?.title ?? l?.id ?? '').trim().toLowerCase());
+      applicable = userWorkLocation && names.some(n => n === userWorkLocation || n.includes(userWorkLocation) || userWorkLocation.includes(n));
+    }
+
+    if (!applicable) continue;
+
+    const courses = Array.isArray(assignment.courses) ? assignment.courses : [];
+    for (const course of courses) {
+      const cid = course?.id;
+      if (!cid) continue;
+      // Keep the earliest due_date per course
+      if (!dueDateMap[cid] || new Date(dueDate) < new Date(dueDateMap[cid])) {
+        dueDateMap[cid] = dueDate;
+      }
+    }
+  }
+
+  return dueDateMap;
+}
+
 export const fetchMyCourses = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(500);
     return MOCK_HOME_DATA.courses;
   }
-  const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
-    params: {
-      'populate[thumbnail]': true,
-      'populate[modules]': true,
-      sort: 'createdAt:desc',
-    },
-  });
+
+  const [response, dueDateMap] = await Promise.all([
+    api.get(API_ENDPOINTS.COURSES.LIST, {
+      params: {
+        'populate[thumbnail]': true,
+        'populate[modules]': true,
+        sort: 'createdAt:desc',
+      },
+    }),
+    fetchCourseDueDateMap(),
+  ]);
+
   const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const courses = raw.filter(c => c.active !== false).slice(0, 4);
   const userId = getCurrentUserId();
@@ -303,7 +389,7 @@ export const fetchMyCourses = async () => {
         progress,
         completedLessons,
         totalLessons,
-        deadline: c.deadline || '2026-12-31',
+        deadline: dueDateMap[c.id] || null,
       };
     })
   );

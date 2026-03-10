@@ -168,8 +168,8 @@ export default function NewsDetailPage() {
                 />
               )}
             </div>
-            <div className="prose prose-gray max-w-none text-gray-600">
-              <p dangerouslySetInnerHTML={{ __html: md.render(article.description || '') }} />
+            <div className="rich-content">
+              <div dangerouslySetInnerHTML={{ __html: md.render(article.description || '') }} />
             </div>
             {/* Likes at bottom of article */}
             <div className="flex items-center gap-2 pt-4 border-t border-gray-200">

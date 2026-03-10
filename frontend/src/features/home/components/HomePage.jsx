@@ -120,25 +120,18 @@ export default function HomePage() {
           <QuickLinks links={quickLinks} />
 
           {/* New Joinees & My Courses - Two Column Equal Width */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-md">
-            {/* Left Column - New Joinees */}
-            <div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-md items-start">
+            {/* Left Column - New Joinees + Birthdays */}
+            <div className="flex flex-col gap-md">
               <NewJoinees joinees={joinees} />
+              <BirthdaysToday birthdays={birthdays} />
             </div>
 
-            {/* Right Column - My Courses */}
-            <div>
+            {/* Right Column - My Courses + Anniversaries */}
+            <div className="flex flex-col gap-md">
               <MyCourses courses={courses} />
+              <WorkAnniversaries anniversaries={anniversaries} />
             </div>
-          </div>
-
-          {/* Birthdays & Anniversaries Section - equal column height so both sections align */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-md">
-            {/* Birthdays Today */}
-            <BirthdaysToday birthdays={birthdays} />
-
-            {/* Work Anniversaries */}
-            <WorkAnniversaries anniversaries={anniversaries} />
           </div>
         </div>
         </PageSection>
