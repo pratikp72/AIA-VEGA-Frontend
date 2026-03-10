@@ -4,8 +4,9 @@ import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
-import { loadDashboardData } from '@/features/home/homeSlice';
+import { loadDashboardData, loadMyCourses } from '@/features/home/homeSlice';
 import { loadAllNews } from '@/features/news/newsSlice';
+import { getSocket } from '@/services/socket';
 import {
   selectNewsCarousel,
   selectQuickLinks,
@@ -62,6 +63,19 @@ export default function HomePage() {
   useEffect(() => {
     dispatch(loadDashboardData());
     dispatch(loadAllNews());
+  }, [dispatch]);
+
+  // Real-time course list refresh on course_assigned notification via socket
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+    const handleNotification = (payload) => {
+      if (payload?.type === 'course_assigned') {
+        dispatch(loadMyCourses());
+      }
+    };
+    socket.on('new-notification', handleNotification);
+    return () => socket.off('new-notification', handleNotification);
   }, [dispatch]);
 
   // Show error toast

@@ -339,8 +339,10 @@ export const fetchMyCourses = async () => {
     await mockDelay(500);
     return MOCK_HOME_DATA.courses;
   }
+  const userId = getCurrentUserId();
 
-  const [response, dueDateMap] = await Promise.all([
+  // Two parallel calls: courses list + all user progress (replaces N+1 pattern)
+  const [response, allProgressRes] = await Promise.allSettled([
     api.get(API_ENDPOINTS.COURSES.LIST, {
       params: {
         'populate[thumbnail]': true,
@@ -348,53 +350,52 @@ export const fetchMyCourses = async () => {
         sort: 'createdAt:desc',
       },
     }),
-    fetchCourseDueDateMap(),
+    userId
+      ? api.get('/user-progress/all', { params: { userId } })
+      : Promise.resolve(null),
   ]);
 
-  const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
+  const raw = response.status === 'fulfilled'
+    ? (Array.isArray(response.value?.data) ? response.value.data : (Array.isArray(response.value) ? response.value : []))
+    : [];
   const courses = raw.filter(c => c.active !== false).slice(0, 4);
-  const userId = getCurrentUserId();
 
-  const withProgress = await Promise.all(
-    courses.map(async (c) => {
-      const totalLessons = Array.isArray(c.modules) ? c.modules.length : 0;
-      let completedLessons = 0;
-      let progress = 0;
-      const courseId = c.id ?? c.documentId;
-      if (userId && courseId) {
-        try {
-          const progRes = await api.get('/user-progress/progress', {
-            params: { userId, courseId },
-          });
-          const data = progRes?.data ?? progRes;
-          const completed = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
-          // Count only unique course modules that have a matching entry in completed_modules.
-          // completed_modules may contain both numeric ids ("261") and string moduleIds
-          // ("mod-1772...") for the same module — count each physical module once.
-          const courseModules = Array.isArray(c.modules) ? c.modules : [];
-          completedLessons = courseModules.filter(m =>
-            completed.includes(String(m.id)) || (m.module_id && completed.includes(String(m.module_id)))
-          ).length;
-          progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessons / totalLessons) * 100)) : 0;
-        } catch {
-          // keep 0
-        }
+  // Build a map of courseId -> completed_modules array from the batch progress response
+  const progressMap = {};
+  if (allProgressRes.status === 'fulfilled' && allProgressRes.value) {
+    const progressData = allProgressRes.value?.data ?? allProgressRes.value;
+    const progressList = Array.isArray(progressData) ? progressData : [];
+    for (const entry of progressList) {
+      const cId = entry?.course?.id ?? entry?.courseId ?? entry?.course_id;
+      if (cId != null) {
+        progressMap[String(cId)] = Array.isArray(entry.completed_modules)
+          ? entry.completed_modules.map(String)
+          : [];
       }
-      return {
-        id: c.id,
-        documentId: c.documentId,
-        title: c.title || '',
-        category: c.course_category || 'courses',
-        thumbnail: withImageUrl(c.thumbnail),
-        progress,
-        completedLessons,
-        totalLessons,
-        deadline: dueDateMap[c.id] || null,
-      };
-    })
-  );
+    }
+  }
 
-  return withProgress;
+  return courses.map((c) => {
+    const totalLessons = Array.isArray(c.modules) ? c.modules.length : 0;
+    const courseId = c.id ?? c.documentId;
+    const completed = progressMap[String(courseId)] ?? [];
+    const courseModules = Array.isArray(c.modules) ? c.modules : [];
+    const completedLessons = courseModules.filter(m =>
+      completed.includes(String(m.id)) || (m.module_id && completed.includes(String(m.module_id)))
+    ).length;
+    const progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessons / totalLessons) * 100)) : 0;
+    return {
+      id: c.id,
+      documentId: c.documentId,
+      title: c.title || '',
+      category: c.course_category || 'courses',
+      thumbnail: withImageUrl(c.thumbnail),
+      progress,
+      completedLessons,
+      totalLessons,
+      deadline: c.deadline || '2026-12-31',
+    };
+  });
 };
 
 
