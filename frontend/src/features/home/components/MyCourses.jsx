@@ -67,13 +67,15 @@ export default function MyCourses({ courses = [] }) {
                       </span>
                     </div>
 
-                    <p className="text-small text-muted-foreground mt-1.5">
-                      Due {new Date(course.deadline).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </p>
+                    {course.deadline ? (
+                      <p className="text-small text-muted-foreground mt-1.5">
+                        Due {new Date(course.deadline).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </Card>
