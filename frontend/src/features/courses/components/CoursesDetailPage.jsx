@@ -19,23 +19,8 @@ import { getCurrentUserId } from "@/lib/auth";
 
 const md = new MarkdownIt({ html: true, breaks: true });
 
-function extractOrientationTopics(topicsToCover) {
-  if (!Array.isArray(topicsToCover)) return [];
-  const items = [];
-  topicsToCover.forEach((block) => {
-    const children = block.children || [];
-    children.forEach((node) => {
-      if (node.type === "list-item" && Array.isArray(node.children)) {
-        const text = node.children.map((c) => c.text || "").join("").trim();
-        if (text) items.push(text);
-      }
-    });
-  });
-  return items;
-}
-
 function OrientationDetailCard({ orientation }) {
-  const topics = extractOrientationTopics(orientation.topics_to_cover);
+  const topicsHtml = md.render(orientation?.topics_to_cover || "");
   const flow = orientation.orientation_flow || "—";
   const trainer = orientation.trainer_name || "—";
   return (
@@ -50,14 +35,13 @@ function OrientationDetailCard({ orientation }) {
           
           <span><strong className="text-gray-700">Trainer:</strong> {trainer}</span>
         </div>
-        {topics.length > 0 && (
+        {topicsHtml && (
           <div>
             <strong className="text-gray-700">Topics to cover:</strong>
-            <ul className="mt-1.5 list-disc list-inside space-y-0.5 pl-1">
-              {topics.map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
+            <div
+              className="mt-1.5 rich-content"
+              dangerouslySetInnerHTML={{ __html: topicsHtml }}
+            />
           </div>
         )}
       </div>

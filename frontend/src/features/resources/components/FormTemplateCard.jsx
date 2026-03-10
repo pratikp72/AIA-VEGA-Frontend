@@ -6,7 +6,8 @@ import { Download, ExternalLink } from 'lucide-react';
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
 
 function getFileUrl(item) {
-  if (item.form_type === 'URL' && item.form_url) return item.form_url;
+  const normalizedType = (item.form_type || item.type || '').toLowerCase();
+  if (normalizedType === 'url' && item.form_url) return item.form_url;
   const media = item.form_pdf || item.form_excel || item.form_word;
   const m = Array.isArray(media) ? media[0] : media;
   const raw = m?.url ?? m?.data?.attributes?.url ?? m?.attributes?.url ?? item.fileUrl ?? item.downloadUrl ?? item.url ?? item.link ?? (item.file && item.file.url);
@@ -17,9 +18,9 @@ function getFileUrl(item) {
 export default function FormTemplateCard({ resource }) {
   const item = resource || {};
   const ext = (item.form_type || item.type || '').toLowerCase();
-  const formType = (item.form_type || '').toLowerCase();
+  const formType = (item.form_type || item.type || '').toLowerCase();
   const isDownloadable = formType === 'pdf' || formType === 'excel' || formType === 'word';
-  const isUrlType = item.form_type === 'URL';
+  const isUrlType = formType === 'url';
   const fileUrl = getFileUrl(item);
 
   const iconBg = ext.includes('pdf')
@@ -34,6 +35,8 @@ export default function FormTemplateCard({ resource }) {
     ? '/excel-icon.png'
     : ext.includes('word') || ext.includes('doc')
     ? '/doc-icon.png'
+    : ext.includes('url')
+    ? '/url-icon.png'
     : null;
 
   const handleDownload = async (e) => {

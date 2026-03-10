@@ -40,9 +40,12 @@ export default function CoursesPage() {
     const groups = {};
     coursesList.forEach(course => {
       const cat = course.category || 'Other';
-      if (!groups[cat]) groups[cat] = { courses: [], totalDuration: 0 };
+      if (!groups[cat]) groups[cat] = { courses: [], totalDurationMinutes: 0 };
       groups[cat].courses.push(course);
-      groups[cat].totalDuration += course.duration || 0;
+      const minutes = Number(course.durationMinutes);
+      if (Number.isFinite(minutes) && minutes > 0) {
+        groups[cat].totalDurationMinutes += minutes;
+      }
     });
     return groups;
   }, [coursesList]);
@@ -84,7 +87,7 @@ export default function CoursesPage() {
           ) : (
             <div className="flex flex-col gap-6">
               {Object.entries(categoryGroups).map(([category, group]) => {
-                const totalHours = Math.round((group.totalDuration || 0) * 10) / 10;
+                const totalHours = Math.round(((group.totalDurationMinutes || 0) / 60) * 10) / 10;
                 const slug = category.toLowerCase();
                 return (
                   <CourseCategoryCard

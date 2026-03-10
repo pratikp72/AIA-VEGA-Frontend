@@ -20,6 +20,7 @@ import { getCurrentUserId } from '@/lib/auth';
 const CATEGORY_LABELS = {
   mandatory: 'Mandatory Training',
   orientation: 'Orientation',
+  other: 'Other',
   all: 'Courses',
 };
 
@@ -392,9 +393,16 @@ export default function CoursesCategoryPage({ category }) {
                       <div className="flex items-center gap-6 text-small text-muted-foreground mb-4">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {Number(course.durationMinutes) > 0 && Number(course.durationMinutes) < 60
-                            ? `${Math.round(Number(course.durationMinutes))} mins`
-                            : `${course.duration} hours`}
+                          {(() => {
+                            const minutes = Number(course.durationMinutes);
+                            const fallbackHours = Number(course.duration);
+                            const totalMinutes = Number.isFinite(minutes) && minutes > 0
+                              ? Math.round(minutes)
+                              : Number.isFinite(fallbackHours) && fallbackHours > 0
+                                ? Math.round(fallbackHours * 60)
+                                : 0;
+                            return totalMinutes > 0 ? `${totalMinutes} mins` : '—';
+                          })()}
                         </span>
                         <span className="flex items-center gap-1">
                           <BookOpen className="w-4 h-4" />
