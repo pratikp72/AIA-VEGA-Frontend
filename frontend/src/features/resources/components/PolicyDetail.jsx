@@ -8,6 +8,17 @@ import MarkdownIt from "markdown-it";
 import Loader from "@/components/common/Loader";
 const md = new MarkdownIt({ html: true });
 
+const renderRichContent = (content) => {
+  if (!content) return "";
+
+  try {
+    const stripped = content.replace(/<[^>]*>/g, "");
+    return /<[^>]*>/.test(content) ? content : md.render(stripped);
+  } catch (e) {
+    return content;
+  }
+};
+
 export default function PolicyDetail({ item, fetchPolicyById }) {
   const [policy, setPolicy] = useState(null);
   const [html, setHtml] = useState("");
@@ -23,20 +34,17 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
     fetchPolicyById(item.documentId)
       .then((data) => {
         setPolicy(data);
-        if (!data || !data.description) {
+        const content = data?.policy || data?.description || "";
+        if (!content) {
           setHtml("");
           setHeadings([]);
           setLoading(false);
           return;
         }
         try {
-          // If description looks like HTML, use as is. Otherwise, render as Markdown.
-          const desc = data.description || "";
-          const stripped = desc.replace(/<[^>]*>/g, "");
-          const htmlContent = md.render(stripped);
-          setHtml(htmlContent);
+          setHtml(renderRichContent(content));
         } catch (e) {
-          setHtml(data.description || "");
+          setHtml(content);
           setHeadings([]);
         }
         setLoading(false);
@@ -120,8 +128,7 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
               <div className="rich-content">
                 <div
                   dangerouslySetInnerHTML={{
-                    __html:
-                      html || policy?.description || item.description || "",
+                    __html: html || item.description || "",
                   }}
                 />
               </div>

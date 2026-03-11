@@ -6,7 +6,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
   if (!course) return null;
 
   const contents = Array.isArray(course.modulesList) ? course.modulesList : [];
-  const contentToDisplay = selectedModule?.content || course.content || "";
+  const contentToDisplay = selectedModule?.text_content || course.text_content || "";
   const isPdfModule = String(selectedModule?.moduleType || '').toLowerCase() === 'pdf';
   const markEnabled = !isRead;
   const [pdfBlobUrl, setPdfBlobUrl] = useState('');
@@ -165,7 +165,14 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
             )
           ) : (
             <div className="text-lg text-gray-700 leading-relaxed">
-              {contentToDisplay || "No content available for this reading module."}
+              {contentToDisplay ? (
+                <div
+                  className="rich-content"
+                  dangerouslySetInnerHTML={{ __html: contentToDisplay }}
+                />
+              ) : (
+                "No content available for this reading module."
+              )}
             </div>
           )}
         </div>

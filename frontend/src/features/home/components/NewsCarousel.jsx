@@ -6,17 +6,16 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MarkdownIt from 'markdown-it';
 
-function stripImagesFromPreview(text = '', lineLimit = 3) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  const cleaned = lines.map((line, i) => {
-    if (i >= lineLimit) return line;
-    return line
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // markdown images
-      .replace(/<img\b[^>]*\/?>/gi, '');       // HTML <img> tags
-  });
-  return cleaned.join('\n');
-}
+
+const md = new MarkdownIt({ html: true });
+
+const renderDescription = (description) => {
+  if (!description) return '';
+  
+  // Strip HTML tags first, then render markdown
+  const stripped = description.replace(/<[^>]*>/g, '');
+  return md.render(stripped);
+};
 
 export default function NewsCarousel({ news = [] }) {
   // ✅ Cap at 6 items
@@ -25,7 +24,6 @@ export default function NewsCarousel({ news = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  const md = new MarkdownIt({ html: true });
 
   useEffect(() => {
     if (!isAutoPlaying || visibleNews.length === 0) return;
@@ -93,7 +91,7 @@ export default function NewsCarousel({ news = [] }) {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}
-          dangerouslySetInnerHTML={{ __html: md.render(stripImagesFromPreview(currentNews.description || '')) }}
+          dangerouslySetInnerHTML={{ __html: md.render(renderDescription(currentNews.description || '')) }}
         />
 
         {/* Read More button */}
