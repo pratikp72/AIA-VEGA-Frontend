@@ -12,6 +12,20 @@ const api = axios.create({
   },
 });
 
+function normalizeUrlPath(url = '') {
+  return String(url).split('?')[0].toLowerCase();
+}
+
+function shouldForceLogoutOn401(url = '') {
+  const path = normalizeUrlPath(url);
+
+  // Do not kill session for non-critical background endpoints.
+  if (path.includes('/analytics/events/ingest')) return false;
+
+  // Only hard-logout on explicit auth/session validation endpoints.
+  return path.includes('/users/me') || path.includes('/auth/refresh');
+}
+
 // Request Interceptor - Add auth token to all requests
 api.interceptors.request.use(
   (config) => {
@@ -40,11 +54,14 @@ api.interceptors.response.use(
           console.error('Bad Request:', data?.error?.message || data?.message || 'Invalid request parameters');
           break;
         case 401:
-          // ✅ Only redirect if NOT already on the login page
-          // This prevents a redirect loop when the user submits wrong credentials
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            localStorage.removeItem('authToken');
-            window.location.href = '/login';
+            const requestUrl = error.config?.url || '';
+            if (shouldForceLogoutOn401(requestUrl)) {
+              localStorage.removeItem('authToken');
+              localStorage.removeItem('user');
+              localStorage.removeItem('userData');
+              window.location.href = '/login';
+            }
           }
           break;
         case 403:
