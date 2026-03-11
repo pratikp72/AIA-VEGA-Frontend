@@ -100,21 +100,28 @@ export const fetchQuickLinks = async () => {
   }));
 };
 
-function formatEventTime(isoDate) {
-  if (!isoDate) return '';
-  const d = new Date(isoDate);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+function formatTimeString(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return '';
+  const period = h < 12 ? 'AM' : 'PM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`;
 }
 
 function normalizeEvent(item) {
   const start = item.start_date;
+  const hasTime = item.time_required === true && !!item.start_time;
+  const timeDisplay = hasTime
+    ? `${formatTimeString(item.start_time)}${item.end_time ? ` – ${formatTimeString(item.end_time)}` : ''}`
+    : '';
   return {
     id: item.documentId ?? item.id,
     documentId: item.documentId,
     title: item.title,
     description: item.description?.replace(/<[^>]+>/g, '') || '',
-    date: start ? new Date(start).toISOString().slice(0, 10) : '',
-    time: formatEventTime(start),
+    date: start ? start.slice(0, 10) : '',
+    time: timeDisplay,
     location: item.event_location || '',
     event_type: item.event_type,
     start_date: item.start_date,
