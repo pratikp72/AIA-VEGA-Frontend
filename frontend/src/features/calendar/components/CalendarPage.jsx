@@ -457,7 +457,7 @@ export default function CalendarPage() {
       <PageContainer className="pb-xl px-xl">
         <div className="flex flex-col lg:flex-row lg:items-stretch gap-8">
           {/* Left: Calendar */}
-          <div className="flex-1 min-w-0 lg:h-[calc(100vh-5rem)]">
+          <div className="flex-1 min-w-0" style={{ minHeight: '680px', height: 'calc(100vh - 6rem)' }}>
             {isDataLoading ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px] lg:h-full">
                 <Loader size="lg" />
@@ -760,9 +760,9 @@ export default function CalendarPage() {
           </div>
 
           {/* Right: Sidebar - Events & Holidays */}
-          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 lg:h-[calc(100vh-5rem)]">
+          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6" style={{ minHeight: '680px', height: 'calc(100vh - 6rem)' }}>
             {/* Events card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 basis-1/2 min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0" style={{ flex: '2 1 0' }}>
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
@@ -867,8 +867,8 @@ export default function CalendarPage() {
                                         <p className="leading-relaxed">
                                           Join us in celebrating {detail.employee.name}'s special day!
                                         </p>
-                                        {detail.employee.department && (
-                                          <p className="text-gray-500">Department: {detail.employee.department}</p>
+                                        {detail.employee.location && (
+                                          <p className="text-gray-500">Location: {detail.employee.location}</p>
                                         )}
                                         {detail.employee.position && (
                                           <p className="text-gray-500">Position: {detail.employee.position}</p>
@@ -880,8 +880,8 @@ export default function CalendarPage() {
                                         <p className="leading-relaxed">
                                           Congratulations to {detail.employee.name} on {detail.yearsOfService} year{detail.yearsOfService > 1 ? 's' : ''} of service!
                                         </p>
-                                        {detail.employee.department && (
-                                          <p className="text-gray-500">Department: {detail.employee.department}</p>
+                                        {detail.employee.location && (
+                                          <p className="text-gray-500">Location: {detail.employee.location}</p>
                                         )}
                                         {detail.employee.position && (
                                           <p className="text-gray-500">Position: {detail.employee.position}</p>
@@ -895,14 +895,8 @@ export default function CalendarPage() {
                                         {detail.description ? (
                                            <div className="rich-content">
                                         <div dangerouslySetInnerHTML={{ __html: md.render(ev.description || '') }} />
-                                    {/* {ev.description} */}
                                     </div>
                                           // <p className="leading-relaxed">{detail.description}</p>
-                                        ) : null}
-                                        {(detail.start_date || detail.end_date) ? (
-                                          <p className="text-gray-500">
-                                            {detail.start_date ? new Date(detail.start_date).toLocaleString() : ''}{detail.end_date ? ` → ${new Date(detail.end_date).toLocaleString()}` : ''}
-                                          </p>
                                         ) : null}
                                       </div>
                                     )}
@@ -922,7 +916,7 @@ export default function CalendarPage() {
               )}
             </div>
             {/* Holidays card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 basis-1/2 min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0" style={{ flex: '1 1 0' }}>
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Holidays</h3>
               {isDataLoading ? (
                 <div className="flex justify-center py-6 px-4 flex-1">
@@ -939,7 +933,7 @@ export default function CalendarPage() {
                       </span>
                       <span>
                         {h.title}
-                        {h.holiday_for ? ` (${h.holiday_for})` : ''} – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                        – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
                       </span>
                     </li>
                   ))}
@@ -951,6 +945,20 @@ export default function CalendarPage() {
 
         {/* Bottom legend */}
         <div className="mt-8 flex flex-wrap items-center gap-6 bg-white rounded-xl border border-gray-200 px-6 py-4 shadow-sm">
+          {/* Fixed legend entries */}
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#EF4444' }} />
+            <span className="text-sm text-gray-700">Holiday</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#FD8C02' }} />
+            <span className="text-sm text-gray-700">Birthday</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#9C2EDB' }} />
+            <span className="text-sm text-gray-700">Anniversary</span>
+          </div>
+          {/* Dynamic event-type legend entries */}
           {categoryLegend.map((item) => (
             <div key={item.key} className="flex items-center gap-2">
               <span
@@ -1010,7 +1018,7 @@ export default function CalendarPage() {
           grid-template-columns: repeat(7, 1fr);
           grid-auto-rows: 1fr;
           gap: 0;
-          min-height: 0;
+          min-height: 560px;
         }
         .calendar-card .react-calendar__month-view__days__day,
         .calendar-card .react-calendar__tile {

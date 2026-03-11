@@ -90,10 +90,12 @@ export default function UpcomingEvents({ events = [] }) {
                   </div>
                 </div>
                 <div className="flex flex-col gap-1.5 text-small text-[#78909E]">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
-                    <span>{event.time}</span>
-                  </div>
+                  {event.time && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
+                      <span>{event.time}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     {isVirtual(event.location) ? (
                       <Monitor className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
