@@ -505,21 +505,11 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {/* Reading Content Preview Container */}
                   <div className="p-4 space-y-5 max-h-[467px] overflow-y-auto">
-                    {currentModule.content ? (
-                      <div className="space-y-4">
-                        {currentModule.content.split(/\n+/).slice(0, 5).map((line, idx) => (
-                          line.trim() && (
-                            <p key={idx} className="text-sm text-gray-700 leading-relaxed">
-                              {line}
-                            </p>
-                          )
-                        ))}
-                        {currentModule.content.split(/\n+/).length > 5 && (
-                          <p className="text-sm text-gray-500 italic">
-                            ... (content truncated, click "View Full Content" to read more)
-                          </p>
-                        )}
-                      </div>
+                    {currentModule.text_content ? (
+                      <div
+                        className="rich-content text-sm text-gray-700 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: currentModule.text_content }}
+                      />
                     ) : (
                       <div className="text-gray-500 italic">No content available.</div>
                     )}

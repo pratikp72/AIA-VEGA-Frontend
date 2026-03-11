@@ -5,6 +5,16 @@ import SurfaceCard from '@/components/common/SurfaceCard';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
+
+const md = new MarkdownIt({ html: true });
+
+const renderDescription = (description) => {
+  if (!description) return '';
+  
+  // Strip HTML tags first, then render markdown
+  const stripped = description.replace(/<[^>]*>/g, '');
+  return md.render(stripped);
+};
 export default function NewsCard({ news }) {
     const md = new MarkdownIt({ html: true, breaks: true });
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
@@ -31,7 +41,7 @@ export default function NewsCard({ news }) {
             <Calendar className="w-4 h-4" />
             <span>
               {(() => {
-                const date = news.createdAt || news.date;
+                const date = news.publish_date || news.date;
                 if (!date) return '';
                 const d = new Date(date);
                 return d.toLocaleDateString('en-US', {
@@ -51,7 +61,7 @@ export default function NewsCard({ news }) {
           {/* Description - max 3 lines with ellipsis */}
             <div
               className="text-body text-gray-medium mb-2 line-clamp-3 overflow-hidden"
-              dangerouslySetInnerHTML={{ __html: md.render(news.description || '') }}
+              dangerouslySetInnerHTML={{ __html: md.render(renderDescription(news.description || '')) }}
             />
 
           {/* Read More Link */}

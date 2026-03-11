@@ -159,7 +159,7 @@ export default function NewsDetailPage() {
             <h1 className="text-h1 text-gray-900">
               {article.title}
             </h1>
-            <div className="relative w-full h-[440px] overflow-hidden rounded-xl bg-gray-100">
+            <div className="relative w-full overflow-hidden rounded-xl bg-gray-100">
               {article.imageUrl && (
                 <img
                   src={article.imageUrl}

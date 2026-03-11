@@ -13,8 +13,15 @@ import Select from '@/components/ui/select';
 
 export default function NewsListingPage() {
   const dispatch = useAppDispatch();
-  const newsList = useAppSelector(selectNewsList);
+  const rawNewsList = useAppSelector(selectNewsList);
   const isLoading = useAppSelector(selectNewsLoading);
+
+  // Only show news whose publish date has already arrived
+  const newsList = rawNewsList.filter((n) => {
+    const pub = n.publish_date || n.date;
+    if (!pub) return true; // no date → show it
+    return new Date(pub) <= new Date();
+  });
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
 

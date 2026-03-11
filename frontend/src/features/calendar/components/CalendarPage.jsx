@@ -1,28 +1,22 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Calendar from 'react-calendar';
 import { ChevronLeft, ChevronRight, ChevronDown, CalendarDays, Clock, MapPin, Gift, GraduationCap, Info } from 'lucide-react';
 import PageHeader from '@/components/common/PageHeader';
 import PageContainer from '@/components/layout/PageContainer';
-import { fetchEvents, fetchEventById, fetchHolidays, fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/calendar/calendarAPI';
+import { fetchEvents, fetchEventById, fetchHolidays, fetchEmployeeBirthdays, fetchEmployeeAnniversaries, fetchEventTypes } from '@/features/calendar/calendarAPI';
 import Loader from '@/components/common/Loader';
+import MarkdownIt from 'markdown-it';
 import 'react-calendar/dist/Calendar.css';
+
+const md = new MarkdownIt();
 
 const VIEW_MODES = [
   { key: 'day', label: 'Day' },
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
-];
-
-const CATEGORY_LEGEND = [
-  { key: 'conference', label: 'Conferences', color: '#2563EB' },
-  { key: 'birthday', label: 'Birthdays', color: '#FD8C02' },
-  { key: 'work_anniversary', label: 'Work Anniversaries', color: '#9C2EDB' },
-  { key: 'training_session', label: 'Training Sessions', color: '#00F078' },
-  { key: 'workshop', label: 'Workshop', color: '#F0C51A' },
-  { key: 'holidays', label: 'Holidays', color: '#EF4444' },
 ];
 
 function toDateKey(d) {
@@ -121,6 +115,7 @@ export default function CalendarPage() {
   const [holidaysLoading, setHolidaysLoading] = useState(true);
   const [birthdaysLoading, setBirthdaysLoading] = useState(true);
   const [anniversariesLoading, setAnniversariesLoading] = useState(true);
+  const [categoryLegend, setCategoryLegend] = useState([]);
   const [expandedEventId, setExpandedEventId] = useState(null);
   const [expandedEvent, setExpandedEvent] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -136,6 +131,10 @@ export default function CalendarPage() {
     }
     setPendingSelectedEventId(requestedEventId || null);
   }, [requestedDate, requestedEventId]);
+
+  useEffect(() => {
+    fetchEventTypes().then((types) => setCategoryLegend(types)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -207,6 +206,8 @@ export default function CalendarPage() {
     setDetailLoading(false);
   }, [activeDate]);
 
+  const hourGridRef = useRef(null);
+
   const eventsByDate = useMemo(() => {
     const map = {};
     (eventsList || []).forEach((ev) => {
@@ -236,7 +237,7 @@ export default function CalendarPage() {
   }, [eventsList, birthdaysList, anniversariesList]);
 
   const holidayDates = useMemo(
-    () => new Set((holidaysList || []).map((h) => h.date).filter(Boolean)),
+    () => new Map((holidaysList || []).filter((h) => h.date).map((h) => [h.date, h.title || 'Holiday'])),
     [holidaysList]
   );
 
@@ -293,6 +294,11 @@ export default function CalendarPage() {
   const allDayEvents = useMemo(() => dayViewLayout.filter((x) => x.allDay), [dayViewLayout]);
   const timedEvents = useMemo(() => dayViewLayout.filter((x) => !x.allDay), [dayViewLayout]);
 
+  const currentDayHoliday = useMemo(() => {
+    const key = toDateKey(activeDate);
+    return holidayDates.get(key) ?? null;
+  }, [activeDate, holidayDates]);
+
   const isToday = useMemo(() => {
     const t = new Date();
     return activeDate.getDate() === t.getDate() && activeDate.getMonth() === t.getMonth() && activeDate.getFullYear() === t.getFullYear();
@@ -303,6 +309,15 @@ export default function CalendarPage() {
     const t = new Date();
     return t.getHours() * 60 + t.getMinutes();
   }, [isToday]);
+
+  useEffect(() => {
+    if (viewMode !== 'day' || !hourGridRef.current) return;
+    // Scroll to 1 hour before current time, or default to 8 AM
+    const scrollTarget = nowMinutes != null
+      ? Math.max(0, ((nowMinutes - 60) / (24 * 60)) * (24 * 56))
+      : 8 * 56;
+    hourGridRef.current.scrollTop = scrollTarget;
+  }, [viewMode, activeDate, nowMinutes]);
 
   const currentHolidays = useMemo(() => {
     return (holidaysList || []).filter((h) => {
@@ -442,7 +457,7 @@ export default function CalendarPage() {
       <PageContainer className="pb-xl px-xl">
         <div className="flex flex-col lg:flex-row lg:items-stretch gap-8">
           {/* Left: Calendar */}
-          <div className="flex-1 min-w-0 lg:h-[calc(100vh-10rem)]">
+          <div className="flex-1 min-w-0" style={{ minHeight: '680px', height: 'calc(100vh - 6rem)' }}>
             {isDataLoading ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center min-h-[400px] lg:h-full">
                 <Loader size="lg" />
@@ -504,89 +519,137 @@ export default function CalendarPage() {
               </div>
 
               {viewMode === 'day' ? (
-                <div className="day-view-grid flex flex-col min-h-[500px] lg:min-h-0 lg:flex-1">
+                <div className="day-view-grid">
+                  {/* Day date circle header */}
+                  <div className="flex items-center border-b border-gray-100 shrink-0 bg-white">
+                    <div className="w-16 shrink-0" />
+                    <div className="flex-1 flex items-center justify-center gap-2 py-2">
+                      <span className="text-xs font-medium tracking-wide text-gray-400 uppercase">
+                        {activeDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </span>
+                      <div className={`flex items-center justify-center w-9 h-9 rounded-full text-[1.1rem] font-semibold ${
+                        isToday ? 'bg-primary text-white' : 'text-gray-800'
+                      }`}>
+                        {activeDate.getDate()}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* All-day row */}
-                  {(allDayEvents.length > 0) && (
-                    <div className="flex border-b border-gray-200 min-h-[44px] shrink-0">
-                      <div className="w-14 shrink-0 py-2 pr-2 text-right text-xs text-gray-500 border-r border-gray-200 font-medium">All day</div>
-                      <div className="flex-1 flex gap-1.5 flex-wrap p-2 content-start">
+                  {(allDayEvents.length > 0 || currentDayHoliday) && (
+                    <div className="flex border-b border-gray-100 shrink-0 min-h-[44px]">
+                      <div className="w-16 shrink-0 flex items-center justify-end pr-3 text-[11px] font-medium text-gray-400">All day</div>
+                      <div className="flex-1 flex gap-1.5 flex-wrap px-2 py-2 content-start border-l border-gray-100">
+                        {currentDayHoliday && (
+                          <span className="rounded px-2 py-1 text-xs font-medium text-red-700 bg-red-50 truncate max-w-[200px]">
+                            {currentDayHoliday}
+                          </span>
+                        )}
                         {allDayEvents.map(({ ev }) => (
-                          <div
+                          <span
                             key={ev.id}
-                            className="rounded-md px-2.5 py-1.5 text-xs font-medium truncate max-w-[220px] border-l-2"
-                            style={{ backgroundColor: `${ev.color ?? '#2563EB'}22`, color: ev.color ?? '#2563EB', borderLeftColor: ev.color ?? '#2563EB' }}
+                            className="rounded px-2 py-1 text-xs font-medium text-white truncate max-w-[200px]"
+                            style={{ backgroundColor: ev.color ?? '#2563EB' }}
                           >
                             {ev.fullTitle || ev.title}
-                          </div>
+                          </span>
                         ))}
                       </div>
                     </div>
                   )}
-                  {/* Hour grid - scrollable */}
-                  <div className="flex flex-1 min-h-0 overflow-auto">
-                    <div className="w-14 shrink-0 flex flex-col border-r border-gray-200 bg-gray-50/50">
-                      {HOURS.map((h) => (
-                        <div key={h} className="h-14 flex items-start justify-end pr-2 text-xs text-gray-500 leading-none pt-0.5">
-                          {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex-1 relative bg-white" style={{ height: 24 * 56, minHeight: 400 }}>
-                      {/* Hour lines */}
-                      {HOURS.map((h) => (
-                        <div key={h} className="absolute left-0 right-0 border-t border-gray-100" style={{ top: `${(h / 24) * 100}%`, height: '4.166%' }} />
-                      ))}
-                      {/* Now line (today only) */}
-                      {isToday && nowMinutes != null && (
-                        <div
-                          className="absolute left-0 right-0 z-10 flex items-center"
-                          style={{ top: `${(nowMinutes / (24 * 60)) * 100}%` }}
-                        >
-                          <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                          <div className="flex-1 h-0.5 bg-primary" />
-                        </div>
-                      )}
-                      {/* Timed event blocks */}
-                      {timedEvents.map(({ ev, topPct, heightPct }) => {
-                        const EventIcon = ev.icon === 'gift' ? Gift : ev.icon === 'graduation-cap' ? GraduationCap : CalendarDays;
-                        const startM = getEventMinutes(ev, activeDate);
-                        const endM = getEventEndMinutes(ev, activeDate);
-                        const timeLabel = startM != null ? `${String(Math.floor(startM / 60) % 12 || 12)}:${String(startM % 60).padStart(2, '0')} ${startM < 720 ? 'AM' : 'PM'} – ${String(Math.floor(endM / 60) % 12 || 12)}:${String(endM % 60).padStart(2, '0')} ${endM < 720 ? 'AM' : 'PM'}` : '';
-                        return (
-                          <button
-                            key={ev.id}
-                            type="button"
-                            onClick={() => handleToggleEvent(ev)}
-                            className="absolute left-1 right-1 rounded-md text-left overflow-hidden border-l-2 shadow-sm hover:ring-2 hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary z-[1]"
+
+                  {/* Hour grid */}
+                  <div ref={hourGridRef} className="hour-scroll">
+                    <div style={{ display: 'flex', height: 24 * 56, position: 'relative' }}>
+                      {/* Time labels column */}
+                      <div style={{ width: 64, flexShrink: 0, position: 'relative' }}>
+                        {HOURS.map((h) => h === 0 ? null : (
+                          <div
+                            key={h}
                             style={{
-                              top: `${topPct}%`,
-                              height: `calc(${heightPct}% - 2px)`,
-                              minHeight: 20,
-                              backgroundColor: `${ev.color ?? '#2563EB'}18`,
-                              borderLeftColor: ev.color ?? '#2563EB',
-                              color: ev.color ?? '#2563EB',
+                              position: 'absolute',
+                              top: `${(h / 24) * 100}%`,
+                              right: 8,
+                              transform: 'translateY(-50%)',
+                              fontSize: 11,
+                              color: '#9ca3af',
+                              whiteSpace: 'nowrap',
+                              lineHeight: 1,
+                              userSelect: 'none',
                             }}
                           >
-                            <div className="px-2 py-0.5 flex items-center gap-1.5">
-                              {ev.event_image ? (
-                                <img src={ev.event_image} alt="" className="w-3.5 h-3.5 shrink-0 rounded object-cover" />
-                              ) : (
-                                <EventIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
-                              )}
-                              <span className="font-semibold text-xs truncate text-gray-900">{ev.fullTitle || ev.title}</span>
-                            </div>
-                            {timeLabel && (
-                              <div className="px-2 text-[10px] text-gray-500 truncate">{timeLabel}</div>
-                            )}
-                            {ev.location && heightPct > 6 && (
-                              <div className="px-2 flex items-center gap-1 text-[10px] text-gray-500 truncate">
-                                <MapPin className="w-3 h-3 shrink-0" />
-                                <span className="truncate">{ev.location}</span>
+                            {h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Events + grid lines column */}
+                      <div style={{ flex: 1, position: 'relative', borderLeft: '1px solid #e5e7eb', backgroundColor: '#fff' }}>
+                        {/* Hour lines */}
+                        {HOURS.map((h) => (
+                          <div key={h} style={{ position: 'absolute', left: 0, right: 0, top: `${(h / 24) * 100}%`, borderTop: '1px solid #e5e7eb' }} />
+                        ))}
+                        {/* Half-hour lines */}
+                        {HOURS.map((h) => (
+                          <div key={`hh-${h}`} style={{ position: 'absolute', left: 0, right: 0, top: `${((h + 0.5) / 24) * 100}%`, borderTop: '1px solid #f3f4f6' }} />
+                        ))}
+                        {/* Now indicator */}
+                        {isToday && nowMinutes != null && (
+                          <div
+                            style={{ position: 'absolute', left: -7, right: 0, top: `${(nowMinutes / (24 * 60)) * 100}%`, display: 'flex', alignItems: 'center', zIndex: 10, pointerEvents: 'none' }}
+                          >
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#EA4335', flexShrink: 0 }} />
+                            <div style={{ flex: 1, height: 2, backgroundColor: '#EA4335' }} />
+                          </div>
+                        )}
+                        {/* Timed events */}
+                        {timedEvents.map(({ ev, topPct, heightPct }) => {
+                          const startM = getEventMinutes(ev, activeDate);
+                          const endM = getEventEndMinutes(ev, activeDate);
+                          const fmt = (m) => `${Math.floor(m / 60) % 12 || 12}:${String(m % 60).padStart(2, '0')} ${m < 720 ? 'AM' : 'PM'}`;
+                          const timeLabel = startM != null ? `${fmt(startM)} – ${fmt(endM)}` : '';
+                          const bg = ev.color ?? '#2563EB';
+                          return (
+                            <button
+                              key={ev.id}
+                              type="button"
+                              onClick={() => handleToggleEvent(ev)}
+                              style={{
+                                position: 'absolute',
+                                left: 4,
+                                right: 4,
+                                top: `${topPct}%`,
+                                height: `calc(${heightPct}% - 2px)`,
+                                minHeight: 22,
+                                backgroundColor: `${bg}20`,
+                                borderLeft: `3px solid ${bg}`,
+                                borderRadius: 4,
+                                overflow: 'hidden',
+                                zIndex: 1,
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                              }}
+                              className="focus:outline-none transition-all hover:brightness-95"
+                            >
+                              <div style={{ padding: '2px 8px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 1 }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, color: bg, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3' }}>
+                                  {ev.fullTitle || ev.title}
+                                </span>
+                                {timeLabel && heightPct > 3 && (
+                                  <span style={{ fontSize: 10, color: bg, opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3' }}>
+                                    {timeLabel}
+                                  </span>
+                                )}
+                                {ev.location && heightPct > 6 && (
+                                  <span style={{ fontSize: 10, color: bg, opacity: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3' }}>
+                                    📍 {ev.location}
+                                  </span>
+                                )}
                               </div>
-                            )}
-                          </button>
-                        );
-                      })}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -630,6 +693,7 @@ export default function CalendarPage() {
                   const key = toDateKey(date);
                   const dayEvents = eventsByDate[key] || [];
                   const isHoliday = holidayDates.has(key);
+                  const holidayName = holidayDates.get(key);
                   return (
                     <div className="calendar-tile-inner">
                       {dayEvents.length > 0 && (
@@ -665,8 +729,8 @@ export default function CalendarPage() {
                             borderLeft: '3px solid #EF4444',
                           }}
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
-                          Holiday
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shrink-0" />
+                          <span className="truncate">{holidayName}</span>
                         </div>
                       )}
                     </div>
@@ -683,7 +747,7 @@ export default function CalendarPage() {
                     date.getDate() === activeDate.getDate() &&
                     date.getMonth() === activeDate.getMonth() &&
                     date.getFullYear() === activeDate.getFullYear();
-                  const classes = ['rounded-lg h-[120px]'];
+                  const classes = ['rounded-lg'];
                   if (isSelected) classes.push('!bg-primary/10 !border-2 !border-primary');
                   if (isHoliday) classes.push('text-[#EF4444] font-semibold');
                   return classes.join(' ');
@@ -696,9 +760,9 @@ export default function CalendarPage() {
           </div>
 
           {/* Right: Sidebar - Events & Holidays */}
-          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6 lg:h-[calc(100vh-10rem)]">
+          <aside className="w-full lg:w-[360px] shrink-0 flex flex-col gap-6" style={{ minHeight: '680px', height: 'calc(100vh - 6rem)' }}>
             {/* Events card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 basis-1/2 min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0" style={{ flex: '2 1 0' }}>
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Events</h3>
               {currentEvents.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center flex-1">
@@ -755,9 +819,11 @@ export default function CalendarPage() {
                                   {ev.fullTitle || ev.title}
                                 </p>
                                 {ev.description ? (
-                                  <p className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
-                                    {ev.description}
-                                  </p>
+                                  <div className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
+                                    <div className="rich-content">
+                                      <div dangerouslySetInnerHTML={{ __html: md.render(ev.description || '') }} />
+                                    </div>
+                                  </div>
                                 ) : null}
                                 {(ev.time || ev.location) ? (
                                   <div className="mt-2 space-y-0.5 text-sm text-gray-500">
@@ -801,8 +867,8 @@ export default function CalendarPage() {
                                         <p className="leading-relaxed">
                                           Join us in celebrating {detail.employee.name}'s special day!
                                         </p>
-                                        {detail.employee.department && (
-                                          <p className="text-gray-500">Department: {detail.employee.department}</p>
+                                        {detail.employee.location && (
+                                          <p className="text-gray-500">Location: {detail.employee.location}</p>
                                         )}
                                         {detail.employee.position && (
                                           <p className="text-gray-500">Position: {detail.employee.position}</p>
@@ -814,8 +880,8 @@ export default function CalendarPage() {
                                         <p className="leading-relaxed">
                                           Congratulations to {detail.employee.name} on {detail.yearsOfService} year{detail.yearsOfService > 1 ? 's' : ''} of service!
                                         </p>
-                                        {detail.employee.department && (
-                                          <p className="text-gray-500">Department: {detail.employee.department}</p>
+                                        {detail.employee.location && (
+                                          <p className="text-gray-500">Location: {detail.employee.location}</p>
                                         )}
                                         {detail.employee.position && (
                                           <p className="text-gray-500">Position: {detail.employee.position}</p>
@@ -827,12 +893,10 @@ export default function CalendarPage() {
                                           <p className="text-gray-500">{detail.event_type}</p>
                                         ) : null}
                                         {detail.description ? (
-                                          <p className="leading-relaxed">{detail.description}</p>
-                                        ) : null}
-                                        {(detail.start_date || detail.end_date) ? (
-                                          <p className="text-gray-500">
-                                            {detail.start_date ? new Date(detail.start_date).toLocaleString() : ''}{detail.end_date ? ` → ${new Date(detail.end_date).toLocaleString()}` : ''}
-                                          </p>
+                                           <div className="rich-content">
+                                        <div dangerouslySetInnerHTML={{ __html: md.render(ev.description || '') }} />
+                                    </div>
+                                          // <p className="leading-relaxed">{detail.description}</p>
                                         ) : null}
                                       </div>
                                     )}
@@ -852,7 +916,7 @@ export default function CalendarPage() {
               )}
             </div>
             {/* Holidays card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col flex-1 basis-1/2 min-h-0">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col min-h-0" style={{ flex: '1 1 0' }}>
               <h3 className="text-xl font-bold text-gray-900 px-4 pt-4 pb-2">Holidays</h3>
               {isDataLoading ? (
                 <div className="flex justify-center py-6 px-4 flex-1">
@@ -869,7 +933,7 @@ export default function CalendarPage() {
                       </span>
                       <span>
                         {h.title}
-                        {h.holiday_for ? ` (${h.holiday_for})` : ''} – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                        – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
                       </span>
                     </li>
                   ))}
@@ -881,7 +945,21 @@ export default function CalendarPage() {
 
         {/* Bottom legend */}
         <div className="mt-8 flex flex-wrap items-center gap-6 bg-white rounded-xl border border-gray-200 px-6 py-4 shadow-sm">
-          {CATEGORY_LEGEND.map((item) => (
+          {/* Fixed legend entries */}
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#EF4444' }} />
+            <span className="text-sm text-gray-700">Holiday</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#FD8C02' }} />
+            <span className="text-sm text-gray-700">Birthday</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#9C2EDB' }} />
+            <span className="text-sm text-gray-700">Anniversary</span>
+          </div>
+          {/* Dynamic event-type legend entries */}
+          {categoryLegend.map((item) => (
             <div key={item.key} className="flex items-center gap-2">
               <span
                 className="w-3 h-3 rounded-full shrink-0"
@@ -899,16 +977,28 @@ export default function CalendarPage() {
           border: none;
           font-family: inherit;
           background: white;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
         }
         .calendar-card .react-calendar__navigation {
           display: none;
         }
-        .calendar-card .react-calendar__month-view__weekdays,
-        .calendar-card .react-calendar__month-view__days {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
+        /* Make the view container and month-view fill available flex height */
+        .calendar-card .react-calendar__viewContainer,
+        .calendar-card .react-calendar__month-view,
+        .calendar-card .react-calendar__month-view > div,
+        .calendar-card .react-calendar__month-view > div > div {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
         }
         .calendar-card .react-calendar__month-view__weekdays {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          flex-shrink: 0;
           text-align: center;
           font-size: 0.8125rem;
           color: #6b7280;
@@ -921,15 +1011,21 @@ export default function CalendarPage() {
         .calendar-card .react-calendar__month-view__weekdays__weekday abbr {
           text-decoration: none;
         }
+        /* Days grid stretches to fill remaining height; rows share space equally */
         .calendar-card .react-calendar__month-view__days {
+          flex: 1;
+          display: grid !important;
+          grid-template-columns: repeat(7, 1fr);
+          grid-auto-rows: 1fr;
           gap: 0;
+          min-height: 560px;
         }
         .calendar-card .react-calendar__month-view__days__day,
         .calendar-card .react-calendar__tile {
           border: 1px solid #e5e7eb;
           min-width: 0;
-          min-height: 100px;
-          padding: 8px 8px 63px 8px;
+          min-height: 0;
+          padding: 8px;
           display: flex;
           flex-direction: column;
           align-items: flex-start;
@@ -939,6 +1035,7 @@ export default function CalendarPage() {
           border-radius: 0;
           background: white;
           box-sizing: border-box;
+          overflow: hidden;
         }
         .calendar-card .react-calendar__tile:enabled:hover {
           background-color: #f9fafb;
@@ -967,6 +1064,27 @@ export default function CalendarPage() {
         }
         .day-view-grid {
           padding: 0;
+          flex: 1 1 0%;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          overflow: hidden;
+        }
+        .day-view-grid .hour-scroll {
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          overflow-x: hidden;
+          /* Custom scrollbar */
+          scrollbar-width: thin;
+          scrollbar-color: #d1d5db transparent;
+        }
+        .day-view-grid .hour-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .day-view-grid .hour-scroll::-webkit-scrollbar-thumb {
+          background: #d1d5db;
+          border-radius: 3px;
         }
         .day-view-grid .h-14 {
           height: 3.5rem;

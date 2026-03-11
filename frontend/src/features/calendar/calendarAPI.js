@@ -6,16 +6,6 @@ import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { MOCK_CALENDAR_EVENTS, MOCK_CALENDAR_HOLIDAYS } from '@/services/mockData';
 import { fetchEmployeeBirthdays, fetchEmployeeAnniversaries } from '@/features/people/peopleAPI';
 
-/** Event type → color. Keys normalized to lowercase for matching. */
-const EVENT_TYPE_COLORS = {
-  conference: '#2563EB',
-  workshop: '#F0C51A',
-  'training session': '#00F078',
-  birthday: '#FD8C02',
-  'work anniversary': '#9C2EDB',
-  anniversary: '#9C2EDB',
-  holidays: '#EF4444',
-};
 const DEFAULT_EVENT_COLOR = '#2563EB';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
@@ -27,39 +17,79 @@ function getEventImageUrl(eventImage) {
   return raw.startsWith('http') ? raw : `${API_BASE}${raw.startsWith('/') ? '' : '/'}${raw}`;
 }
 
-function formatEventTime(isoDate) {
-  if (!isoDate) return '';
-  const d = new Date(isoDate);
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
 
-function colorForEventType(eventType) {
-  if (!eventType) return DEFAULT_EVENT_COLOR;
-  const key = String(eventType).toLowerCase().trim();
-  return EVENT_TYPE_COLORS[key] || DEFAULT_EVENT_COLOR;
+function formatTimeString(timeStr) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return '';
+  const period = h < 12 ? 'AM' : 'PM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${period}`;
 }
 
 function normalizeEvent(item) {
-  const start = item.start_date;
-  const eventType = item.event_type;
-  const color = colorForEventType(eventType);
+  const startDateRaw = item.start_date; 
+  const endDateRaw = item.end_date;
+
+  const hasTime = item.time_required === true && !!item.start_time;
+
+  const startDatetime = hasTime ? `${startDateRaw}T${item.start_time}` : null;
+  const endDatetime = (hasTime && item.end_time) ? `${endDateRaw || startDateRaw}T${item.end_time}` : null;
+
+  const timeDisplay = hasTime
+    ? `${formatTimeString(item.start_time)}${item.end_time ? ` – ${formatTimeString(item.end_time)}` : ''}`
+    : '';
+
+  const typeRel = item.type_of_event;
+  const eventTypeName = typeRel?.name || typeRel?.data?.attributes?.name || typeRel?.attributes?.name || item.event_type || '';
+  const color = typeRel?.color_for_event || typeRel?.data?.attributes?.color_for_event || typeRel?.attributes?.color_for_event || DEFAULT_EVENT_COLOR;
   const eventImageUrl = getEventImageUrl(item.event_image);
+
+  const locationsRaw = Array.isArray(item.work_locations)
+    ? item.work_locations
+    : Array.isArray(item.work_locations?.data)
+      ? item.work_locations.data.map((d) => d?.attributes ?? d)
+      : [];
+  const location_names = locationsRaw
+    .map((loc) => loc?.name || loc?.attributes?.name || null)
+    .filter(Boolean);
   return {
     id: item.documentId ?? item.id,
     documentId: item.documentId,
     title: item.title,
     description: item.description?.replace(/<[^>]+>/g, '') || '',
-    date: start ? new Date(start).toISOString().slice(0, 10) : '',
-    time: formatEventTime(start),
+    date: startDateRaw ? startDateRaw.slice(0, 10) : '',
+    time: timeDisplay,
     location: item.event_location || '',
-    event_type: eventType,
-    start_date: item.start_date,
-    end_date: item.end_date,
+    event_type: eventTypeName,
+    start_date: startDatetime,
+    end_date: endDatetime,
     color,
     fullTitle: item.title,
     icon: 'calendar',
     event_image: eventImageUrl,
+    event_created_for: item.event_created_for || 'All',
+    location_names,
   };
+}
+
+/** GET /event-types – all event types with their colors for the legend */
+export async function fetchEventTypes() {
+  try {
+    const res = await api.get('/event-types', {
+      params: { sort: 'name:asc' },
+    });
+    const raw = Array.isArray(res?.data) ? res.data : [];
+    return raw.map((et) => ({
+      key: (et.name || '').toLowerCase().replace(/\s+/g, '_'),
+      label: et.name || '',
+      color: et.color_for_event || DEFAULT_EVENT_COLOR,
+      documentId: et.documentId,
+      id: et.id,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /** GET /events – all events for the calendar (no homepage filter) */
@@ -69,7 +99,7 @@ export async function fetchEvents() {
     return MOCK_CALENDAR_EVENTS;
   }
   const res = await api.get('/events', {
-    params: { sort: 'start_date:asc' },
+    params: { sort: 'start_date:asc', 'populate[work_locations]': true },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
   const active = raw.filter((e) => e.active !== false);
@@ -90,12 +120,21 @@ export async function fetchEventById(documentId) {
 }
 
 function normalizeHoliday(item) {
+  const locationsRaw = Array.isArray(item.work_locations)
+    ? item.work_locations
+    : Array.isArray(item.work_locations?.data)
+      ? item.work_locations.data.map((d) => d?.attributes ?? d)
+      : [];
+  const location_names = locationsRaw
+    .map((loc) => loc?.name || loc?.attributes?.name || null)
+    .filter(Boolean);
   return {
     id: item.documentId ?? item.id,
     documentId: item.documentId,
     title: item.title,
     date: item.date ? new Date(item.date).toISOString().slice(0, 10) : '',
     holiday_for: item.holiday_for,
+    location_names,
   };
 }
 
@@ -106,7 +145,7 @@ export async function fetchHolidays() {
     return MOCK_CALENDAR_HOLIDAYS;
   }
   const res = await api.get('/holidays', {
-    params: { sort: 'date:asc' },
+    params: { sort: 'date:asc', 'populate[work_locations]': true },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
   const active = raw.filter((h) => h.active !== false);

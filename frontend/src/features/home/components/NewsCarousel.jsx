@@ -6,6 +6,17 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MarkdownIt from 'markdown-it';
 
+
+const md = new MarkdownIt({ html: true });
+
+const renderDescription = (description) => {
+  if (!description) return '';
+  
+  // Strip HTML tags first, then render markdown
+  const stripped = description.replace(/<[^>]*>/g, '');
+  return md.render(stripped);
+};
+
 export default function NewsCarousel({ news = [] }) {
   // ✅ Cap at 6 items
   const visibleNews = news.slice(0, 6);
@@ -13,7 +24,6 @@ export default function NewsCarousel({ news = [] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  const md = new MarkdownIt({ html: true });
 
   useEffect(() => {
     if (!isAutoPlaying || visibleNews.length === 0) return;
@@ -81,7 +91,7 @@ export default function NewsCarousel({ news = [] }) {
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
           }}
-          dangerouslySetInnerHTML={{ __html: md.render(currentNews.description || '') }}
+          dangerouslySetInnerHTML={{ __html: md.render(renderDescription(currentNews.description || '')) }}
         />
 
         {/* Read More button */}
