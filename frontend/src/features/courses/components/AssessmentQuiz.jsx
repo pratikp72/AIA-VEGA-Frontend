@@ -609,7 +609,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       {/* Violation warning overlay — shown briefly when quiz is auto-submitted */}
       {violationWarning && (
         <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
             <XCircle className="w-14 h-14 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Quiz Auto-Submitted</h2>
             <p className="text-gray-600 text-sm">
