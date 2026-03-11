@@ -29,7 +29,7 @@ const FALLBACK_QUESTIONS = [
 
 const ANSWER_TYPE_OPTIONS = {
   YesNo: ["Yes", "No"],
-  AgreeOrDisagree: ["Agree", "Disagree"],
+  AgreeOrDisagree: ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"],
 };
 
 function RadioGroup({ questionId, options, value, onChange }) {

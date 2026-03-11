@@ -505,6 +505,12 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   };
 
   const handleBackToCourses = () => {
+    const lang = searchParams?.get('lang');
+    const langQuery = lang ? `?lang=${encodeURIComponent(lang)}` : '';
+    if (category && courseId) {
+      router.push(`/courses/${category}/${courseId}${langQuery}`);
+      return;
+    }
     if (category) {
       router.push(`/courses/${category}`);
       return;
@@ -532,11 +538,23 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   };
 
   const handleFeedbackSubmit = (formData) => {
+    const lang = searchParams?.get('lang');
+    const langQuery = lang ? `?lang=${encodeURIComponent(lang)}` : '';
     setFeedbackSubmitted(true);
     setShowFeedbackForm(false);
     setShowFeedbackSuccess(true);
     // TODO: send formData to backend when API is ready
-    setTimeout(() => router.push("/courses"), 5000);
+    setTimeout(() => {
+      if (category && courseId) {
+        router.push(`/courses/${category}/${courseId}${langQuery}`);
+        return;
+      }
+      if (category) {
+        router.push(`/courses/${category}`);
+        return;
+      }
+      router.push('/courses');
+    }, 5000);
   };
 
   // Success message after feedback submit, then redirect to courses
@@ -555,7 +573,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
               Your feedback has been submitted successfully.
             </p>
             <p className="text-sm text-muted-foreground">
-              Redirecting you to courses...
+              Redirecting you to the course page...
             </p>
           </div>
         </PageContainer>
