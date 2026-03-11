@@ -6,17 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 
-function stripImagesFromPreview(text = '', lineLimit = 3) {
-  if (!text) return '';
-  const lines = text.split('\n');
-  return lines.map((line, i) => {
-    if (i >= lineLimit) return line;
-    return line
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // markdown images
-      .replace(/<img\b[^>]*\/?>/gi, '');        // HTML <img> tags
-  }).join('\n');
-}
+const md = new MarkdownIt({ html: true });
 
+const renderDescription = (description) => {
+  if (!description) return '';
+  
+  // Strip HTML tags first, then render markdown
+  const stripped = description.replace(/<[^>]*>/g, '');
+  return md.render(stripped);
+};
 export default function NewsCard({ news }) {
     const md = new MarkdownIt({ html: true, breaks: true });
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337';
@@ -63,7 +61,7 @@ export default function NewsCard({ news }) {
           {/* Description - max 3 lines with ellipsis */}
             <div
               className="text-body text-gray-medium mb-2 line-clamp-3 overflow-hidden"
-              dangerouslySetInnerHTML={{ __html: md.render(stripImagesFromPreview(news.description || '')) }}
+              dangerouslySetInnerHTML={{ __html: md.render(renderDescription(news.description || '')) }}
             />
 
           {/* Read More Link */}
