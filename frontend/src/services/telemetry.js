@@ -18,6 +18,10 @@ let isFlushing = false;
 let flushTimer = null;
 let onlineListenerAttached = false;
 let lifecycleRefCount = 0;
+let lastStartedRoute = null;
+let lastStartedAtMs = 0;
+let lastEndedFingerprint = null;
+let lastEndedAtMs = 0;
 
 function hasWindow() {
   return typeof window !== 'undefined';
@@ -193,6 +197,7 @@ async function flushQueue() {
 async function flushWithKeepalive() {
   if (!hasWindow()) return;
   loadQueue();
+  if (isFlushing) return;
   const ready = getReadyBatch();
   if (ready.length === 0) return;
 
@@ -271,8 +276,18 @@ function trackEvent(eventName, payload = {}) {
 }
 
 function trackPageViewStarted(routePath, metadata = {}) {
+  const route = String(routePath || '');
+  const now = Date.now();
+
+  // Guard against duplicate starts from fast remounts/lifecycle overlaps in dev.
+  if (lastStartedRoute === route && now - lastStartedAtMs <= 1500) {
+    return null;
+  }
+  lastStartedRoute = route;
+  lastStartedAtMs = now;
+
   return trackEvent('page_view_started', {
-    route_path: routePath,
+    route_path: route,
     metadata_json: metadata,
     duration_seconds: 0,
     click_count: 0,
@@ -280,10 +295,23 @@ function trackPageViewStarted(routePath, metadata = {}) {
 }
 
 function trackPageViewEnded(routePath, durationSeconds, clickCount, metadata = {}) {
+  const normalizedDuration = Math.max(0, Math.round(durationSeconds || 0));
+  const normalizedClicks = Math.max(0, Number(clickCount) || 0);
+  const fingerprint = `${routePath}|${normalizedDuration}|${normalizedClicks}`;
+  const now = Date.now();
+
+  // Avoid duplicate ended events caused by overlapping lifecycle signals.
+  if (lastEndedFingerprint === fingerprint && now - lastEndedAtMs <= 1500) {
+    return null;
+  }
+
+  lastEndedFingerprint = fingerprint;
+  lastEndedAtMs = now;
+
   return trackEvent('page_view_ended', {
     route_path: routePath,
-    duration_seconds: Math.max(0, Math.round(durationSeconds || 0)),
-    click_count: Math.max(0, Number(clickCount) || 0),
+    duration_seconds: normalizedDuration,
+    click_count: normalizedClicks,
     metadata_json: metadata,
   });
 }

@@ -12,6 +12,7 @@ export default function useTelemetryTracking(pathname, searchParams) {
   const activeRouteRef = useRef('');
   const routeStartMsRef = useRef(0);
   const clickCountRef = useRef(0);
+  const routeEndedRef = useRef(false);
 
   useEffect(() => {
     telemetryService.startLifecycle();
@@ -21,25 +22,31 @@ export default function useTelemetryTracking(pathname, searchParams) {
   }, []);
 
   useEffect(() => {
-    if (!pathname) return;
-
-    const search = searchParams?.toString() || '';
-    const nextRoute = telemetryService.buildRoutePath(pathname, search);
-    const now = Date.now();
-
-    if (activeRouteRef.current && routeStartMsRef.current > 0) {
-      const elapsedSeconds = (now - routeStartMsRef.current) / 1000;
+    const endCurrentPage = (reason) => {
+      if (!activeRouteRef.current || routeStartMsRef.current <= 0 || routeEndedRef.current) return;
+      const elapsedSeconds = (Date.now() - routeStartMsRef.current) / 1000;
       telemetryService.trackPageViewEnded(
         activeRouteRef.current,
         elapsedSeconds,
         clickCountRef.current,
-        { reason: 'route_change' }
+        { reason }
       );
-    }
+      routeEndedRef.current = true;
+      routeStartMsRef.current = 0;
+      clickCountRef.current = 0;
+    };
+
+    if (!pathname) return;
+
+    const search = searchParams?.toString() || '';
+    const nextRoute = telemetryService.buildRoutePath(pathname, search);
+
+    endCurrentPage('route_change');
 
     activeRouteRef.current = nextRoute;
-    routeStartMsRef.current = now;
+    routeStartMsRef.current = Date.now();
     clickCountRef.current = 0;
+    routeEndedRef.current = false;
 
     telemetryService.trackPageViewStarted(nextRoute, {
       referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
@@ -58,8 +65,19 @@ export default function useTelemetryTracking(pathname, searchParams) {
   }, []);
 
   useEffect(() => {
+    const startCurrentPage = (reason) => {
+      if (!activeRouteRef.current || routeStartMsRef.current > 0) return;
+      routeEndedRef.current = false;
+      routeStartMsRef.current = Date.now();
+      clickCountRef.current = 0;
+      telemetryService.trackPageViewStarted(activeRouteRef.current, {
+        referrer: typeof document !== 'undefined' ? document.referrer || '' : '',
+        reason,
+      });
+    };
+
     const endCurrentPage = (reason) => {
-      if (!activeRouteRef.current || routeStartMsRef.current <= 0) return;
+      if (!activeRouteRef.current || routeStartMsRef.current <= 0 || routeEndedRef.current) return;
       const elapsedSeconds = (Date.now() - routeStartMsRef.current) / 1000;
       telemetryService.trackPageViewEnded(
         activeRouteRef.current,
@@ -67,14 +85,16 @@ export default function useTelemetryTracking(pathname, searchParams) {
         clickCountRef.current,
         { reason }
       );
-      routeStartMsRef.current = Date.now();
+      routeEndedRef.current = true;
+      routeStartMsRef.current = 0;
       clickCountRef.current = 0;
     };
 
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         endCurrentPage('visibility_hidden');
-        telemetryService.flushWithKeepalive();
+      } else if (document.visibilityState === 'visible') {
+        startCurrentPage('visibility_visible');
       }
     };
 
