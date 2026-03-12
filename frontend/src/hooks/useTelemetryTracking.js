@@ -42,6 +42,7 @@ export default function useTelemetryTracking(pathname, searchParams) {
     const nextRoute = telemetryService.buildRoutePath(pathname, search);
 
     endCurrentPage('route_change');
+    telemetryService.flushWithKeepalive();
 
     activeRouteRef.current = nextRoute;
     routeStartMsRef.current = Date.now();

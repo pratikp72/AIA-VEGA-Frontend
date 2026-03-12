@@ -67,6 +67,9 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const skipNextProgressUpdate = useRef(false);
   const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState('');
   const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
+  const videoRef = useRef(null);
+  const lastVideoHeartbeatSecRef = useRef(0);
+  const moduleEnterTimeRef = useRef(null); // tracks when user entered current module
 
   // If initialLanguage (e.g. English) is not actually available for this course
   // but the backend reports a single language (e.g. Gujarati), automatically
@@ -139,6 +142,42 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     ? contents.findIndex((m) => String(m.moduleId || m.id) === String(currentModule.moduleId || currentModule.id))
     : -1;
   const nextModule = currentModuleIdx >= 0 ? contents[currentModuleIdx + 1] || null : null;
+
+  useEffect(() => {
+    const courseId = course?.id;
+    const moduleId = currentModule?.moduleId ?? currentModule?.id;
+    if (courseId == null || moduleId == null) return;
+
+    const routePath = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname;
+    const moduleTitle = currentModule?.moduleTitle || currentModule?.title || null;
+
+    moduleEnterTimeRef.current = Date.now();
+
+    telemetryService.trackLearningModuleEnter({
+      courseId,
+      moduleIndex: currentModuleIdx,
+      moduleTitle,
+      routePath,
+      metadata: {
+        module_id: String(moduleId),
+        language: selectedLanguage,
+      },
+    });
+
+    return () => {
+      telemetryService.trackLearningModuleExit({
+        courseId,
+        moduleIndex: currentModuleIdx,
+        moduleTitle,
+        routePath,
+        metadata: {
+          module_id: String(moduleId),
+          language: selectedLanguage,
+        },
+      });
+      telemetryService.flushWithKeepalive();
+    };
+  }, [course?.id, currentModule?.moduleId, currentModule?.id, currentModuleIdx, currentModule?.moduleTitle, currentModule?.title, pathname, searchParams, selectedLanguage]);
 
   useEffect(() => {
     const sourceUrl = currentModule?.pdf_file?.url;
@@ -228,19 +267,24 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const moduleIndex = module_ != null ? contents.findIndex((m) => String(m.moduleId || m.id) === String(modId)) : -1;
     const routePath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
 
+    // Calculate actual time spent before both POST calls below need it
+    const durationMin = Number(module_?.moduleDuration) || 0;
+    const elapsedMin = moduleEnterTimeRef.current
+      ? Math.max(1, Math.round((Date.now() - moduleEnterTimeRef.current) / 60000))
+      : durationMin;
+    const timeWatchedMin = durationMin > 0 ? Math.min(elapsedMin, durationMin) : elapsedMin;
+
     try {
-      await markModuleProgress({ userId, courseId: courseIdForApi, moduleId: String(modId) });
-      telemetryService.trackLearningEvent('module_marked_read', {
-        routePath,
-        entityType: 'module',
-        entityId: String(modId),
-        metadata: {
-          course_document_id: course?.documentId,
-          course_id: course?.id,
-          module_title: module_?.moduleTitle || module_?.title || null,
-          module_index: moduleIndex,
-          language: selectedLanguage,
-        },
+      await markModuleProgress({
+        userId,
+        courseId: courseIdForApi,
+        moduleId: String(modId),
+        timeSpentMinutes: timeWatchedMin,
+        selectedLanguage,
+        // Send started_at only when course hasn't been started yet (first module marked)
+        startedAt: (!courseProgress.progressStatus || courseProgress.progressStatus === 'Not_started')
+          ? new Date().toISOString()
+          : null,
       });
     } catch (err) {
       console.error('Failed to mark module (user-progress):', err?.message ?? err?.status ?? err);
@@ -248,29 +292,17 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
     if (moduleIndex >= 0 && courseIdNumeric != null) {
       try {
-        const durationMin = Number(module_?.moduleDuration) || 0;
+        // full_watch if user watched ≥ 90% of the duration, otherwise in_progress
+        const completionType =
+          durationMin > 0 && timeWatchedMin >= durationMin * 0.9 ? 'full_watch' : 'in_progress';
         await markModuleVideoProgress({
           userId,
           courseId: courseIdNumeric,
           moduleIndex,
           moduleTitle: module_?.moduleTitle || module_?.title || null,
           videoDurationMin: durationMin,
-          timeWatchedMin: durationMin,
-        });
-        telemetryService.trackLearningEvent('video_progress_marked', {
-          routePath,
-          entityType: 'video',
-          entityId: String(modId),
-          durationSeconds: Math.round(durationMin * 60),
-          metadata: {
-            course_document_id: course?.documentId,
-            course_id: course?.id,
-            module_title: module_?.moduleTitle || module_?.title || null,
-            module_index: moduleIndex,
-            language: selectedLanguage,
-            video_duration_min: durationMin,
-            time_watched_min: durationMin,
-          },
+          timeWatchedMin,
+          videoCompletionType: completionType,
         });
       } catch (err) {
         console.error('Failed to mark module (module-video-progress):', err?.message ?? err?.status ?? err);
@@ -337,6 +369,77 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const base = `/courses/${category}/${course.documentId}/${nextModule.moduleId || nextModule.id}`;
     const lang = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
     router.push(`${base}${lang}`);
+  };
+
+  const handleVideoLoadedMetadata = () => {
+    const v = videoRef.current;
+    lastVideoHeartbeatSecRef.current = v ? Number(v.currentTime || 0) : 0;
+  };
+
+  const handleVideoTimeUpdate = () => {
+    const courseId = course?.id;
+    if (courseId == null || currentModule?.moduleType !== 'Video') return;
+
+    const v = videoRef.current;
+    if (!v) return;
+
+    const current = Number(v.currentTime || 0);
+    const last = Number(lastVideoHeartbeatSecRef.current || 0);
+    const delta = current - last;
+    if (delta < 10) return;
+
+    lastVideoHeartbeatSecRef.current = current;
+    telemetryService.trackLearningVideoProgress({
+      courseId,
+      moduleIndex: currentModuleIdx,
+      moduleTitle: currentModule?.moduleTitle || currentModule?.title || null,
+      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname,
+      durationSeconds: Math.max(1, Math.round(delta)),
+      watchedSeconds: Math.round(current),
+      metadata: {
+        module_id: String(currentModule?.moduleId ?? currentModule?.id ?? ''),
+        language: selectedLanguage,
+      },
+    });
+  };
+
+  const handleVideoEnded = () => {
+    const courseId = course?.id;
+    if (courseId == null || currentModule?.moduleType !== 'Video') return;
+
+    const v = videoRef.current;
+    const duration = Number(v?.duration || v?.currentTime || 0);
+    const last = Number(lastVideoHeartbeatSecRef.current || 0);
+    const tailDelta = duration - last;
+
+    if (tailDelta >= 1) {
+      telemetryService.trackLearningVideoProgress({
+        courseId,
+        moduleIndex: currentModuleIdx,
+        moduleTitle: currentModule?.moduleTitle || currentModule?.title || null,
+        routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname,
+        durationSeconds: Math.max(1, Math.round(tailDelta)),
+        watchedSeconds: Math.round(duration),
+        metadata: {
+          module_id: String(currentModule?.moduleId ?? currentModule?.id ?? ''),
+          language: selectedLanguage,
+        },
+      });
+    }
+
+    lastVideoHeartbeatSecRef.current = duration;
+    telemetryService.trackLearningVideoCompleted({
+      courseId,
+      moduleIndex: currentModuleIdx,
+      moduleTitle: currentModule?.moduleTitle || currentModule?.title || null,
+      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname,
+      durationSeconds: Math.max(1, Math.round(duration)),
+      watchedSeconds: Math.round(duration),
+      metadata: {
+        module_id: String(currentModule?.moduleId ?? currentModule?.id ?? ''),
+        language: selectedLanguage,
+      },
+    });
   };
 
   // Feedback form: when user passed quiz but hasn't submitted feedback
@@ -476,7 +579,11 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <>
                   <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
                     <video
+                      ref={videoRef}
                       controls
+                      onLoadedMetadata={handleVideoLoadedMetadata}
+                      onTimeUpdate={handleVideoTimeUpdate}
+                      onEnded={handleVideoEnded}
                       className="w-full h-full object-cover rounded-xl"
                     >
                       <source

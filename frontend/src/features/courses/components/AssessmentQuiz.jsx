@@ -335,7 +335,9 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       userId: Number(userId),
       courseId: Number(courseNumericId),
       answers: answersArr,
-      time_taken_minutes: Math.round((quizDurationSeconds - currentTimeLeft) / 60),
+      // Ensure non-zero quiz duration for analytics when submission happens under 60s.
+      time_taken_minutes: Math.max(1, Math.round((quizDurationSeconds - currentTimeLeft) / 60)),
+      submitted_at: new Date().toISOString(),
     };
 
     try {
@@ -377,12 +379,13 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         }
       }
 
-      telemetryService.trackLearningEvent('quiz_submitted', {
-        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
-        entityType: 'quiz',
-        entityId: String(courseNumericId),
-        pageType: 'CourseAssessment',
-        durationSeconds: Math.max(0, Math.round(quizDurationSeconds - currentTimeLeft)),
+      telemetryService.trackLearningQuizSubmitted({
+        courseId: Number(courseNumericId),
+        routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+        quizId: String(courseNumericId),
+        score: submission?.score ?? 0,
+        maxScore: 100,
+        durationSeconds: Math.max(1, Math.round(quizDurationSeconds - currentTimeLeft)),
         metadata: {
           course_id: Number(courseNumericId),
           user_id: Number(userId),
@@ -395,14 +398,17 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       });
     } catch (e) {
       console.error('Quiz submission failed', e);
-      telemetryService.trackLearningEvent('quiz_submission_failed', {
-        routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
-        entityType: 'quiz',
-        entityId: String(courseNumericId),
-        pageType: 'CourseAssessment',
+      telemetryService.trackLearningQuizSubmitted({
+        courseId: Number(courseNumericId),
+        routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+        quizId: String(courseNumericId),
+        score: null,
+        maxScore: null,
+        durationSeconds: Math.max(1, Math.round(quizDurationSeconds - currentTimeLeft)),
         metadata: {
           course_id: Number(courseNumericId),
           user_id: Number(userId),
+          failed: true,
           error: e?.message || 'Quiz submission failed',
         },
       });

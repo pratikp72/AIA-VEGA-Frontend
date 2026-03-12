@@ -223,8 +223,17 @@ export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModu
   }, { timeout: 30000 });
 };
 
-export const markModuleProgress = async ({ userId, courseId, moduleId }) => {
-  return api.post('/user-progress/mark-module', { userId, courseId, moduleId });
+export const markModuleProgress = async ({ userId, courseId, moduleId, timeSpentMinutes = 0, selectedLanguage = null, startedAt = null }) => {
+  return api.post('/user-progress/mark-module', {
+    userId,
+    courseId,
+    moduleId,
+    last_accessed_at: new Date().toISOString(),
+    time_spent_minutes: Number(timeSpentMinutes) || 0,
+    selected_language: selectedLanguage || null,
+    // Only sent on the very first module mark (course not yet started)
+    ...(startedAt ? { started_at: startedAt } : {}),
+  });
 };
 
 /**
@@ -238,14 +247,18 @@ export const markModuleVideoProgress = async ({
   moduleTitle = null,
   videoDurationMin = 0,
   timeWatchedMin = 0,
+  videoCompletionType = 'full_watch',
 }) => {
   return api.post(API_ENDPOINTS.MODULE_VIDEO_PROGRESS.MARK_AS_READ, {
     userId: Number(userId),
     courseId: Number(courseId),
+    course: Number(courseId),   // explicit relation field for backend controller
     moduleIndex: Number(moduleIndex),
     moduleTitle: moduleTitle ?? null,
     videoDurationMin: Number(videoDurationMin) || 0,
     timeWatchedMin: Number(timeWatchedMin) || 0,
+    video_completion_type: videoCompletionType,
+    last_updated: new Date().toISOString(),
   });
 };
 
