@@ -20,36 +20,6 @@ import telemetryService from '@/services/telemetry';
 
 const md = new MarkdownIt({ html: true, breaks: true });
 
-function OrientationDetailCard({ orientation }) {
-  const topicsHtml = md.render(orientation?.topics_to_cover || "");
-  const flow = orientation.orientation_flow || "—";
-  const trainer = orientation.trainer_name || "—";
-  return (
-    <div className="bg-white rounded-xl shadow p-6 mt-6">
-      <div className="font-semibold text-gray-800 text-lg mb-3">Orientation details</div>
-      <div className="space-y-3 text-sm text-gray-600">
-        <div className="flex gap-2">
-          
-          <span><strong className="text-gray-700">Orientation flow:</strong> {flow}</span>
-        </div>
-        <div className="flex gap-2">
-          
-          <span><strong className="text-gray-700">Trainer:</strong> {trainer}</span>
-        </div>
-        {topicsHtml && (
-          <div>
-            <strong className="text-gray-700">Topics to cover:</strong>
-            <div
-              className="mt-1.5 rich-content"
-              dangerouslySetInnerHTML={{ __html: topicsHtml }}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function CoursesDetailPage({ category, course, selectedModule, initialLanguage }) {
   const courseLanguages = course?.languages ?? course?.course_language ?? [];
   const [selectedLanguage, setSelectedLanguage] = useState(
@@ -121,12 +91,6 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const feedbacks = allFeedbacks.filter(
     (fb) => (fb.language || "").trim().toLowerCase() === selectedLangNorm
   );
-  const allOrientationDetails = Array.isArray(course.orientation_detail) ? course.orientation_detail : [];
-  const orientation =
-    allOrientationDetails.find((o) => (o.language || "").trim().toLowerCase() === selectedLangNorm) ??
-    (allOrientationDetails.length > 0 && courseLanguages.some((l) => (l || "").trim().toLowerCase() === selectedLangNorm)
-      ? allOrientationDetails[0]
-      : null);
   const allModulesCompleted = contents.length > 0 && contents.every((m) => m.mark_as_read);
   const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
   // For debugging:
@@ -712,9 +676,6 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 selectedLanguage={selectedLanguage}
                 hasQuizInSelectedLanguage={hasQuizInSelectedLanguage}
               />
-              {orientation && (
-                <OrientationDetailCard orientation={orientation} />
-              )}
             </div>
           </div>
         </PageSection>

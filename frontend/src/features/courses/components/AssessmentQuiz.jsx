@@ -107,7 +107,6 @@ function ResultScreen({
         <div className="flex justify-center mb-4">
           <XCircle className="w-12 h-12 text-destructive" />
         </div>
-        {/** Keep heading static so UI does not depend on optional quiz title fields. */}
         <h2 className="text-xl font-bold text-destructive mb-4">
           {reattemptRequired
             ? `Maximum attempts reached`
@@ -207,7 +206,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
   const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
-  // Use compulsory flag from the backend feedback component; fall back to mock for legacy/dev
   const feedbackMandatory = feedbackCompulsory ?? getCourseFeedbackConfig(courseId).mandatory;
   const quizDurationSeconds = (quizDuration != null && quizDuration > 0 ? quizDuration : 30) * 60;
 
@@ -230,7 +228,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const [showReattemptSuccessModal, setShowReattemptSuccessModal] = useState(false);
   const [violationWarning, setViolationWarning] = useState(false);
 
-  // Refs for stable access inside event-handler closures (avoid stale state)
   const isSubmittingRef = useRef(false);
   const submittedRef = useRef(false);
   const answersRef = useRef({});
@@ -238,7 +235,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
   const currentQuestion = questions[currentIndex];
 
-  // When re-request succeeds: show modal and redirect to course page in 5-6 sec
   useEffect(() => {
     if (!reattemptSent || !category || !courseId) return;
     setShowReattemptSuccessModal(true);
@@ -248,7 +244,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     return () => clearTimeout(timer);
   }, [reattemptSent, category, courseId, router]);
 
-  // Keep refs in sync with state so event-handler closures always see fresh values
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
 
@@ -266,7 +261,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     return () => clearInterval(timer);
   }, [timeLeft, submitted]);
 
-  // ── Fullscreen: request on mount, exit when quiz is submitted ──────────────
   useEffect(() => {
     const el = document.documentElement;
     if (el.requestFullscreen) {
@@ -277,7 +271,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         document.exitFullscreen().catch(() => {});
       }
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (submitted && document.fullscreenElement) {
@@ -334,7 +328,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }
   };
 
-  // ── Core submit logic (used by both manual Submit and auto-submit) ─────────
   const performSubmit = useCallback(async (currentAnswers, currentTimeLeft) => {
     if (isSubmittingRef.current || submittedRef.current) return;
     isSubmittingRef.current = true;
@@ -376,10 +369,8 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     };
 
     try {
-      // Step 1: Submit the quiz — read the response to detect blocked attempts
       const submitRes = await submitQuiz(payload);
 
-      // Step 2: Always fetch latest for attempt/maxAttempt info
       const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
       if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
 
@@ -393,7 +384,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       setIsPassed(userPassed);
       if (attemptNum != null) setAttemptNumber(attemptNum);
 
-      // Re-attempt UI only when user actually failed and has used all attempts (never when they passed)
       if (!userPassed && (submitRes?.reattempt_required || currentEqualsMax)) {
         setReattemptRequired(true);
         setIsPassed(false);
@@ -402,11 +392,9 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
         if (reattemptStatus?.hasPending) setReattemptSent(true);
       } else {
-        // New submission was created — show the freshly calculated score
         setScore(submission?.score ?? 0);
         setIsPassed(submission?.passed ?? false);
         if (attemptNum != null) setAttemptNumber(attemptNum);
-        // Show re-attempt button when current attempt === max_attempt and failed
         if (!submission?.passed && currentEqualsMax) {
           setReattemptRequired(true);
           const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
@@ -453,22 +441,19 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       setIsSubmitting(false);
       setSubmitted(true);
     }
-  }, [questions, userId, courseNumericId, quizDurationSeconds]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [questions, userId, courseNumericId, quizDurationSeconds]); 
 
-  // Manual submit — requires current question answered
   const handleSubmit = async () => {
     if (!hasAnswered || isSubmitting) return;
     await performSubmit(answers, timeLeft);
   };
 
-  // Auto-submit triggered by security violations (tab switch / fullscreen exit)
   const handleAutoSubmit = useCallback(() => {
     if (submittedRef.current || isSubmittingRef.current) return;
     setViolationWarning(true);
     performSubmit(answersRef.current, timeLeftRef.current);
   }, [performSubmit]);
 
-  // ── Security: auto-submit on fullscreen exit ───────────────────────────────
   useEffect(() => {
     const onFullscreenChange = () => {
       if (!document.fullscreenElement && !submittedRef.current) {
@@ -479,7 +464,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
   }, [handleAutoSubmit]);
 
-  // ── Security: auto-submit on tab switch / window blur ─────────────────────
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && !submittedRef.current) {
@@ -490,7 +474,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [handleAutoSubmit]);
 
-  // ── Security: warn on page refresh / navigation away ──────────────────────
   useEffect(() => {
     const onBeforeUnload = (e) => {
       if (submittedRef.current) return;
@@ -513,7 +496,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     setViolationWarning(false);
     submittedRef.current = false;
     isSubmittingRef.current = false;
-    // Re-enter fullscreen for next attempt
     const el = document.documentElement;
     if (el.requestFullscreen) {
       el.requestFullscreen().catch(() => {});
@@ -584,7 +566,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     setFeedbackSubmitted(true);
     setShowFeedbackForm(false);
     setShowFeedbackSuccess(true);
-    // TODO: send formData to backend when API is ready
     setTimeout(() => {
       if (category && courseId) {
         router.push(`/courses/${category}/${courseId}${langQuery}`);
@@ -598,7 +579,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }, 5000);
   };
 
-  // Success message after feedback submit, then redirect to courses
   if (showFeedbackSuccess) {
     return (
       <LayoutShell hideSidebar>
@@ -622,7 +602,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     );
   }
 
-  // When user is on feedback screen, show full layout with sidebar
   if (submitted && showFeedbackForm) {
     return (
       <LayoutShell hideSidebar>
@@ -632,14 +611,13 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
             onCancel={closeFeedbackForm}
             onSubmit={handleFeedbackSubmit}
             userId={userId}
-            courseId={courseNumericId} // Pass numeric course ID
+            courseId={courseNumericId} 
           />
         </PageContainer>
       </LayoutShell>
     );
   }
 
-  // Re-request success modal: overlay when request sent
   if (submitted && showReattemptSuccessModal) {
     return (
       <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center px-4">
@@ -659,7 +637,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     );
   }
 
-  // Show result screen after submission (before / after feedback)
   if (submitted) {
     return (
       <ResultScreen
@@ -686,7 +663,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col">
-      {/* Violation warning overlay — shown briefly when quiz is auto-submitted */}
       {violationWarning && (
         <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
