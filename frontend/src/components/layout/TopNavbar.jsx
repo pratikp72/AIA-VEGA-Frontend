@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Bell, Users, BookOpen, User  } from 'lucide-react';
+import { Search, Bell, Users, BookOpen, User, LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -273,6 +273,8 @@ function GlobalSearch() {
 function ProfileAvatarDropdown() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [hasAdminAccess, setHasAdminAccess] = useState(false);
+  const [adminLoading, setAdminLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -341,7 +343,23 @@ function ProfileAvatarDropdown() {
       }
     };
 
+    // Silently check if this user has an Administration Panel account
+    const checkAdminAccess = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+      if (!token) return;
+      try {
+        const result = await api.get(API_ENDPOINTS.AUTH.CHECK_ADMIN_ACCESS);
+        if (isMounted) {
+          setHasAdminAccess(result?.hasAdminAccess === true);
+        }
+      } catch {
+        // Not an admin user — silently keep hasAdminAccess = false
+      }
+    };
+
     loadUser();
+    checkAdminAccess();
+
     return () => {
       isMounted = false;
     };
@@ -359,6 +377,37 @@ function ProfileAvatarDropdown() {
     };
   }, [open]);
 
+  const handleAdminPanel = async () => {
+    setOpen(false);
+    setAdminLoading(true);
+    try {
+      const result = await api.get(API_ENDPOINTS.AUTH.ADMIN_TOKEN);
+      const adminToken = result?.adminToken;
+      if (adminToken) {
+        // Open the Strapi-served HTML redirect page (on port 1337 — same origin as admin panel).
+        // This ensures localStorage.setItem('jwtToken') writes to port 1337's storage,
+        // where the Strapi admin panel can read it. This works on all environments.
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api';
+        const strapiBase = apiBase.replace(/\/api\/?$/, '');
+        window.open(
+          `${strapiBase}/api/auth/admin-html-redirect?token=${encodeURIComponent(adminToken)}`,
+          '_blank'
+        );
+      } else {
+        alert('Failed to generate Admin Panel access. Please try again.');
+      }
+    } catch (err) {
+      const message = err?.error?.message || err?.message || '';
+      if (err?.status === 403 || message.toLowerCase().includes('admin')) {
+        alert("You don't have access to the Admin Panel.");
+      } else {
+        alert('Failed to access Admin Panel. Please try again.');
+      }
+    } finally {
+      setAdminLoading(false);
+    }
+  };
+
   const { src, initials } = getAvatarPropsForUser(user);
 
   return (
@@ -371,7 +420,7 @@ function ProfileAvatarDropdown() {
         <AvatarFallback className="bg-primary text-white text-sm">{initials}</AvatarFallback>
       </Avatar>
       {open && (
-        <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
           <Link
             href="/profile"
             className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -380,6 +429,16 @@ function ProfileAvatarDropdown() {
             <User className="w-4 h-4" />
             Profile
           </Link>
+          {hasAdminAccess && (
+            <button
+              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 disabled:opacity-60"
+              onClick={handleAdminPanel}
+              disabled={adminLoading}
+            >
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              {adminLoading ? 'Opening…' : 'Admin Panel'}
+            </button>
+          )}
           <button
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
             onClick={() => {
@@ -395,6 +454,7 @@ function ProfileAvatarDropdown() {
     </div>
   );
 }
+
 
 export default function TopNavbar({ onMobileMenuToggle }) {
   const getUserCompany = () => {

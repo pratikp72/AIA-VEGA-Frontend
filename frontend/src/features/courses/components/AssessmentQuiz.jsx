@@ -294,14 +294,37 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const progressPercent = ((currentIndex + 1) / totalQuestions) * 100;
 
   const handleSelectOption = (optionIndex) => {
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: optionIndex }));
+    const isMulti = currentQuestion.question_type === 'Multiple_select';
+    
+    setAnswers((prev) => {
+      if (isMulti) {
+        const currentAns = prev[currentQuestion.id] || [];
+        const ansArray = Array.isArray(currentAns) ? currentAns : [currentAns];
+        
+        if (ansArray.includes(optionIndex)) {
+            // Remove
+            const newAns = ansArray.filter(idx => idx !== optionIndex);
+            if (newAns.length === 0) {
+              const { [currentQuestion.id]: _, ...rest } = prev;
+              return rest;
+            }
+            return { ...prev, [currentQuestion.id]: newAns };
+        } else {
+            // Add
+            return { ...prev, [currentQuestion.id]: [...ansArray, optionIndex] };
+        }
+      } else {
+         return { ...prev, [currentQuestion.id]: optionIndex };
+      }
+    });
   };
 
   const handlePrevious = () => {
     if (currentIndex > 0) setCurrentIndex((prev) => prev - 1);
   };
 
-  const hasAnswered = answers[currentQuestion?.id] !== undefined;
+  const hasAnswered = answers[currentQuestion?.id] !== undefined && 
+    (!Array.isArray(answers[currentQuestion?.id]) || answers[currentQuestion?.id].length > 0);
 
 
   const handleNext = () => {
@@ -320,15 +343,27 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     const answersArr = questions.map((q) => {
       const selectedIdx = currentAnswers[q.id];
       const opts = getQuestionOptions(q);
-      const selectedOption = selectedIdx !== undefined ? opts[selectedIdx] : null;
-      const selectedKey = selectedOption?.option_key ?? String(selectedIdx ?? "");
-      return {
+      const isMulti = q.question_type === 'Multiple_select';
+
+      let answerPayload = {
         question_id: String(q.question_id || q.id),
         question: q.question_text || q.question,
         question_type: q.question_type || 'Multiple_choice',
         point: q.point || 0,
-        selected_answer_for_multiChoice: selectedKey,
       };
+
+      if (isMulti) {
+        const ansArray = Array.isArray(selectedIdx) ? selectedIdx : (selectedIdx !== undefined ? [selectedIdx] : []);
+        answerPayload.selected_answer_for_multiSelect = ansArray.map(idx => {
+          const opt = opts[idx];
+          return { option_key: opt?.option_key ?? String(idx ?? "") };
+        });
+      } else {
+        const selectedOption = selectedIdx !== undefined && !Array.isArray(selectedIdx) ? opts[selectedIdx] : null;
+        answerPayload.selected_answer_for_multiChoice = selectedOption?.option_key ?? String(selectedIdx ?? "");
+      }
+
+      return answerPayload;
     });
 
     const payload = {
@@ -654,7 +689,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       {/* Violation warning overlay — shown briefly when quiz is auto-submitted */}
       {violationWarning && (
         <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8 text-center">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
             <XCircle className="w-14 h-14 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Quiz Auto-Submitted</h2>
             <p className="text-gray-600 text-sm">
@@ -702,8 +737,13 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
             <div className="flex flex-col">
               {getQuestionOptions(currentQuestion).map((option, idx) => {
-                const isSelected = answers[currentQuestion.id] === idx;
+                const isMulti = currentQuestion.question_type === 'Multiple_select';
+                const currentAns = answers[currentQuestion.id];
+                const isSelected = isMulti 
+                  ? (Array.isArray(currentAns) && currentAns.includes(idx))
+                  : currentAns === idx;
                 const label = option?.option_label ?? option?.option_key ?? "";
+                
                 return (
                   <label
                     key={option?.option_key ?? idx}
@@ -711,12 +751,19 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
                     className="flex items-center gap-3 p-4 cursor-pointer rounded-xl border border-gray-100 hover:bg-gray-50 mb-4 shadow-sm"
                   >
                     <span
-                      className={`w-3.5 h-3.5 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                        isSelected ? "border-primary" : "border-gray-300"
+                      className={`shrink-0 flex items-center justify-center ${
+                        isMulti 
+                          ? `w-4 h-4 rounded-sm border-2 ${isSelected ? "border-primary bg-primary" : "border-gray-300"}`
+                          : `w-3.5 h-3.5 rounded-full border-2 ${isSelected ? "border-primary" : "border-gray-300"}`
                       }`}
                     >
-                      {isSelected && (
+                      {isSelected && !isMulti && (
                         <span className="w-2 h-2 rounded-full bg-primary" />
+                      )}
+                      {isSelected && isMulti && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
                       )}
                     </span>
                     <span className="text-sm text-gray-700">{label}</span>
