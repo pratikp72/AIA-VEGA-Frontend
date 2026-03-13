@@ -384,9 +384,15 @@ function ProfileAvatarDropdown() {
       const result = await api.get(API_ENDPOINTS.AUTH.ADMIN_TOKEN);
       const adminToken = result?.adminToken;
       if (adminToken) {
-        // Open redirect page in a new tab — it injects the token into localStorage
-        // then bounces to the Strapi admin panel, already authenticated.
-        window.open(`/admin-redirect?token=${encodeURIComponent(adminToken)}`, '_blank');
+        // Open the Strapi-served HTML redirect page (on port 1337 — same origin as admin panel).
+        // This ensures localStorage.setItem('jwtToken') writes to port 1337's storage,
+        // where the Strapi admin panel can read it. This works on all environments.
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api';
+        const strapiBase = apiBase.replace(/\/api\/?$/, '');
+        window.open(
+          `${strapiBase}/api/auth/admin-html-redirect?token=${encodeURIComponent(adminToken)}`,
+          '_blank'
+        );
       } else {
         alert('Failed to generate Admin Panel access. Please try again.');
       }
