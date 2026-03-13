@@ -124,12 +124,6 @@ function normalizeCourse(course) {
     // Additional metadata
     minPassingScore: course.min_passing_score || 0,
     languages: courseLanguages,
-    orientationRequired: course.orientation_required || false,
-    orientation_detail: Array.isArray(course.orientation_detail)
-      ? course.orientation_detail
-      : course.orientation_detail
-        ? [course.orientation_detail]
-        : [],
     prerequisite_courses: Array.isArray(course.prerequisite_courses)
       ? course.prerequisite_courses
       : course.prerequisite_courses
@@ -143,7 +137,6 @@ const COURSES_LIST_PARAMS = {
   'populate[thumbnail]': true,
   'populate[quiz][populate][quiz_questions][populate][options]': true,
   'populate[modules]': true,
-  'populate[orientation_detail]': true,
   'populate[prerequisite_courses]': true,
   'pagination[pageSize]': 50,
   sort: 'createdAt:desc',
@@ -183,7 +176,6 @@ export const fetchCourseById = async (documentId, opts = {}) => {
     'populate[modules][populate]': '*',
     'populate[thumbnail]': true,
     'populate[feedback][populate][feedback_question]': true,
-    'populate[orientation_detail]': true,
     'populate[prerequisite_courses]': true,
     'populate[quiz][populate][quiz_questions][populate][options]': true,
     'populate[quiz][populate][quiz_instruction]': true,
@@ -279,20 +271,8 @@ export const fetchAllUserProgress = async (userId) => {
 
 export const fetchCourseCategories = fetchAllCourses;
 
-// Create a backend audit entry that the user acknowledged orientation warning.
-export const confirmOrientationAttendance = async ({ userId, courseId, courseDocumentId, language }) => {
-  return api.post(API_ENDPOINTS.ORIENTATION.CONFIRM, {
-    userId: userId != null ? Number(userId) : null,
-    courseId: courseId != null ? Number(courseId) : null,
-    courseDocumentId: courseDocumentId ?? null,
-    language: language ?? null,
-    confirmedAt: new Date().toISOString(),
-  });
-};
-
 export default {
   fetchAllCourses,
   fetchCourseCategories,
   fetchCourseById,
-  confirmOrientationAttendance,
 };
