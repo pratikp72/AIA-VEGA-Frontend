@@ -340,7 +340,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
       let answerPayload = {
         question_id: String(q.question_id || q.id),
-        question: q.question_text || q.question,
+        question: q.question_text || q.question || q.question_id || String(q.id),
         question_type: q.question_type || 'Multiple_choice',
         point: q.point || 0,
       };

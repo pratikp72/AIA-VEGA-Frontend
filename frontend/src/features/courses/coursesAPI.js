@@ -258,16 +258,19 @@ export const markModuleVideoProgress = async ({
 // Falls back to empty on any error so the UI stays functional.
 // Pass { fresh: true } to bypass GET deduplication cache (use after mutations like mark-as-read).
 export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}) => {
-  if (!userId || !courseNumericId) return { completedModules: [], progressStatus: null };
+  if (!userId || !courseNumericId) {
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false };
+  }
   try {
     const params = { userId, courseId: courseNumericId };
     if (opts.fresh) params._t = Date.now(); // bypass dedupe cache
     const response = await api.get('/user-progress/progress', { params });
     const data = response?.data || response;
     const completedModules = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
-    return { completedModules, progressStatus: data?.progress_status ?? null };
+    const feedbackSubmitted = !!data?.feedback_submission;
+    return { completedModules, progressStatus: data?.progress_status ?? null, feedbackSubmitted };
   } catch {
-    return { completedModules: [], progressStatus: null };
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false };
   }
 };
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import MarkdownIt from "markdown-it";
 import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
-import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered } from "lucide-react";
+import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import PageSection from "@/components/common/PageSection";
 import CourseStats from "./CourseStats";
@@ -33,6 +33,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const moduleIdFromPath = params?.moduleId;
   const [showFullReadingView, setShowFullReadingView] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
+  const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
   const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, needsFeedbackSubmission: false });
   const skipNextProgressUpdate = useRef(false);
   const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState('');
@@ -195,7 +196,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     Promise.all([
       fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
       checkPendingReattemptRequest(userId, courseIdForApi),
-    ]).then(([{ completedModules, progressStatus }, reattemptStatus]) => {
+    ]).then(([{ completedModules, progressStatus, feedbackSubmitted }, reattemptStatus]) => {
       const hasPending = reattemptStatus?.hasPending ?? false;
       const hasRejected = reattemptStatus?.hasRejected ?? false;
       if (skipNextProgressUpdate.current) {
@@ -214,8 +215,10 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         // Check if user passed quiz but hasn't submitted feedback (course not fully completed)
         getLatestSubmission(userId, courseIdForApi).then((res) => {
           const passed = res?.submission?.passed === true;
-          setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: passed }));
+          setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: passed && !feedbackSubmitted }));
         });
+      } else {
+        setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: false }));
       }
     });
   }, [course?.id, course?.documentId, dispatch]);
@@ -406,6 +409,30 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     });
   };
 
+  // Feedback success: show "Thank you" screen briefly after feedback submission
+  if (showFeedbackSuccess) {
+    return (
+      <LayoutShell hideSidebar>
+        <PageContainer className="py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-2xl w-full text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle2 className="w-14 h-14 text-success" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Thank you!
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Your feedback has been submitted successfully.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Redirecting you to the course page...
+            </p>
+          </div>
+        </PageContainer>
+      </LayoutShell>
+    );
+  }
+
   // Feedback form: when user passed quiz but hasn't submitted feedback
   if (showFeedbackForm) {
     const feedbackForLang = feedbacks[0];
@@ -429,6 +456,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 }}
             onSubmit={(response) => {
               setShowFeedbackForm(false);
+              setShowFeedbackSuccess(true);
               // Refetch progress - backend finalizeCourse sets Completed
               if (userId && courseNumericId) {
                 fetchUserCourseProgress(userId, courseNumericId, { fresh: true }).then(({ completedModules, progressStatus }) => {
@@ -441,6 +469,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                   }
                 });
               }
+              // Auto-hide success screen after 3 seconds
+              setTimeout(() => setShowFeedbackSuccess(false), 3000);
             }}
             userId={userId}
             courseId={courseNumericId}
