@@ -377,11 +377,10 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
                   setStartingAssessment(true);
                   try {
                     await props.onBeforeStartAssessment?.();
-                    telemetryService.trackLearningEvent('assessment_started', {
-                      routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
-                      entityType: 'quiz',
-                      entityId: String(props.quiz?.id || props.quiz?.question_set_id || props.courseNumericId || props.courseId || ''),
-                      pageType: 'CourseAssessment',
+                    telemetryService.trackLearningQuizStarted({
+                      courseId: props.courseNumericId,
+                      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+                      quizId: String(props.quiz?.id || props.quiz?.question_set_id || ''),
                       metadata: {
                         course_document_id: props.courseId,
                         course_id: props.courseNumericId,

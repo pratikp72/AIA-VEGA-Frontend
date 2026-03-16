@@ -27,11 +27,11 @@ export default function FinalAssessment({ unlocked, category, courseId, isComple
         <div className="w-full border border-success/30 rounded-xl flex flex-col items-center p-6 shadow-sm bg-success/5">
           <CheckCircle2 className="w-10 h-10 text-success mb-3" />
           <span className="text-base font-semibold text-gray-800 mb-1">Course Completed</span>
-          {quizScore != null && (
+          {/* {quizScore != null && (
             <span className="text-2xl font-bold text-primary">
               Your Score: {quizScore}%
             </span>
-          )}
+          )} */}
         </div>
       </div>
     );

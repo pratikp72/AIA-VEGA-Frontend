@@ -336,6 +336,204 @@ function trackLearningEvent(eventName, {
   });
 }
 
+const learningModuleSessions = new Map();
+const learningQuizSessions = new Map();
+const learningFeedbackSessions = new Map();
+
+function normalizeCourseEntity(courseId) {
+  if (courseId == null || courseId === '') return null;
+  return String(courseId);
+}
+
+function makeLearningRoute(routePath) {
+  if (routePath) return String(routePath);
+  if (hasWindow()) return buildRoutePath(window.location.pathname, window.location.search);
+  return '/courses';
+}
+
+function baseLearningPayload({
+  courseId,
+  routePath,
+  moduleIndex = null,
+  moduleTitle = null,
+  pageType = 'Courses',
+  metadata = {},
+}) {
+  const entityId = normalizeCourseEntity(courseId);
+  if (!entityId) return null;
+
+  return {
+    routePath: makeLearningRoute(routePath),
+    entityType: 'course',
+    entityId,
+    pageType,
+    metadata: {
+      courseId: entityId,
+      moduleIndex,
+      moduleTitle,
+      ...metadata,
+    },
+  };
+}
+
+// 1) Module enter
+function trackLearningModuleEnter({ courseId, moduleIndex = null, moduleTitle = null, routePath, metadata = {} }) {
+  const base = baseLearningPayload({ courseId, routePath, moduleIndex, moduleTitle, metadata });
+  if (!base) return null;
+
+  const key = `${base.entityId}::${moduleIndex ?? 'na'}`;
+  learningModuleSessions.set(key, Date.now());
+
+  return trackLearningEvent('learning_module_enter', {
+    ...base,
+    durationSeconds: 0,
+  });
+}
+
+// 2) Module exit (duration calculated automatically)
+function trackLearningModuleExit({ courseId, moduleIndex = null, moduleTitle = null, routePath, metadata = {} }) {
+  const base = baseLearningPayload({ courseId, routePath, moduleIndex, moduleTitle, metadata });
+  if (!base) return null;
+
+  const key = `${base.entityId}::${moduleIndex ?? 'na'}`;
+  const startedAt = learningModuleSessions.get(key);
+  const durationSeconds = startedAt ? Math.max(1, Math.round((Date.now() - startedAt) / 1000)) : 1;
+  learningModuleSessions.delete(key);
+
+  return trackLearningEvent('learning_module_exit', {
+    ...base,
+    durationSeconds,
+  });
+}
+
+// 3) Video progress
+function trackLearningVideoProgress({
+  courseId,
+  moduleIndex = null,
+  moduleTitle = null,
+  routePath,
+  durationSeconds = 0,
+  watchedSeconds = null,
+  metadata = {},
+}) {
+  const base = baseLearningPayload({ courseId, routePath, moduleIndex, moduleTitle, metadata });
+  if (!base) return null;
+  const normalizedDuration = Math.max(0, Math.round(durationSeconds || 0));
+  if (normalizedDuration <= 0) return null;
+
+  return trackLearningEvent('learning_video_progress', {
+    ...base,
+    durationSeconds: normalizedDuration,
+    metadata: {
+      ...base.metadata,
+      watchedSeconds,
+    },
+  });
+}
+
+// 4) Video completed
+function trackLearningVideoCompleted({
+  courseId,
+  moduleIndex = null,
+  moduleTitle = null,
+  routePath,
+  durationSeconds = 0,
+  watchedSeconds = null,
+  metadata = {},
+}) {
+  const base = baseLearningPayload({ courseId, routePath, moduleIndex, moduleTitle, metadata });
+  if (!base) return null;
+  const normalizedDuration = Math.max(1, Math.round(durationSeconds || 0));
+
+  return trackLearningEvent('learning_video_completed', {
+    ...base,
+    durationSeconds: normalizedDuration,
+    metadata: {
+      ...base.metadata,
+      watchedSeconds,
+    },
+  });
+}
+
+// 5) Quiz started/submitted
+function trackLearningQuizStarted({ courseId, routePath, quizId = null, metadata = {} }) {
+  const base = baseLearningPayload({ courseId, routePath, metadata });
+  if (!base) return null;
+
+  learningQuizSessions.set(base.entityId, Date.now());
+
+  return trackLearningEvent('learning_quiz_started', {
+    ...base,
+    durationSeconds: 0,
+    metadata: {
+      ...base.metadata,
+      quizId,
+    },
+  });
+}
+
+function trackLearningQuizSubmitted({ courseId, routePath, quizId = null, score = null, maxScore = null, durationSeconds = null, metadata = {} }) {
+  const base = baseLearningPayload({ courseId, routePath, metadata });
+  if (!base) return null;
+
+  const startedAt = learningQuizSessions.get(base.entityId);
+  const computedDuration = startedAt ? Math.max(1, Math.round((Date.now() - startedAt) / 1000)) : 1;
+  const normalizedDuration = Number.isFinite(durationSeconds)
+    ? Math.max(1, Math.round(durationSeconds))
+    : computedDuration;
+  learningQuizSessions.delete(base.entityId);
+
+  return trackLearningEvent('learning_quiz_submitted', {
+    ...base,
+    durationSeconds: normalizedDuration,
+    metadata: {
+      ...base.metadata,
+      quizId,
+      score,
+      maxScore,
+    },
+  });
+}
+
+// 6) Feedback opened/submitted
+function trackLearningFeedbackOpened({ courseId, routePath, feedbackId = null, metadata = {} }) {
+  const base = baseLearningPayload({ courseId, routePath, metadata });
+  if (!base) return null;
+
+  learningFeedbackSessions.set(base.entityId, Date.now());
+
+  return trackLearningEvent('learning_feedback_opened', {
+    ...base,
+    durationSeconds: 0,
+    metadata: {
+      ...base.metadata,
+      feedbackId,
+    },
+  });
+}
+
+function trackLearningFeedbackSubmitted({ courseId, routePath, feedbackId = null, rating = null, durationSeconds = null, metadata = {} }) {
+  const base = baseLearningPayload({ courseId, routePath, metadata });
+  if (!base) return null;
+
+  const startedAt = learningFeedbackSessions.get(base.entityId);
+  const computedDuration = startedAt ? Math.max(1, Math.round((Date.now() - startedAt) / 1000)) : 1;
+  const normalizedDuration = Number.isFinite(durationSeconds)
+    ? Math.max(1, Math.round(durationSeconds))
+    : computedDuration;
+  learningFeedbackSessions.delete(base.entityId);
+
+  return trackLearningEvent('learning_feedback_submitted', {
+    ...base,
+    durationSeconds: normalizedDuration,
+    metadata: {
+      ...base.metadata,
+      feedbackId,
+      rating,
+    },
+  });
+}
+
 const telemetryService = {
   buildRoutePath,
   flushQueue,
@@ -346,6 +544,15 @@ const telemetryService = {
   trackPageViewStarted,
   trackPageViewEnded,
   trackLearningEvent,
+
+  trackLearningModuleEnter,
+  trackLearningModuleExit,
+  trackLearningVideoProgress,
+  trackLearningVideoCompleted,
+  trackLearningQuizStarted,
+  trackLearningQuizSubmitted,
+  trackLearningFeedbackOpened,
+  trackLearningFeedbackSubmitted,
 };
 
 export default telemetryService;

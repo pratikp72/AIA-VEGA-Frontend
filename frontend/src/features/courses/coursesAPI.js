@@ -124,12 +124,6 @@ function normalizeCourse(course) {
     // Additional metadata
     minPassingScore: course.min_passing_score || 0,
     languages: courseLanguages,
-    orientationRequired: course.orientation_required || false,
-    orientation_detail: Array.isArray(course.orientation_detail)
-      ? course.orientation_detail
-      : course.orientation_detail
-        ? [course.orientation_detail]
-        : [],
     prerequisite_courses: Array.isArray(course.prerequisite_courses)
       ? course.prerequisite_courses
       : course.prerequisite_courses
@@ -143,7 +137,6 @@ const COURSES_LIST_PARAMS = {
   'populate[thumbnail]': true,
   'populate[quiz][populate][quiz_questions][populate][options]': true,
   'populate[modules]': true,
-  'populate[orientation_detail]': true,
   'populate[prerequisite_courses]': true,
   'pagination[pageSize]': 50,
   sort: 'createdAt:desc',
@@ -183,7 +176,6 @@ export const fetchCourseById = async (documentId, opts = {}) => {
     'populate[modules][populate]': '*',
     'populate[thumbnail]': true,
     'populate[feedback][populate][feedback_question]': true,
-    'populate[orientation_detail]': true,
     'populate[prerequisite_courses]': true,
     'populate[quiz][populate][quiz_questions][populate][options]': true,
     'populate[quiz][populate][quiz_instruction]': true,
@@ -223,8 +215,17 @@ export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModu
   }, { timeout: 30000 });
 };
 
-export const markModuleProgress = async ({ userId, courseId, moduleId }) => {
-  return api.post('/user-progress/mark-module', { userId, courseId, moduleId });
+export const markModuleProgress = async ({ userId, courseId, moduleId, timeSpentMinutes = 0, selectedLanguage = null, startedAt = null }) => {
+  return api.post('/user-progress/mark-module', {
+    userId,
+    courseId,
+    moduleId,
+    last_accessed_at: new Date().toISOString(),
+    time_spent_minutes: Number(timeSpentMinutes) || 0,
+    selected_language: selectedLanguage || null,
+    // Only sent on the very first module mark (course not yet started)
+    ...(startedAt ? { started_at: startedAt } : {}),
+  });
 };
 
 /**
@@ -238,14 +239,18 @@ export const markModuleVideoProgress = async ({
   moduleTitle = null,
   videoDurationMin = 0,
   timeWatchedMin = 0,
+  videoCompletionType = 'full_watch',
 }) => {
   return api.post(API_ENDPOINTS.MODULE_VIDEO_PROGRESS.MARK_AS_READ, {
     userId: Number(userId),
     courseId: Number(courseId),
+    course: Number(courseId),   // explicit relation field for backend controller
     moduleIndex: Number(moduleIndex),
     moduleTitle: moduleTitle ?? null,
     videoDurationMin: Number(videoDurationMin) || 0,
     timeWatchedMin: Number(timeWatchedMin) || 0,
+    video_completion_type: videoCompletionType,
+    last_updated: new Date().toISOString(),
   });
 };
 
@@ -253,16 +258,20 @@ export const markModuleVideoProgress = async ({
 // Falls back to empty on any error so the UI stays functional.
 // Pass { fresh: true } to bypass GET deduplication cache (use after mutations like mark-as-read).
 export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}) => {
-  if (!userId || !courseNumericId) return { completedModules: [], progressStatus: null };
+  if (!userId || !courseNumericId) {
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0 };
+  }
   try {
     const params = { userId, courseId: courseNumericId };
     if (opts.fresh) params._t = Date.now(); // bypass dedupe cache
     const response = await api.get('/user-progress/progress', { params });
     const data = response?.data || response;
     const completedModules = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
-    return { completedModules, progressStatus: data?.progress_status ?? null };
+    const feedbackSubmitted = !!data?.feedback_submission;
+    const progressPercentage = data?.progress_percentage ?? 0;
+    return { completedModules, progressStatus: data?.progress_status ?? null, feedbackSubmitted, progressPercentage };
   } catch {
-    return { completedModules: [], progressStatus: null };
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0 };
   }
 };
 
@@ -279,20 +288,8 @@ export const fetchAllUserProgress = async (userId) => {
 
 export const fetchCourseCategories = fetchAllCourses;
 
-// Create a backend audit entry that the user acknowledged orientation warning.
-export const confirmOrientationAttendance = async ({ userId, courseId, courseDocumentId, language }) => {
-  return api.post(API_ENDPOINTS.ORIENTATION.CONFIRM, {
-    userId: userId != null ? Number(userId) : null,
-    courseId: courseId != null ? Number(courseId) : null,
-    courseDocumentId: courseDocumentId ?? null,
-    language: language ?? null,
-    confirmedAt: new Date().toISOString(),
-  });
-};
-
 export default {
   fetchAllCourses,
   fetchCourseCategories,
   fetchCourseById,
-  confirmOrientationAttendance,
 };
