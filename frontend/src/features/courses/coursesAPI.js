@@ -229,6 +229,18 @@ export const markModuleProgress = async ({ userId, courseId, moduleId, timeSpent
 };
 
 /**
+ * Transition a course to In_progress without marking any module complete.
+ * Called when the user first engages with content (video play, View Full Content).
+ */
+export const startCourse = async ({ userId, courseId, language }) => {
+  return api.post('/user-progress/start-course', {
+    userId: Number(userId),
+    courseId,
+    language,
+  });
+};
+
+/**
  * Create or update module-video-progress when user marks a module as read.
  * Backend expects: userId, courseId (numeric), moduleIndex, moduleTitle?, videoDurationMin?, timeWatchedMin?
  */

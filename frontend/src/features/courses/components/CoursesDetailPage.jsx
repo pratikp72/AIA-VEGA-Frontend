@@ -13,7 +13,7 @@ import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
 import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/features/courses/coursesSlice";
-import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
+import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress, startCourse } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 import telemetryService from '@/services/telemetry';
@@ -41,6 +41,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const videoRef = useRef(null);
   const lastVideoHeartbeatSecRef = useRef(0);
   const moduleEnterTimeRef = useRef(null); // tracks when user entered current module
+  const hasStartedRef = useRef(false); // prevents duplicate In_progress calls per session
 
   // If initialLanguage (e.g. English) is not actually available for this course
   // but the backend reports a single language (e.g. Gujarati), automatically
@@ -239,6 +240,25 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   }, [course?.id, course?.documentId, dispatch]);
 
 
+  // Called when user first engages with content (video play or View Full Content).
+  // Transitions the course from Not_started → In_progress without marking any module complete.
+  const handleContentEngaged = async () => {
+    if (hasStartedRef.current) return;
+    if (courseProgress.progressStatus && courseProgress.progressStatus !== 'Not_started') return;
+    const userId = getCurrentUserId();
+    if (!userId) return;
+    const courseIdForApi = course.id ?? course.documentId;
+    if (!courseIdForApi) return;
+    hasStartedRef.current = true;
+    try {
+      await startCourse({ userId, courseId: courseIdForApi, language: selectedLanguage });
+      setCourseProgress((p) => ({ ...p, progressStatus: 'In_progress' }));
+    } catch (err) {
+      hasStartedRef.current = false; // allow retry on next engagement
+      console.error('Failed to mark course as started:', err?.message ?? err);
+    }
+  };
+
   const handleMarkAsRead = async (modId) => {
     const userId = getCurrentUserId();
     if (!userId) return;
@@ -247,7 +267,12 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const courseIdNumeric = course.id != null ? Number(course.id) : null;
     const courseIdForApi = course.id ?? course.documentId;
     const module_ = contents.find((m) => String(m.moduleId || m.id) === String(modId));
-    const moduleIndex = module_ != null ? contents.findIndex((m) => String(m.moduleId || m.id) === String(modId)) : -1;
+    // Use the index in the FULL module list (all languages) so it aligns with
+    // the analytics dashboard's getCourseModules which also uses all modules.
+    const allModulesList = Array.isArray(course.modulesList) ? course.modulesList : [];
+    const moduleIndex = module_ != null
+      ? allModulesList.findIndex((m) => String(m.moduleId || m.id) === String(modId))
+      : -1;
     const routePath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
 
     // Calculate actual time spent before both POST calls below need it
@@ -605,6 +630,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                     <video
                       ref={videoRef}
                       controls
+                      onPlay={handleContentEngaged}
                       onLoadedMetadata={handleVideoLoadedMetadata}
                       onTimeUpdate={handleVideoTimeUpdate}
                       onEnded={handleVideoEnded}
@@ -649,7 +675,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                       </div>
                       <div className="p-4">
                         <button
-                          onClick={() => setShowFullReadingView(true)}
+                          onClick={() => { handleContentEngaged(); setShowFullReadingView(true); }}
                           className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
                         >
                           <Maximize2 className="w-4 h-4" />
@@ -677,7 +703,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                   {/* View Full Content Button */}
                   <div className="p-4">
                     <button
-                      onClick={() => setShowFullReadingView(true)}
+                      onClick={() => { handleContentEngaged(); setShowFullReadingView(true); }}
                       className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
                     >
                       <Maximize2 className="w-4 h-4" />
@@ -695,7 +721,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                         </div>
                         <div className="p-4">
                           <button
-                            onClick={() => setShowFullReadingView(true)}
+                            onClick={() => { handleContentEngaged(); setShowFullReadingView(true); }}
                             className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
                           >
                             <Maximize2 className="w-4 h-4" />
