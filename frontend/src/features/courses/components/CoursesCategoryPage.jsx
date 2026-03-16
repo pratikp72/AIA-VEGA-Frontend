@@ -113,17 +113,18 @@ export default function CoursesCategoryPage({ category }) {
         getLatestSubmission(userId, courseNumericId),
       ]);
 
-      const progressStatus = progressInfo?.progressStatus;
       const passedQuiz = latest?.submission?.passed === true;
-      const notCompleted = progressStatus !== 'Completed';
+      const feedbackSubmitted = progressInfo?.feedbackSubmitted === true;
 
-      if (passedQuiz && notCompleted) {
+      if (passedQuiz && !feedbackSubmitted) {
         setOpenMenuId(null);
         const feedbackUrl = `/courses/${category}/${course.documentId}?feedback=1`;
         window.location.href = feedbackUrl;
       } else {
         window.alert(
-          'Feedback will be enabled only after you pass the assessment and before completing the course.'
+          feedbackSubmitted
+            ? 'Feedback has already been submitted for this course.'
+            : 'Feedback will be enabled only after you pass the assessment.'
         );
       }
     } catch (err) {
@@ -183,16 +184,15 @@ export default function CoursesCategoryPage({ category }) {
         fetchUserCourseProgress(userId, courseNumericId, { fresh: true }),
         getLatestSubmission(userId, courseNumericId),
       ]);
-      const progressStatus = progressInfo?.progressStatus;
       const passedQuiz = latest?.submission?.passed === true;
-      const notCompleted = progressStatus !== 'Completed';
-      const canSubmit = passedQuiz && notCompleted;
+      const feedbackSubmitted = progressInfo?.feedbackSubmitted === true;
+      const canSubmit = passedQuiz && !feedbackSubmitted;
 
       let reason = '';
       if (!passedQuiz) {
         reason = 'Enable after passing this course assessment.';
-      } else if (!notCompleted) {
-        reason = 'Feedback is not available after course completion.';
+      } else if (feedbackSubmitted) {
+        reason = 'Feedback already submitted.';
       }
 
       setFeedbackEligibility((prev) => ({
@@ -522,7 +522,7 @@ export default function CoursesCategoryPage({ category }) {
                 const isNotStarted = !course.completed && (!course.progressStatus || course.progressStatus === 'Not_started');
                 const isInProgress = !course.completed && (course.progressStatus === 'In_progress' || course.progressStatus === 'Failed');
                 const isCompleted = !!course.completed || course.progressStatus === 'Completed';
-                const canShowCardMenu = !isCompleted;
+                const canShowCardMenu = !isCompleted || !course.feedbackSubmitted;
                 const feedbackKey = String(course.id ?? course.documentId ?? '');
                 const feedbackState = feedbackEligibility[feedbackKey] || {
                   checked: false,

@@ -78,7 +78,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
                   : "",
                 href: `/courses/${category}`,
               },
-              { label: course.title },
+              { label: course.title, onClick: onBack },
               ...(selectedModule ? [{ label: selectedModule.moduleTitle }] : []),
             ]}
             showBreadcrumbSeparator
