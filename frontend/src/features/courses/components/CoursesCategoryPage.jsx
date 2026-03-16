@@ -371,6 +371,18 @@ export default function CoursesCategoryPage({ category }) {
     event.preventDefault();
     event.stopPropagation();
 
+    if (course?.isDeadlineLocked) {
+      setStartBlockModal({
+        open: true,
+        title: 'Course Disabled',
+        message: 'This course is disabled because the due date has passed. Please contact admin to update the due date.',
+        kind: 'deadline',
+        prerequisite: null,
+        managerName: '',
+      });
+      return;
+    }
+
     const currentUserId = getCurrentUserId();
     logWorkflowDebug('start-click', {
       currentUserId,
@@ -522,6 +534,7 @@ export default function CoursesCategoryPage({ category }) {
                 const isNotStarted = !course.completed && (!course.progressStatus || course.progressStatus === 'Not_started');
                 const isInProgress = !course.completed && (course.progressStatus === 'In_progress' || course.progressStatus === 'Failed');
                 const isCompleted = !!course.completed || course.progressStatus === 'Completed';
+                const isLockedByDeadline = !!course.isDeadlineLocked;
                 const canShowCardMenu = !isCompleted || !course.feedbackSubmitted;
                 const feedbackKey = String(course.id ?? course.documentId ?? '');
                 const feedbackState = feedbackEligibility[feedbackKey] || {
@@ -627,17 +640,25 @@ export default function CoursesCategoryPage({ category }) {
                       {isInProgress && (
                         <Button
                           onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center"
+                          className={`rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
+                            isLockedByDeadline
+                              ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                              : 'bg-primary text-white'
+                          }`}
                         >
-                          Continue Course <ChevronRight className="w-5 h-5" />
+                          {isLockedByDeadline ? 'Course Disabled' : 'Continue Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
                         </Button>
                       )}
                       {isNotStarted && (
                         <Button
                           onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center"
+                          className={`rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
+                            isLockedByDeadline
+                              ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                              : 'bg-primary text-white'
+                          }`}
                         >
-                          Start Course <ChevronRight className="w-5 h-5" />
+                          {isLockedByDeadline ? 'Course Disabled' : 'Start Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
                         </Button>
                       )}
                       {isCompleted && (

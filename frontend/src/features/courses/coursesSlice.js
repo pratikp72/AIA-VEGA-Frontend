@@ -2,6 +2,21 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { fetchAllCourses, fetchCourseById, fetchAllUserProgress } from './coursesAPI';
 import { getCurrentUserId } from '@/lib/auth';
 
+const isPastDeadline = (deadline) => {
+  if (!deadline) return false;
+  const dueEndOfDay = new Date(`${deadline}T23:59:59`);
+  return Number.isFinite(dueEndOfDay.getTime()) && Date.now() > dueEndOfDay.getTime();
+};
+
+const withDeadlineLock = (course) => {
+  const status = String(course?.progressStatus || '').trim().toLowerCase();
+  const isCompleted = course?.completed === true || status === 'completed';
+  return {
+    ...course,
+    isDeadlineLocked: !isCompleted && isPastDeadline(course?.deadline),
+  };
+};
+
 export const loadAllCourses = createAsyncThunk(
   'courses/loadAllCourses',
   async (_, { rejectWithValue }) => {
@@ -10,15 +25,17 @@ export const loadAllCourses = createAsyncThunk(
       const userId = getCurrentUserId();
       if (userId) {
         const progressByCourse = await fetchAllUserProgress(userId);
-        return courses.map((c) => ({
-          ...c,
-          completed: progressByCourse[c.id]?.completed ?? c.completed,
-          certificationGenerated: progressByCourse[c.id]?.certificate_issued ?? c.certificationGenerated,
-          progressStatus: progressByCourse[c.id]?.progress_status ?? null,
-          feedbackSubmitted: progressByCourse[c.id]?.feedback_submitted ?? false,
-        }));
+        return courses
+          .map((c) => ({
+            ...c,
+            completed: progressByCourse[c.id]?.completed ?? c.completed,
+            certificationGenerated: progressByCourse[c.id]?.certificate_issued ?? c.certificationGenerated,
+            progressStatus: progressByCourse[c.id]?.progress_status ?? null,
+            feedbackSubmitted: progressByCourse[c.id]?.feedback_submitted ?? false,
+          }))
+          .map(withDeadlineLock);
       }
-      return courses;
+      return courses.map(withDeadlineLock);
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -75,11 +92,8 @@ const coursesSlice = createSlice({
         if (mod) mod.mark_as_read = true;
       }
     },
-    // Called on course load with the user's completed_modules from user-progress.
-    // Uses module_id (moduleId) for matching - stable across fetches, unlike Strapi component id.
-    // Also checks mod.id for backward compat with progress stored using old Strapi component ids.
     initializeModuleReadState: (state, action) => {
-      const completedIds = action.payload; // string[]
+      const completedIds = action.payload;
       if (state.currentCourse?.modulesList) {
         state.currentCourse.modulesList.forEach(mod => {
           const byModuleId = mod.moduleId && completedIds.includes(String(mod.moduleId));

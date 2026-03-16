@@ -124,6 +124,7 @@ function normalizeCourse(course) {
     // Additional metadata
     minPassingScore: course.min_passing_score || 0,
     languages: courseLanguages,
+    deadline: course.deadline || null,
     prerequisite_courses: Array.isArray(course.prerequisite_courses)
       ? course.prerequisite_courses
       : course.prerequisite_courses
@@ -131,6 +132,81 @@ function normalizeCourse(course) {
         : [],
     active: course.active !== false,
   };
+}
+
+function getCurrentUserInfo() {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+async function fetchCourseDueDateMap() {
+  const user = getCurrentUserInfo();
+  const userId = user?.id ?? null;
+  const userDept = String(user?.department ?? '').trim().toLowerCase();
+  const userCompany = String(user?.company ?? '').trim().toLowerCase();
+  const userWorkLocation = String(user?.work_location ?? user?.work_location_id ?? '').trim().toLowerCase();
+
+  let assignments = [];
+  try {
+    const res = await api.get('/course-assignments', {
+      params: {
+        'populate[courses]': true,
+        'populate[departments]': true,
+        'populate[individual_user]': true,
+        'populate[companies]': true,
+        'populate[work_locations]': true,
+        'filters[active][$eq]': true,
+        'pagination[pageSize]': 1000,
+        'pagination[page]': 1,
+      },
+    });
+    assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+  } catch {
+    return {};
+  }
+
+  const dueDateMap = {};
+  for (const assignment of assignments) {
+    const dueDate = assignment.due_date;
+    if (!dueDate) continue;
+
+    const targetType = assignment.assignment_target_type;
+    let applicable = false;
+
+    if (targetType === 'Company') {
+      const names = (Array.isArray(assignment.companies) ? assignment.companies : [])
+        .map(c => String(c?.name ?? c?.title ?? '').trim().toLowerCase());
+      applicable = userCompany && names.some(n => n === userCompany || n.includes(userCompany) || userCompany.includes(n));
+    } else if (targetType === 'Department') {
+      const names = (Array.isArray(assignment.departments) ? assignment.departments : [])
+        .map(d => String(d?.name ?? d?.title ?? '').trim().toLowerCase());
+      applicable = userDept && names.some(n => n === userDept || n.includes(userDept) || userDept.includes(n));
+    } else if (targetType === 'Individual') {
+      const users = Array.isArray(assignment.individual_user) ? assignment.individual_user : [];
+      applicable = userId != null && users.some(u => String(u?.id) === String(userId) || String(u?.documentId) === String(userId));
+    } else if (targetType === 'Location') {
+      const names = (Array.isArray(assignment.work_locations) ? assignment.work_locations : [])
+        .map(l => String(l?.name ?? l?.title ?? l?.id ?? '').trim().toLowerCase());
+      applicable = userWorkLocation && names.some(n => n === userWorkLocation || n.includes(userWorkLocation) || userWorkLocation.includes(n));
+    }
+
+    if (!applicable) continue;
+
+    const courses = Array.isArray(assignment.courses) ? assignment.courses : [];
+    for (const course of courses) {
+      const cid = course?.id;
+      if (!cid) continue;
+      if (!dueDateMap[cid] || new Date(dueDate) < new Date(dueDateMap[cid])) {
+        dueDateMap[cid] = dueDate;
+      }
+    }
+  }
+
+  return dueDateMap;
 }
 
 function toArray(value) {
@@ -285,7 +361,17 @@ export const fetchAllCourses = async () => {
     pageCount = response?.meta?.pagination?.pageCount ?? 1;
     page += 1;
   } while (page <= pageCount);
-  return all.filter(c => c.active !== false).map(normalizeCourse);
+  const dueDateMap = await fetchCourseDueDateMap();
+  return all
+    .filter(c => c.active !== false)
+    .map((course) => {
+      const normalizedCourse = normalizeCourse(course);
+      const assignedDueDate = dueDateMap[course?.id] || null;
+      return {
+        ...normalizedCourse,
+        deadline: assignedDueDate || normalizedCourse.deadline || null,
+      };
+    });
 };
 
 const COURSE_WORKFLOWS_LIST_PARAMS = {
