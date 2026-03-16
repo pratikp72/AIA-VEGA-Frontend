@@ -16,9 +16,13 @@ export default function Breadcrumbs({ items = [], showTrailingSeparator = false,
         return (
           <span key={`${item.label}-${index}`} className="flex items-center gap-2">
             {item.href ? (
-              <Link href={item.href} className={labelClass}>
+              <Link href={item.href} onClick={item.onClick} className={labelClass}>
                 {item.label}
               </Link>
+            ) : item.onClick ? (
+              <button type="button" onClick={item.onClick} className={labelClass}>
+                {item.label}
+              </button>
             ) : (
               <span className={labelClass}>{item.label}</span>
             )}
