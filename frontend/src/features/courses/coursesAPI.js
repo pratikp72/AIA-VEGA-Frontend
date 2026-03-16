@@ -259,7 +259,7 @@ export const markModuleVideoProgress = async ({
 // Pass { fresh: true } to bypass GET deduplication cache (use after mutations like mark-as-read).
 export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}) => {
   if (!userId || !courseNumericId) {
-    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0 };
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0, selectedLanguage: null };
   }
   try {
     const params = { userId, courseId: courseNumericId };
@@ -269,9 +269,10 @@ export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}
     const completedModules = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
     const feedbackSubmitted = !!data?.feedback_submission;
     const progressPercentage = data?.progress_percentage ?? 0;
-    return { completedModules, progressStatus: data?.progress_status ?? null, feedbackSubmitted, progressPercentage };
+    const selectedLanguage = data?.selected_language ?? null;
+    return { completedModules, progressStatus: data?.progress_status ?? null, feedbackSubmitted, progressPercentage, selectedLanguage };
   } catch {
-    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0 };
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0, selectedLanguage: null };
   }
 };
 

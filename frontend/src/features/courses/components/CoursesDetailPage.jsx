@@ -98,8 +98,12 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   }, 0);
   const allModulesCompleted = contents.length > 0 && contents.every((m) => m.mark_as_read);
   const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
-  // For debugging:
-  // console.log('modules:', contents)
+
+  const displayedProgressPercentage = useMemo(() => {
+    if (contents.length === 0) return 0;
+    const completedInLang = contents.filter((m) => m.mark_as_read).length;
+    return Math.round((completedInLang / contents.length) * 80);
+  }, [contents]);
 
   const moduleIdFromQuery = searchParams.get('moduleId');
   const requestedModuleId = moduleIdFromPath || moduleIdFromQuery;
@@ -200,30 +204,37 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     Promise.all([
       fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
       checkPendingReattemptRequest(userId, courseIdForApi),
-    ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage }, reattemptStatus]) => {
+    ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage, selectedLanguage: savedLang }, reattemptStatus]) => {
       const hasPending = reattemptStatus?.hasPending ?? false;
       const hasRejected = reattemptStatus?.hasRejected ?? false;
+    
+      const urlHasLang = !!(searchParams.get('lang') || searchParams.get('language'));
+      if (!urlHasLang && savedLang && courseLanguages.some((l) => (l || '').trim().toLowerCase() === savedLang.trim().toLowerCase())) {
+        setSelectedLanguage(savedLang);
+      }
       if (skipNextProgressUpdate.current) {
         skipNextProgressUpdate.current = false;
         setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
-        return;
-      }
-      dispatch(initializeModuleReadState(completedModules));
-      setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
-      if (progressStatus === "Completed") {
-        getLatestSubmission(userId, courseIdForApi).then((res) => {
-          const score = res?.submission?.score;
-          setCourseProgress((p) => ({ ...p, quizScore: score }));
-        });
-      } else if (progressStatus === "In_progress") {
-        // Check if user passed quiz but hasn't submitted feedback (course not fully completed)
-        getLatestSubmission(userId, courseIdForApi).then((res) => {
-          const passed = res?.submission?.passed === true;
-          setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: passed && !feedbackSubmitted }));
-        });
       } else {
-        setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: false }));
+        dispatch(initializeModuleReadState(completedModules));
+        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
       }
+     
+      getLatestSubmission(userId, courseIdForApi).then((res) => {
+        const submission = res?.submission;
+        if (submission) {
+          const score = submission.score;
+          const passed = submission.passed === true;
+          setCourseProgress((p) => ({
+            ...p,
+            quizScore: score,
+            quizAlreadyTaken: true,
+            needsFeedbackSubmission: passed && !feedbackSubmitted && progressStatus !== "Completed",
+          }));
+        } else {
+          setCourseProgress((p) => ({ ...p, quizAlreadyTaken: false, needsFeedbackSubmission: false }));
+        }
+      });
     });
   }, [course?.id, course?.documentId, dispatch]);
 
@@ -231,16 +242,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const handleMarkAsRead = async (modId) => {
     const userId = getCurrentUserId();
     if (!userId) return;
-    dispatch(markModuleAsRead({ moduleId: modId })); // instant UI update
-
-    // Optimistically update the progress percentage immediately (modules = 80% weight)
-    const alreadyCompleted = contents.filter((m) => m.mark_as_read).length;
-    const newCompleted = alreadyCompleted + 1;
-    const totalModules = contents.length;
-    if (totalModules > 0) {
-      const optimisticPct = Math.round((newCompleted / totalModules) * 80);
-      setCourseProgress((p) => ({ ...p, progressPercentage: Math.max(p.progressPercentage, optimisticPct) }));
-    }
+    dispatch(markModuleAsRead({ moduleId: modId }));
 
     const courseIdNumeric = course.id != null ? Number(course.id) : null;
     const courseIdForApi = course.id ?? course.documentId;
@@ -545,7 +547,9 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 id="course-language-select"
                 value={selectedLanguage}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
+                disabled={courseProgress.quizAlreadyTaken}
+                title={courseProgress.quizAlreadyTaken ? "Language cannot be changed after attempting the quiz" : undefined}
+                className={`border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${courseProgress.quizAlreadyTaken ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
                 {languageOptions.map((lang) => (
                   <option key={lang} value={lang}>{lang}</option>
@@ -709,7 +713,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
             {/* Right Column: Stats + Course Contents */}
             <div className="lg:col-span-1 mt-18">
-              <CourseStats course={course} progressPercentage={courseProgress.progressPercentage} quizScore={courseProgress.quizScore} totalModuleTimeMin={totalModuleTimeMin} />
+              <CourseStats course={course} progressPercentage={displayedProgressPercentage} quizScore={courseProgress.quizScore} totalModuleTimeMin={totalModuleTimeMin} />
               <CourseContentList
                 contents={contents}
                 current={currentModule?.moduleId || currentModule?.id || 0}
@@ -725,6 +729,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 courseId={course.documentId}
                 isCompleted={courseProgress.progressStatus === "Completed"}
                 quizScore={courseProgress.quizScore}
+                quizAlreadyTaken={courseProgress.quizAlreadyTaken}
                 hasPendingReattempt={courseProgress.hasPendingReattempt}
                 hasRejectedReattempt={courseProgress.hasRejectedReattempt}
                 needsFeedbackSubmission={courseProgress.needsFeedbackSubmission}
