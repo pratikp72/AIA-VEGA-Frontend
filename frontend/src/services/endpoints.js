@@ -12,7 +12,10 @@ export const API_ENDPOINTS = {
     RESET_PASSWORD: '/auth/reset-password',
     VERIFY_EMAIL: '/auth/verify-email',
     ME: '/users/me',
+    CHECK_ADMIN_ACCESS: '/auth/check-admin-access',
+    ADMIN_TOKEN: '/auth/admin-token',
   },
+
 
   // User endpoints
   USERS: {
