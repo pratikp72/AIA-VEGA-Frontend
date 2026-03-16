@@ -20,7 +20,9 @@ function AdminRedirectInner() {
 
     try {
       // Strapi admin panel reads its auth token from localStorage under 'jwtToken'
-      localStorage.setItem('jwtToken', token);
+      // It expects this to be a JSON-stringified string (with quotes)
+      localStorage.setItem('jwtToken', `"${token}"`);
+      sessionStorage.setItem('jwtToken', `"${token}"`);
     } catch {
       // localStorage unavailable — still attempt redirect
     }
