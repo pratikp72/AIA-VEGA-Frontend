@@ -19,7 +19,7 @@ export default function CourseStats({ course, progressPercentage = 0, quizScore,
               <User className="w-5 h-5 text-primary" />
             </span>
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-400">Modules Completed</span>
+              <span className="text-sm font-medium text-gray-400">Course Completed</span>
               <span className="text-base font-bold text-gray-900">{Math.min(100, progressPercentage)}%</span>
             </div>
           </div>
@@ -50,7 +50,7 @@ export default function CourseStats({ course, progressPercentage = 0, quizScore,
             })}
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[22px] font-bold leading-tight text-success">{quizScore != null ? `${quizScore}%` : '—'}</span>
+            <span className="text-[22px] font-bold leading-tight text-success">{quizScore != null ? `${quizScore}%` : '0%'}</span>
             <span className="text-[10px] text-gray-400 leading-tight">Grades Completed</span>
           </div>
         </div>

@@ -497,6 +497,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   }
 
   if (showFullReadingView) {
+    const isLastModule = currentModuleIdx >= 0 && currentModuleIdx === contents.length - 1;
     return (
       <CourseTextOrPdf
         course={course}
@@ -504,8 +505,17 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         selectedModule={currentModule}
         onBack={() => setShowFullReadingView(false)}
         onMarkAsRead={() => handleMarkAsRead(currentModule?.moduleId || currentModule?.id)}
-        onNextLecture={handleNextLecture}
+        onNextLecture={() => {
+          setShowFullReadingView(false);
+          handleNextLecture();
+        }}
         isRead={currentModule?.mark_as_read || false}
+        isLastModule={isLastModule}
+        onGoToAssessment={() => {
+          setShowFullReadingView(false);
+          const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : '';
+          router.push(`/courses/${category}/${course.documentId}/assessment${langQuery}`);
+        }}
       />
     );
   }
@@ -616,7 +626,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {currentModule?.pdf_file?.url ? (
                     <>
-                      <div className="w-full h-[467px] overflow-hidden">
+                      <div className="w-full h-[467px] overflow-hidden pointer-events-none">
                         {pdfPreviewLoading ? (
                           <div className="w-full h-full flex items-center justify-center text-gray-500">
                             Loading PDF preview...
@@ -650,7 +660,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
               ) : currentModule?.moduleType === 'Text' ? (
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {/* Reading Content Preview Container */}
-                  <div className="p-4 space-y-5 max-h-[467px] overflow-y-auto">
+                  <div className="p-4 space-y-5 max-h-[467px] overflow-hidden">
                     {currentModule.text_content ? (
                       <div
                         className="rich-content text-sm text-gray-700 leading-relaxed"
