@@ -6,10 +6,12 @@ import ReduxProvider from '@/components/providers/ReduxProvider';
 import ToastProvider from '@/components/providers/ToastProvider';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import AuthGuard from '@/components/auth/AuthGuard';
+import useTelemetryTracking from '@/hooks/useTelemetryTracking';
 
 const RootLayoutInner = ({ children }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  useTelemetryTracking(pathname, searchParams);
   const isLoginPage = pathname.startsWith('/login');
   const isFeedbackScreen = searchParams.get('feedback') === '1';
   return (

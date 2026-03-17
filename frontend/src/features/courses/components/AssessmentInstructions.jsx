@@ -20,6 +20,7 @@ import {
 import AssessmentQuiz from "./AssessmentQuiz";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
+import telemetryService from '@/services/telemetry';
 
 const ICON_MAP = {
   Timer,
@@ -376,6 +377,17 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
                   setStartingAssessment(true);
                   try {
                     await props.onBeforeStartAssessment?.();
+                    telemetryService.trackLearningQuizStarted({
+                      courseId: props.courseNumericId,
+                      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+                      quizId: String(props.quiz?.id || props.quiz?.question_set_id || ''),
+                      metadata: {
+                        course_document_id: props.courseId,
+                        course_id: props.courseNumericId,
+                        language: props.selectedLanguage || props.quiz?.language || null,
+                        question_count: Array.isArray(props.quiz?.quiz_questions) ? props.quiz.quiz_questions.length : undefined,
+                      },
+                    });
                   } finally {
                     setStartingAssessment(false);
                     setQuizStarted(true);

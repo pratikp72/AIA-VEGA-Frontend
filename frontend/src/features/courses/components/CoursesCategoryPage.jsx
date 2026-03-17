@@ -13,7 +13,7 @@ import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadAllCourses } from '@/features/courses/coursesSlice';
 import { selectCoursesList, selectCoursesLoading } from '@/features/courses/coursesSelectors';
-import { fetchUserCourseProgress, confirmOrientationAttendance } from '@/features/courses/coursesAPI';
+import { fetchCourseWorkflows, fetchUserCourseProgress } from '@/features/courses/coursesAPI';
 import { getLatestSubmission } from '../quizSubmissionAPI';
 import { getCurrentUserId } from '@/lib/auth';
 
@@ -31,21 +31,48 @@ export default function CoursesCategoryPage({ category }) {
   const isLoading = useAppSelector(selectCoursesLoading);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [feedbackEligibility, setFeedbackEligibility] = useState({});
+  const [courseWorkflows, setCourseWorkflows] = useState([]);
+  const [workflowLoaded, setWorkflowLoaded] = useState(false);
   const [startBlockModal, setStartBlockModal] = useState({
     open: false,
     title: '',
     message: '',
     kind: 'block',
-    courseUrl: '',
-    courseId: null,
-    courseDocumentId: null,
-    language: null,
-    prerequisites: [],
+    prerequisite: null,
+    managerName: '',
   });
+
+  const logWorkflowDebug = (label, payload) => {
+    if (process.env.NODE_ENV === 'production') return;
+    console.log(`[workflow-debug] ${label}`, payload);
+  };
 
   useEffect(() => {
     dispatch(loadAllCourses());
   }, [dispatch]);
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        const workflows = await fetchCourseWorkflows();
+        if (!alive) return;
+        setCourseWorkflows(Array.isArray(workflows) ? workflows : []);
+      } catch (error) {
+        console.error('Failed to load course workflows:', error);
+        if (!alive) return;
+        setCourseWorkflows([]);
+      } finally {
+        if (!alive) return;
+        setWorkflowLoaded(true);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const normalized = (category || '').toLowerCase();
   const title = CATEGORY_LABELS[normalized] || 'Courses';
@@ -86,17 +113,18 @@ export default function CoursesCategoryPage({ category }) {
         getLatestSubmission(userId, courseNumericId),
       ]);
 
-      const progressStatus = progressInfo?.progressStatus;
       const passedQuiz = latest?.submission?.passed === true;
-      const notCompleted = progressStatus !== 'Completed';
+      const feedbackSubmitted = progressInfo?.feedbackSubmitted === true;
 
-      if (passedQuiz && notCompleted) {
+      if (passedQuiz && !feedbackSubmitted) {
         setOpenMenuId(null);
         const feedbackUrl = `/courses/${category}/${course.documentId}?feedback=1`;
         window.location.href = feedbackUrl;
       } else {
         window.alert(
-          'Feedback will be enabled only after you pass the assessment and before completing the course.'
+          feedbackSubmitted
+            ? 'Feedback has already been submitted for this course.'
+            : 'Feedback will be enabled only after you pass the assessment.'
         );
       }
     } catch (err) {
@@ -156,16 +184,15 @@ export default function CoursesCategoryPage({ category }) {
         fetchUserCourseProgress(userId, courseNumericId, { fresh: true }),
         getLatestSubmission(userId, courseNumericId),
       ]);
-      const progressStatus = progressInfo?.progressStatus;
       const passedQuiz = latest?.submission?.passed === true;
-      const notCompleted = progressStatus !== 'Completed';
-      const canSubmit = passedQuiz && notCompleted;
+      const feedbackSubmitted = progressInfo?.feedbackSubmitted === true;
+      const canSubmit = passedQuiz && !feedbackSubmitted;
 
       let reason = '';
       if (!passedQuiz) {
         reason = 'Enable after passing this course assessment.';
-      } else if (!notCompleted) {
-        reason = 'Feedback is not available after course completion.';
+      } else if (feedbackSubmitted) {
+        reason = 'Feedback already submitted.';
       }
 
       setFeedbackEligibility((prev) => ({
@@ -190,88 +217,277 @@ export default function CoursesCategoryPage({ category }) {
     }
   };
 
-  const normalizeFlow = (value) =>
-    String(value || '')
-      .trim()
-      .toLowerCase()
-      .replace(/[_-]+/g, ' ')
-      .replace(/\s+/g, ' ');
+  const asComparableId = (value) => (value == null ? '' : String(value));
 
-  const isOrientationRequiredBeforeCourse = (course) => {
-    const details = Array.isArray(course?.orientation_detail) ? course.orientation_detail : [];
-    return details.some((detail) => normalizeFlow(detail?.orientation_flow) === 'before course completion');
+  const matchesCourseRef = (courseRef, course) => {
+    if (!courseRef || !course) return false;
+    const currentId = asComparableId(course.id);
+    const currentDocumentId = asComparableId(course.documentId);
+    const refId = asComparableId(courseRef.id);
+    const refDocumentId = asComparableId(courseRef.documentId);
+    const currentTitle = String(course.title || '').trim().toLowerCase();
+    const refTitle = String(courseRef.title || '').trim().toLowerCase();
+
+    if (refId && currentId && refId === currentId) return true;
+    if (refDocumentId && currentDocumentId && refDocumentId === currentDocumentId) return true;
+    if (refTitle && currentTitle && refTitle === currentTitle) return true;
+    return false;
   };
 
-  const prerequisiteCourseName = (item) => {
-    if (!item) return '';
-    if (typeof item === 'string') return item;
-    return item.title || item.name || item.course_name || '';
+  const preferredCourseReference = (value, fallback = null) => {
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value : fallback;
+    }
+    return value || fallback;
   };
 
-  const findCourseByPrerequisiteRef = (item) => {
-    const byId = item?.id != null ? allCourses.find((c) => c.id === item.id) : null;
-    if (byId) return byId;
-    const byDocumentId = item?.documentId
-      ? allCourses.find((c) => String(c.documentId) === String(item.documentId))
-      : null;
-    if (byDocumentId) return byDocumentId;
-    const name = prerequisiteCourseName(item).trim().toLowerCase();
-    if (!name) return null;
-    return allCourses.find((c) => String(c.title || '').trim().toLowerCase() === name) || null;
+  const matchesAnyCourseRef = (courseRefs, course) => {
+    if (Array.isArray(courseRefs)) {
+      return courseRefs.some((ref) => matchesCourseRef(ref, course));
+    }
+    return matchesCourseRef(courseRefs, course);
   };
 
-  const handleStartCourse = (event, course, courseUrl) => {
+  const findCourseFromReference = (courseRef) => {
+    const refs = Array.isArray(courseRef) ? courseRef : [courseRef];
+    return allCourses.find((item) => refs.some((ref) => matchesCourseRef(ref, item))) || null;
+  };
+
+  const isPrerequisiteCourseCompleted = (course) => {
+    if (!course) return false;
+    if (course.progressStatus != null) {
+      return String(course.progressStatus).trim().toLowerCase() === 'completed';
+    }
+    return course.completed === true;
+  };
+
+  const isWorkflowAssignedToCurrentUser = (workflow, userId) => {
+    if (!workflow || !userId) return false;
+    const target = asComparableId(userId);
+    const users = Array.isArray(workflow.users) ? workflow.users : [];
+    if (users.length === 0 && Number.isFinite(workflow?.usersCount) && workflow.usersCount > 0) {
+      return true;
+    }
+    return users.some((user) => {
+      const id = asComparableId(user?.id);
+      const documentId = asComparableId(user?.documentId);
+      return (id && id === target) || (documentId && documentId === target);
+    });
+  };
+
+  const resolvePrerequisiteModule = (workflow, module) => {
+    if (!workflow || !module) return null;
+    let prerequisite = module.prerequisiteModule;
+    if (!prerequisite) return null;
+
+    if (Array.isArray(prerequisite)) {
+      prerequisite = prerequisite[0] ?? null;
+    }
+    if (!prerequisite) return null;
+
+    if (prerequisite?.data) {
+      prerequisite = prerequisite.data;
+    }
+
+    const rawPrerequisite = typeof prerequisite === 'object'
+      ? (prerequisite.id ?? prerequisite.moduleId ?? prerequisite.module_id ?? prerequisite.value)
+      : prerequisite;
+
+    const prerequisiteId = asComparableId(rawPrerequisite);
+    const prerequisiteNumeric = Number(rawPrerequisite);
+
+    if (prerequisiteId) {
+      const matched = workflow.modules.find((workflowModule) => {
+        const workflowModuleId = asComparableId(workflowModule?.id);
+        const workflowModuleDocumentId = asComparableId(workflowModule?.documentId);
+        return (workflowModuleId && workflowModuleId === prerequisiteId)
+          || (workflowModuleDocumentId && workflowModuleDocumentId === prerequisiteId);
+      });
+      if (matched) return matched;
+    }
+
+    if (Number.isInteger(prerequisiteNumeric) && prerequisiteNumeric >= 0) {
+      const byModuleIndex = workflow.modules.find((workflowModule) => workflowModule?.moduleIndex === prerequisiteNumeric);
+      if (byModuleIndex) return byModuleIndex;
+    }
+
+    if (typeof prerequisite === 'object') {
+      return {
+        id: prerequisite.id ?? null,
+        documentId: prerequisite.documentId ?? null,
+        moduleType: prerequisite.moduleType || prerequisite.module_type || '',
+        course: prerequisite.course || null,
+        offlineModules: Array.isArray(prerequisite.offlineModules)
+          ? prerequisite.offlineModules
+          : Array.isArray(prerequisite.offline_module)
+            ? prerequisite.offline_module
+            : [],
+      };
+    }
+
+    return null;
+  };
+
+  const hasOfflineValuesWithoutUsername = (offlineModules) => {
+    const entries = Array.isArray(offlineModules) ? offlineModules : [];
+    return entries.some((entry) => {
+      if (!entry || typeof entry !== 'object') return false;
+      const scoreFilled = entry.score != null;
+      const attemptFilled = entry.attempt != null;
+      const descriptionText = typeof entry.description === 'string'
+        ? entry.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+        : '';
+      const descriptionFilled = descriptionText.length > 0;
+      const attachmentFilled = Array.isArray(entry.attachment)
+        ? entry.attachment.length > 0
+        : !!entry.attachment;
+
+      return scoreFilled || attemptFilled || descriptionFilled || attachmentFilled;
+    });
+  };
+
+  const findApplicableWorkflowModule = (course, workflowsInput = courseWorkflows) => {
+    const userId = getCurrentUserId();
+    if (!userId) return null;
+
+    const availableWorkflows = Array.isArray(workflowsInput) ? workflowsInput : [];
+
+    for (const workflow of availableWorkflows) {
+      if (!isWorkflowAssignedToCurrentUser(workflow, userId)) continue;
+
+      const workflowModules = Array.isArray(workflow.modules) ? workflow.modules : [];
+      const currentModule = workflowModules.find(
+        (item) => String(item?.moduleType || '').toLowerCase() === 'online' && matchesAnyCourseRef(preferredCourseReference(item?.courseRefs, item?.course), course)
+      );
+      if (currentModule) {
+        return { workflow, currentModule };
+      }
+    }
+
+    return null;
+  };
+
+  const handleStartCourse = async (event, course, courseUrl) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const prerequisites = Array.isArray(course?.prerequisite_courses) ? course.prerequisite_courses : [];
-    const missingPrerequisites = prerequisites
-      .map((item) => {
-        const matchedCourse = typeof item === 'object' ? findCourseByPrerequisiteRef(item) : findCourseByPrerequisiteRef({ title: item });
-        const done = !!matchedCourse?.completed;
-        if (done) return null;
-        const name = prerequisiteCourseName(item) || matchedCourse?.title || 'Prerequisite course';
-        const link = matchedCourse?.documentId
-          ? `/courses/${String(matchedCourse?.category || 'all').toLowerCase()}/${matchedCourse.documentId}`
-          : '';
-        return { name, link };
-      })
-      .filter(Boolean);
-
-    if (missingPrerequisites.length > 0) {
+    if (course?.isDeadlineLocked) {
       setStartBlockModal({
         open: true,
-        title: 'Prerequisite Required',
-        message: 'You must complete prerequisite course(s) first:',
-        kind: 'block',
-        courseUrl: '',
-        courseId: null,
-        courseDocumentId: null,
-        language: null,
-        prerequisites: missingPrerequisites,
+        title: 'Course Disabled',
+        message: 'This course is disabled because the due date has passed. Please contact admin to update the due date.',
+        kind: 'deadline',
+        prerequisite: null,
+        managerName: '',
       });
       return;
     }
 
-    if (isOrientationRequiredBeforeCourse(course)) {
-      const orientationDetails = Array.isArray(course?.orientation_detail) ? course.orientation_detail : [];
-      const beforeCompletion = orientationDetails.find(
-        (detail) => normalizeFlow(detail?.orientation_flow) === 'before course completion'
-      );
-      const orientationLanguage = beforeCompletion?.language || course?.languages?.[0] || null;
-      setStartBlockModal({
-        open: true,
-        title: 'Orientation Warning',
-        message: 'You must attend orientation first before starting this course.',
-        kind: 'warning',
-        courseUrl,
-        courseId: course?.id ?? null,
-        courseDocumentId: course?.documentId ?? null,
-        language: orientationLanguage,
-        prerequisites: [],
+    const currentUserId = getCurrentUserId();
+    logWorkflowDebug('start-click', {
+      currentUserId,
+      clickedCourse: {
+        id: course?.id,
+        documentId: course?.documentId,
+        title: course?.title,
+        progressStatus: course?.progressStatus,
+        completed: course?.completed,
+      },
+      workflowsLoaded: workflowLoaded,
+      cachedWorkflowCount: Array.isArray(courseWorkflows) ? courseWorkflows.length : 0,
+    });
+
+    let workflowsForCheck = Array.isArray(courseWorkflows) ? courseWorkflows : [];
+    try {
+      const freshWorkflows = await fetchCourseWorkflows({ fresh: true });
+      workflowsForCheck = Array.isArray(freshWorkflows) ? freshWorkflows : [];
+      setCourseWorkflows(workflowsForCheck);
+      logWorkflowDebug('start-click-fresh-workflow-fetch', {
+        fetchedWorkflowCount: workflowsForCheck.length,
+        workflows: workflowsForCheck,
       });
-      return;
+    } catch (error) {
+      console.error('Failed to fetch workflows before start:', error);
+    } finally {
+      setWorkflowLoaded(true);
     }
+
+    const applicable = findApplicableWorkflowModule(course, workflowsForCheck);
+    logWorkflowDebug('applicable-workflow', applicable || null);
+    if (applicable) {
+      const prerequisiteModule = resolvePrerequisiteModule(applicable.workflow, applicable.currentModule);
+      const prerequisiteType = String(prerequisiteModule?.moduleType || '').trim().toLowerCase();
+      const prerequisiteCourseRef = preferredCourseReference(prerequisiteModule?.courseRefs, prerequisiteModule?.course);
+      const offlineModules = Array.isArray(prerequisiteModule?.offlineModules)
+        ? prerequisiteModule.offlineModules
+        : [];
+      logWorkflowDebug('resolved-prerequisite', {
+        prerequisiteModule,
+        prerequisiteType,
+        offlineModules,
+      });
+
+      if (prerequisiteType === 'offline') {
+        const hasOfflineValues = hasOfflineValuesWithoutUsername(offlineModules);
+        logWorkflowDebug('offline-prerequisite-block', {
+          workflow: applicable.workflow,
+          prerequisiteModule,
+          offlineModules,
+          hasOfflineValues,
+        });
+        if (hasOfflineValues) {
+          logWorkflowDebug('offline-prerequisite-filled-allow-navigation', {
+            courseUrl,
+            offlineModules,
+          });
+          router.push(courseUrl);
+          return;
+        }
+        const managerName = applicable.workflow?.managerName || 'your manager';
+        setStartBlockModal({
+          open: true,
+          title: 'Offline Prerequisite Required',
+          message: 'You have one offline module that must be completed before starting this course. Please contact your manager to complete it.',
+          kind: 'block-offline',
+          prerequisite: null,
+          managerName,
+        });
+        return;
+      }
+
+      if (prerequisiteType === 'online') {
+        const prerequisiteCourse = prerequisiteCourseRef;
+        const matchedCourse = findCourseFromReference(prerequisiteCourse);
+        const completed = isPrerequisiteCourseCompleted(matchedCourse);
+        logWorkflowDebug('online-prerequisite-course', {
+          prerequisiteCourse,
+          matchedCourse,
+          completed,
+        });
+
+        if (!completed) {
+          const linkedCourse = matchedCourse || prerequisiteCourse;
+          const courseName = linkedCourse?.title || 'Prerequisite course';
+          const courseCategory = String(linkedCourse?.category || 'all').toLowerCase();
+          const courseDocumentId = linkedCourse?.documentId || '';
+          const link = courseDocumentId ? `/courses/${courseCategory}/${courseDocumentId}` : '';
+
+          setStartBlockModal({
+            open: true,
+            title: 'Prerequisite Required',
+            message: 'You must complete prerequisite course first:',
+            kind: 'block-online',
+            prerequisite: { name: courseName, link },
+            managerName: '',
+          });
+          return;
+        }
+      }
+    }
+
+    logWorkflowDebug('navigation-allowed', {
+      courseUrl,
+    });
 
     router.push(courseUrl);
   };
@@ -282,44 +498,12 @@ export default function CoursesCategoryPage({ category }) {
       title: '',
       message: '',
       kind: 'block',
-      courseUrl: '',
-      courseId: null,
-      courseDocumentId: null,
-      language: null,
-      prerequisites: [],
+      prerequisite: null,
+      managerName: '',
     });
   };
 
-  const handleStartModalOk = async () => {
-    if (startBlockModal.kind === 'warning') {
-      const { courseUrl, courseId, courseDocumentId, language } = startBlockModal;
-      closeStartModal();
-      const confirmed = window.confirm(
-        'Final warning: by continuing, you confirm you have attended orientation. This confirmation will be recorded. Do you want to continue?'
-      );
-      if (!confirmed) return;
-
-      const userId = getCurrentUserId();
-      if (!userId) {
-        window.alert('Please log in again to continue.');
-        return;
-      }
-
-      try {
-        await confirmOrientationAttendance({
-          userId,
-          courseId,
-          courseDocumentId,
-          language,
-        });
-        if (courseUrl) router.push(courseUrl);
-      } catch (err) {
-        const message = err?.error?.message || err?.message || 'Could not save orientation confirmation. Please try again.';
-        window.alert(message);
-      }
-      return;
-    }
-
+  const handleStartModalOk = () => {
     closeStartModal();
   };
 
@@ -350,7 +534,8 @@ export default function CoursesCategoryPage({ category }) {
                 const isNotStarted = !course.completed && (!course.progressStatus || course.progressStatus === 'Not_started');
                 const isInProgress = !course.completed && (course.progressStatus === 'In_progress' || course.progressStatus === 'Failed');
                 const isCompleted = !!course.completed || course.progressStatus === 'Completed';
-                const canShowCardMenu = !isCompleted;
+                const isLockedByDeadline = !!course.isDeadlineLocked;
+                const canShowCardMenu = !isCompleted || !course.feedbackSubmitted;
                 const feedbackKey = String(course.id ?? course.documentId ?? '');
                 const feedbackState = feedbackEligibility[feedbackKey] || {
                   checked: false,
@@ -454,17 +639,26 @@ export default function CoursesCategoryPage({ category }) {
                       </div>
                       {isInProgress && (
                         <Button
-                          className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center"
+                          onClick={(event) => handleStartCourse(event, course, courseUrl)}
+                          className={`rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
+                            isLockedByDeadline
+                              ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                              : 'bg-primary text-white'
+                          }`}
                         >
-                          Continue Course <ChevronRight className="w-5 h-5" />
+                          {isLockedByDeadline ? 'Course Disabled' : 'Continue Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
                         </Button>
                       )}
                       {isNotStarted && (
                         <Button
                           onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className="bg-primary text-white rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center"
+                          className={`rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
+                            isLockedByDeadline
+                              ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                              : 'bg-primary text-white'
+                          }`}
                         >
-                          Start Course <ChevronRight className="w-5 h-5" />
+                          {isLockedByDeadline ? 'Course Disabled' : 'Start Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
                         </Button>
                       )}
                       {isCompleted && (
@@ -484,7 +678,7 @@ export default function CoursesCategoryPage({ category }) {
                     href={courseUrl}
                     style={{ textDecoration: 'none' }}
                     onClick={(event) => {
-                      if (isNotStarted) {
+                      if (isNotStarted || isInProgress) {
                         handleStartCourse(event, course, courseUrl);
                       }
                     }}
@@ -505,27 +699,30 @@ export default function CoursesCategoryPage({ category }) {
             <p className="mt-3 text-sm text-gray-600 leading-6 whitespace-normal break-words">
               {startBlockModal.message}
             </p>
-            {startBlockModal.kind === 'block' && Array.isArray(startBlockModal.prerequisites) && startBlockModal.prerequisites.length > 0 && (
-              <div className="mt-3 space-y-3">
-                {startBlockModal.prerequisites.map((item, idx) => (
-                  <div key={`${item.name}-${idx}`} className="rounded-md bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
-                    <div className="leading-6 break-words"><span className="font-semibold">Course Name:</span> {item.name}</div>
-                    <div className="leading-6 break-all">
-                      <span className="font-semibold">Course Redirection Link:</span>{' '}
-                      {item.link ? (
-                        <Link
-                          href={item.link}
-                          className="text-primary underline"
-                          onClick={closeStartModal}
-                        >
-                          {item.link}
-                        </Link>
-                      ) : (
-                        <span className="text-gray-500">Not available</span>
-                      )}
-                    </div>
+            {startBlockModal.kind === 'block-online' && startBlockModal.prerequisite && (
+              <div className="mt-3">
+                <div className="rounded-md bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700">
+                  <div className="leading-6 break-words"><span className="font-semibold">Course Name:</span> {startBlockModal.prerequisite.name}</div>
+                  <div className="leading-6 break-all">
+                    <span className="font-semibold">Course Redirection Link:</span>{' '}
+                    {startBlockModal.prerequisite.link ? (
+                      <Link
+                        href={startBlockModal.prerequisite.link}
+                        className="text-primary underline"
+                        onClick={closeStartModal}
+                      >
+                        {startBlockModal.prerequisite.link}
+                      </Link>
+                    ) : (
+                      <span className="text-gray-500">Not available</span>
+                    )}
                   </div>
-                ))}
+                </div>
+              </div>
+            )}
+            {startBlockModal.kind === 'block-offline' && (
+              <div className="mt-3 rounded-md bg-gray-50 border border-gray-200 p-3 text-sm text-gray-700 leading-6 break-words">
+                <span className="font-semibold">Manager:</span> {startBlockModal.managerName || 'your manager'}
               </div>
             )}
             <div className="mt-5 flex justify-end">

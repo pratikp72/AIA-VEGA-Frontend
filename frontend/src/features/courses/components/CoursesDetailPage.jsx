@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import MarkdownIt from "markdown-it";
 import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
-import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered } from "lucide-react";
+import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered, CheckCircle2 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import PageSection from "@/components/common/PageSection";
 import CourseStats from "./CourseStats";
@@ -13,41 +13,12 @@ import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
 import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/features/courses/coursesSlice";
-import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress } from "@/features/courses/coursesAPI";
+import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress, startCourse } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
+import telemetryService from '@/services/telemetry';
 
 const md = new MarkdownIt({ html: true, breaks: true });
-
-function OrientationDetailCard({ orientation }) {
-  const topicsHtml = md.render(orientation?.topics_to_cover || "");
-  const flow = orientation.orientation_flow || "—";
-  const trainer = orientation.trainer_name || "—";
-  return (
-    <div className="bg-white rounded-xl shadow p-6 mt-6">
-      <div className="font-semibold text-gray-800 text-lg mb-3">Orientation details</div>
-      <div className="space-y-3 text-sm text-gray-600">
-        <div className="flex gap-2">
-          
-          <span><strong className="text-gray-700">Orientation flow:</strong> {flow}</span>
-        </div>
-        <div className="flex gap-2">
-          
-          <span><strong className="text-gray-700">Trainer:</strong> {trainer}</span>
-        </div>
-        {topicsHtml && (
-          <div>
-            <strong className="text-gray-700">Topics to cover:</strong>
-            <div
-              className="mt-1.5 rich-content"
-              dangerouslySetInnerHTML={{ __html: topicsHtml }}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function CoursesDetailPage({ category, course, selectedModule, initialLanguage }) {
   const courseLanguages = course?.languages ?? course?.course_language ?? [];
@@ -62,10 +33,17 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const moduleIdFromPath = params?.moduleId;
   const [showFullReadingView, setShowFullReadingView] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
-  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, needsFeedbackSubmission: false });
+  const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
+  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, needsFeedbackSubmission: false, progressPercentage: 0 });
   const skipNextProgressUpdate = useRef(false);
   const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState('');
   const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
+  const videoRef = useRef(null);
+  const lastVideoHeartbeatSecRef = useRef(0);
+  const moduleEnterTimeRef = useRef(null); // tracks when user entered current module
+  const modulePausedAtRef = useRef(null);  
+  const modulePausedMsRef = useRef(0);    
+  const hasStartedRef = useRef(false); // prevents duplicate In_progress calls per session
 
   // If initialLanguage (e.g. English) is not actually available for this course
   // but the backend reports a single language (e.g. Gujarati), automatically
@@ -117,16 +95,18 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const feedbacks = allFeedbacks.filter(
     (fb) => (fb.language || "").trim().toLowerCase() === selectedLangNorm
   );
-  const allOrientationDetails = Array.isArray(course.orientation_detail) ? course.orientation_detail : [];
-  const orientation =
-    allOrientationDetails.find((o) => (o.language || "").trim().toLowerCase() === selectedLangNorm) ??
-    (allOrientationDetails.length > 0 && courseLanguages.some((l) => (l || "").trim().toLowerCase() === selectedLangNorm)
-      ? allOrientationDetails[0]
-      : null);
+  const totalModuleTimeMin = contents.reduce((sum, m) => {
+    const d = Number(m.moduleDuration);
+    return sum + (Number.isFinite(d) && d > 0 ? d : 0);
+  }, 0);
   const allModulesCompleted = contents.length > 0 && contents.every((m) => m.mark_as_read);
   const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
-  // For debugging:
-  // console.log('modules:', contents)
+
+  const displayedProgressPercentage = useMemo(() => {
+    if (contents.length === 0) return 0;
+    const completedInLang = contents.filter((m) => m.mark_as_read).length;
+    return Math.round((completedInLang / contents.length) * 80);
+  }, [contents]);
 
   const moduleIdFromQuery = searchParams.get('moduleId');
   const requestedModuleId = moduleIdFromPath || moduleIdFromQuery;
@@ -138,6 +118,61 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     ? contents.findIndex((m) => String(m.moduleId || m.id) === String(currentModule.moduleId || currentModule.id))
     : -1;
   const nextModule = currentModuleIdx >= 0 ? contents[currentModuleIdx + 1] || null : null;
+
+  useEffect(() => {
+    const courseId = course?.id;
+    const moduleId = currentModule?.moduleId ?? currentModule?.id;
+    if (courseId == null || moduleId == null) return;
+
+    const routePath = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname;
+    const moduleTitle = currentModule?.moduleTitle || currentModule?.title || null;
+
+    // Reset timer state when module changes — timer starts only on user engagement
+    moduleEnterTimeRef.current = null;
+    modulePausedAtRef.current = null;
+    modulePausedMsRef.current = 0;
+
+    // Pause the timer when the tab goes to background, resume when it returns
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab hidden — record when we paused
+        modulePausedAtRef.current = Date.now();
+      } else {
+        // Tab visible again — accumulate the hidden duration
+        if (modulePausedAtRef.current != null) {
+          modulePausedMsRef.current += Date.now() - modulePausedAtRef.current;
+          modulePausedAtRef.current = null;
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    telemetryService.trackLearningModuleEnter({
+      courseId,
+      moduleIndex: currentModuleIdx,
+      moduleTitle,
+      routePath,
+      metadata: {
+        module_id: String(moduleId),
+        language: selectedLanguage,
+      },
+    });
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      telemetryService.trackLearningModuleExit({
+        courseId,
+        moduleIndex: currentModuleIdx,
+        moduleTitle,
+        routePath,
+        metadata: {
+          module_id: String(moduleId),
+          language: selectedLanguage,
+        },
+      });
+      telemetryService.flushWithKeepalive();
+    };
+  }, [course?.id, currentModule?.moduleId, currentModule?.id, currentModuleIdx, currentModule?.moduleTitle, currentModule?.title, pathname, searchParams, selectedLanguage]);
 
   useEffect(() => {
     const sourceUrl = currentModule?.pdf_file?.url;
@@ -191,57 +226,123 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     Promise.all([
       fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
       checkPendingReattemptRequest(userId, courseIdForApi),
-    ]).then(([{ completedModules, progressStatus }, reattemptStatus]) => {
+    ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage, selectedLanguage: savedLang }, reattemptStatus]) => {
       const hasPending = reattemptStatus?.hasPending ?? false;
       const hasRejected = reattemptStatus?.hasRejected ?? false;
+    
+      const urlHasLang = !!(searchParams.get('lang') || searchParams.get('language'));
+      if (!urlHasLang && savedLang && courseLanguages.some((l) => (l || '').trim().toLowerCase() === savedLang.trim().toLowerCase())) {
+        setSelectedLanguage(savedLang);
+      }
       if (skipNextProgressUpdate.current) {
         skipNextProgressUpdate.current = false;
-        setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
-        return;
+        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
+      } else {
+        dispatch(initializeModuleReadState(completedModules));
+        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
       }
-      dispatch(initializeModuleReadState(completedModules));
-      setCourseProgress((p) => ({ ...p, progressStatus, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
-      if (progressStatus === "Completed") {
-        getLatestSubmission(userId, courseIdForApi).then((res) => {
-          const score = res?.submission?.score;
-          setCourseProgress((p) => ({ ...p, quizScore: score }));
-        });
-      } else if (progressStatus === "In_progress") {
-        // Check if user passed quiz but hasn't submitted feedback (course not fully completed)
-        getLatestSubmission(userId, courseIdForApi).then((res) => {
-          const passed = res?.submission?.passed === true;
-          setCourseProgress((p) => ({ ...p, needsFeedbackSubmission: passed }));
-        });
-      }
+     
+      getLatestSubmission(userId, courseIdForApi).then((res) => {
+        const submission = res?.submission;
+        if (submission) {
+          const score = submission.score;
+          const passed = submission.passed === true;
+          setCourseProgress((p) => ({
+            ...p,
+            quizScore: score,
+            quizAlreadyTaken: true,
+            needsFeedbackSubmission: passed && !feedbackSubmitted && progressStatus !== "Completed",
+          }));
+        } else {
+          setCourseProgress((p) => ({ ...p, quizAlreadyTaken: false, needsFeedbackSubmission: false }));
+        }
+      });
     });
   }, [course?.id, course?.documentId, dispatch]);
 
 
+  // Called when user first engages with content (video play or View Full Content).
+  // Transitions the course from Not_started → In_progress without marking any module complete.
+  const handleContentEngaged = async () => {
+    // Start the module timer on first engagement (video play or View Full Content)
+    if (moduleEnterTimeRef.current == null) {
+      moduleEnterTimeRef.current = Date.now();
+      modulePausedAtRef.current = null;
+      modulePausedMsRef.current = 0;
+    }
+
+    if (hasStartedRef.current) return;
+    if (courseProgress.progressStatus && courseProgress.progressStatus !== 'Not_started') return;
+    const userId = getCurrentUserId();
+    if (!userId) return;
+    const courseIdForApi = course.id ?? course.documentId;
+    if (!courseIdForApi) return;
+    hasStartedRef.current = true;
+    try {
+      await startCourse({ userId, courseId: courseIdForApi, language: selectedLanguage });
+      setCourseProgress((p) => ({ ...p, progressStatus: 'In_progress' }));
+    } catch (err) {
+      hasStartedRef.current = false; // allow retry on next engagement
+      console.error('Failed to mark course as started:', err?.message ?? err);
+    }
+  };
+
   const handleMarkAsRead = async (modId) => {
     const userId = getCurrentUserId();
     if (!userId) return;
-    dispatch(markModuleAsRead({ moduleId: modId })); // instant UI update
+    dispatch(markModuleAsRead({ moduleId: modId }));
+
     const courseIdNumeric = course.id != null ? Number(course.id) : null;
     const courseIdForApi = course.id ?? course.documentId;
     const module_ = contents.find((m) => String(m.moduleId || m.id) === String(modId));
-    const moduleIndex = module_ != null ? contents.findIndex((m) => String(m.moduleId || m.id) === String(modId)) : -1;
+    // Use the index in the FULL module list (all languages) so it aligns with
+    // the analytics dashboard's getCourseModules which also uses all modules.
+    const allModulesList = Array.isArray(course.modulesList) ? course.modulesList : [];
+    const moduleIndex = module_ != null
+      ? allModulesList.findIndex((m) => String(m.moduleId || m.id) === String(modId))
+      : -1;
+    const routePath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : pathname;
+
+    // Calculate actual time spent before both POST calls below need it
+    const durationMin = Number(module_?.moduleDuration) || 0;
+    // Subtract any time the tab was hidden (paused) from the elapsed wall-clock time
+    const hiddenMs = modulePausedMsRef.current +
+      (modulePausedAtRef.current != null ? Date.now() - modulePausedAtRef.current : 0);
+    // If timer never started (user never engaged with content), record 0
+    const elapsedMin = moduleEnterTimeRef.current
+      ? Math.max(1, Math.round((Date.now() - moduleEnterTimeRef.current - hiddenMs) / 60000))
+      : 0;
+    const timeWatchedMin = durationMin > 0 ? Math.min(elapsedMin, durationMin) : elapsedMin;
 
     try {
-      await markModuleProgress({ userId, courseId: courseIdForApi, moduleId: String(modId) });
+      await markModuleProgress({
+        userId,
+        courseId: courseIdForApi,
+        moduleId: String(modId),
+        timeSpentMinutes: timeWatchedMin,
+        selectedLanguage,
+        // Send started_at only when course hasn't been started yet (first module marked)
+        startedAt: (!courseProgress.progressStatus || courseProgress.progressStatus === 'Not_started')
+          ? new Date().toISOString()
+          : null,
+      });
     } catch (err) {
       console.error('Failed to mark module (user-progress):', err?.message ?? err?.status ?? err);
     }
 
     if (moduleIndex >= 0 && courseIdNumeric != null) {
       try {
-        const durationMin = Number(module_?.moduleDuration) || 0;
+        // full_watch if user watched ≥ 90% of the duration, otherwise in_progress
+        const completionType =
+          durationMin > 0 && timeWatchedMin >= durationMin * 0.9 ? 'full_watch' : 'in_progress';
         await markModuleVideoProgress({
           userId,
           courseId: courseIdNumeric,
           moduleIndex,
           moduleTitle: module_?.moduleTitle || module_?.title || null,
           videoDurationMin: durationMin,
-          timeWatchedMin: durationMin,
+          timeWatchedMin,
+          videoCompletionType: completionType,
         });
       } catch (err) {
         console.error('Failed to mark module (module-video-progress):', err?.message ?? err?.status ?? err);
@@ -250,14 +351,16 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
     try {
       if (courseIdForApi) {
-        const { completedModules } = await fetchUserCourseProgress(userId, courseIdForApi, { fresh: true });
+        const { completedModules, progressPercentage } = await fetchUserCourseProgress(userId, courseIdForApi, { fresh: true });
         skipNextProgressUpdate.current = true;
         dispatch(initializeModuleReadState(completedModules));
+        setCourseProgress((p) => ({ ...p, progressPercentage }));
       }
     } catch (err) {
       if (courseIdForApi) {
-        fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }).then(({ completedModules }) => {
+        fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }).then(({ completedModules, progressPercentage }) => {
           dispatch(initializeModuleReadState(completedModules));
+          setCourseProgress((p) => ({ ...p, progressPercentage }));
         });
       }
     }
@@ -310,6 +413,101 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     router.push(`${base}${lang}`);
   };
 
+  const handleVideoLoadedMetadata = () => {
+    const v = videoRef.current;
+    lastVideoHeartbeatSecRef.current = v ? Number(v.currentTime || 0) : 0;
+  };
+
+  const handleVideoTimeUpdate = () => {
+    const courseId = course?.id;
+    if (courseId == null || currentModule?.moduleType !== 'Video') return;
+
+    const v = videoRef.current;
+    if (!v) return;
+
+    const current = Number(v.currentTime || 0);
+    const last = Number(lastVideoHeartbeatSecRef.current || 0);
+    const delta = current - last;
+    if (delta < 10) return;
+
+    lastVideoHeartbeatSecRef.current = current;
+    telemetryService.trackLearningVideoProgress({
+      courseId,
+      moduleIndex: currentModuleIdx,
+      moduleTitle: currentModule?.moduleTitle || currentModule?.title || null,
+      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname,
+      durationSeconds: Math.max(1, Math.round(delta)),
+      watchedSeconds: Math.round(current),
+      metadata: {
+        module_id: String(currentModule?.moduleId ?? currentModule?.id ?? ''),
+        language: selectedLanguage,
+      },
+    });
+  };
+
+  const handleVideoEnded = () => {
+    const courseId = course?.id;
+    if (courseId == null || currentModule?.moduleType !== 'Video') return;
+
+    const v = videoRef.current;
+    const duration = Number(v?.duration || v?.currentTime || 0);
+    const last = Number(lastVideoHeartbeatSecRef.current || 0);
+    const tailDelta = duration - last;
+
+    if (tailDelta >= 1) {
+      telemetryService.trackLearningVideoProgress({
+        courseId,
+        moduleIndex: currentModuleIdx,
+        moduleTitle: currentModule?.moduleTitle || currentModule?.title || null,
+        routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname,
+        durationSeconds: Math.max(1, Math.round(tailDelta)),
+        watchedSeconds: Math.round(duration),
+        metadata: {
+          module_id: String(currentModule?.moduleId ?? currentModule?.id ?? ''),
+          language: selectedLanguage,
+        },
+      });
+    }
+
+    lastVideoHeartbeatSecRef.current = duration;
+    telemetryService.trackLearningVideoCompleted({
+      courseId,
+      moduleIndex: currentModuleIdx,
+      moduleTitle: currentModule?.moduleTitle || currentModule?.title || null,
+      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname,
+      durationSeconds: Math.max(1, Math.round(duration)),
+      watchedSeconds: Math.round(duration),
+      metadata: {
+        module_id: String(currentModule?.moduleId ?? currentModule?.id ?? ''),
+        language: selectedLanguage,
+      },
+    });
+  };
+
+  // Feedback success: show "Thank you" screen briefly after feedback submission
+  if (showFeedbackSuccess) {
+    return (
+      <LayoutShell hideSidebar>
+        <PageContainer className="py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 max-w-2xl w-full text-center">
+            <div className="flex justify-center mb-4">
+              <CheckCircle2 className="w-14 h-14 text-success" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Thank you!
+            </h2>
+            <p className="text-gray-600 mb-4">
+              Your feedback has been submitted successfully.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Redirecting you to the course page...
+            </p>
+          </div>
+        </PageContainer>
+      </LayoutShell>
+    );
+  }
+
   // Feedback form: when user passed quiz but hasn't submitted feedback
   if (showFeedbackForm) {
     const feedbackForLang = feedbacks[0];
@@ -333,11 +531,12 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 }}
             onSubmit={(response) => {
               setShowFeedbackForm(false);
+              setShowFeedbackSuccess(true);
               // Refetch progress - backend finalizeCourse sets Completed
               if (userId && courseNumericId) {
-                fetchUserCourseProgress(userId, courseNumericId, { fresh: true }).then(({ completedModules, progressStatus }) => {
+                fetchUserCourseProgress(userId, courseNumericId, { fresh: true }).then(({ completedModules, progressStatus, progressPercentage }) => {
                   dispatch(initializeModuleReadState(completedModules));
-                  setCourseProgress((p) => ({ ...p, progressStatus, needsFeedbackSubmission: false }));
+                  setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, needsFeedbackSubmission: false }));
                   if (progressStatus === "Completed") {
                     getLatestSubmission(userId, courseNumericId).then((res) => {
                       setCourseProgress((p) => ({ ...p, quizScore: res?.submission?.score }));
@@ -345,6 +544,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                   }
                 });
               }
+              // Auto-hide success screen after 3 seconds
+              setTimeout(() => setShowFeedbackSuccess(false), 3000);
             }}
             userId={userId}
             courseId={courseNumericId}
@@ -355,6 +556,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   }
 
   if (showFullReadingView) {
+    const isLastModule = currentModuleIdx >= 0 && currentModuleIdx === contents.length - 1;
     return (
       <CourseTextOrPdf
         course={course}
@@ -362,8 +564,17 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         selectedModule={currentModule}
         onBack={() => setShowFullReadingView(false)}
         onMarkAsRead={() => handleMarkAsRead(currentModule?.moduleId || currentModule?.id)}
-        onNextLecture={handleNextLecture}
+        onNextLecture={() => {
+          setShowFullReadingView(false);
+          handleNextLecture();
+        }}
         isRead={currentModule?.mark_as_read || false}
+        isLastModule={isLastModule}
+        onGoToAssessment={() => {
+          setShowFullReadingView(false);
+          const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : '';
+          router.push(`/courses/${category}/${course.documentId}/assessment${langQuery}`);
+        }}
       />
     );
   }
@@ -393,7 +604,9 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 id="course-language-select"
                 value={selectedLanguage}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary cursor-pointer"
+                disabled={courseProgress.quizAlreadyTaken}
+                title={courseProgress.quizAlreadyTaken ? "Language cannot be changed after attempting the quiz" : undefined}
+                className={`border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${courseProgress.quizAlreadyTaken ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
                 {languageOptions.map((lang) => (
                   <option key={lang} value={lang}>{lang}</option>
@@ -447,7 +660,12 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <>
                   <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
                     <video
+                      ref={videoRef}
                       controls
+                      onPlay={handleContentEngaged}
+                      onLoadedMetadata={handleVideoLoadedMetadata}
+                      onTimeUpdate={handleVideoTimeUpdate}
+                      onEnded={handleVideoEnded}
                       className="w-full h-full object-cover rounded-xl"
                     >
                       <source
@@ -470,7 +688,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {currentModule?.pdf_file?.url ? (
                     <>
-                      <div className="w-full h-[467px] overflow-hidden">
+                      <div className="w-full h-[467px] overflow-hidden pointer-events-none">
                         {pdfPreviewLoading ? (
                           <div className="w-full h-full flex items-center justify-center text-gray-500">
                             Loading PDF preview...
@@ -489,7 +707,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                       </div>
                       <div className="p-4">
                         <button
-                          onClick={() => setShowFullReadingView(true)}
+                          onClick={() => { handleContentEngaged(); setShowFullReadingView(true); }}
                           className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
                         >
                           <Maximize2 className="w-4 h-4" />
@@ -504,7 +722,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
               ) : currentModule?.moduleType === 'Text' ? (
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {/* Reading Content Preview Container */}
-                  <div className="p-4 space-y-5 max-h-[467px] overflow-y-auto">
+                  <div className="p-4 space-y-5 max-h-[467px] overflow-hidden">
                     {currentModule.text_content ? (
                       <div
                         className="rich-content text-sm text-gray-700 leading-relaxed"
@@ -517,7 +735,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                   {/* View Full Content Button */}
                   <div className="p-4">
                     <button
-                      onClick={() => setShowFullReadingView(true)}
+                      onClick={() => { handleContentEngaged(); setShowFullReadingView(true); }}
                       className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
                     >
                       <Maximize2 className="w-4 h-4" />
@@ -535,7 +753,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                         </div>
                         <div className="p-4">
                           <button
-                            onClick={() => setShowFullReadingView(true)}
+                            onClick={() => { handleContentEngaged(); setShowFullReadingView(true); }}
                             className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition cursor-pointer"
                           >
                             <Maximize2 className="w-4 h-4" />
@@ -553,7 +771,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
             {/* Right Column: Stats + Course Contents */}
             <div className="lg:col-span-1 mt-18">
-              <CourseStats course={course} />
+              <CourseStats course={course} progressPercentage={displayedProgressPercentage} quizScore={courseProgress.quizScore} totalModuleTimeMin={totalModuleTimeMin} />
               <CourseContentList
                 contents={contents}
                 current={currentModule?.moduleId || currentModule?.id || 0}
@@ -569,6 +787,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 courseId={course.documentId}
                 isCompleted={courseProgress.progressStatus === "Completed"}
                 quizScore={courseProgress.quizScore}
+                quizAlreadyTaken={courseProgress.quizAlreadyTaken}
                 hasPendingReattempt={courseProgress.hasPendingReattempt}
                 hasRejectedReattempt={courseProgress.hasRejectedReattempt}
                 needsFeedbackSubmission={courseProgress.needsFeedbackSubmission}
@@ -576,9 +795,6 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 selectedLanguage={selectedLanguage}
                 hasQuizInSelectedLanguage={hasQuizInSelectedLanguage}
               />
-              {orientation && (
-                <OrientationDetailCard orientation={orientation} />
-              )}
             </div>
           </div>
         </PageSection>

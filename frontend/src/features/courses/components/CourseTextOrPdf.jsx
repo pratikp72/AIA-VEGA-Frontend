@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft } from "lucide-react";
 
-export default function CourseTextOrPdf({ course, category, selectedModule, onBack, onMarkAsRead, onNextLecture, isRead }) {
+export default function CourseTextOrPdf({ course, category, selectedModule, onBack, onMarkAsRead, onNextLecture, isRead, isLastModule = false, onGoToAssessment }) {
   if (!course) return null;
 
   const contents = Array.isArray(course.modulesList) ? course.modulesList : [];
@@ -78,7 +78,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
                   : "",
                 href: `/courses/${category}`,
               },
-              { label: course.title },
+              { label: course.title, onClick: onBack },
               ...(selectedModule ? [{ label: selectedModule.moduleTitle }] : []),
             ]}
             showBreadcrumbSeparator
@@ -101,18 +101,33 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
             {isRead ? 'Marked as Read' : 'Mark as Read'}
             <SquareCheckBig className="w-4 h-4" />
           </button>
-          <button
-            onClick={() => isRead && onNextLecture && onNextLecture()}
-            disabled={!isRead}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition
-              ${isRead
-                ? 'bg-primary text-white hover:bg-primary/90 cursor-pointer'
-                : 'bg-primary/40 text-white cursor-not-allowed'
-              }`}
-          >
-            Next Lecture
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          {isLastModule ? (
+            <button
+              onClick={() => isRead && onGoToAssessment && onGoToAssessment()}
+              disabled={!isRead}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition
+                ${isRead
+                  ? 'bg-primary text-white hover:bg-primary/90 cursor-pointer'
+                  : 'bg-primary/40 text-white cursor-not-allowed'
+                }`}
+            >
+              Go to Assessment
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => isRead && onNextLecture && onNextLecture()}
+              disabled={!isRead}
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition
+                ${isRead
+                  ? 'bg-primary text-white hover:bg-primary/90 cursor-pointer'
+                  : 'bg-primary/40 text-white cursor-not-allowed'
+                }`}
+            >
+              Next Lecture
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-6 mb-2 px-xl mt-4">

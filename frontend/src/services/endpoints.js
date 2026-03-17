@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
     EMPLOYEES: '/analytics/employees',
     DEPARTMENTS: '/analytics/departments',
     UNIT_LOCATIONS: '/analytics/unit-locations',
+    EVENTS_INGEST: '/analytics/events/ingest',
   },
 
   // Location endpoints – Strapi unit_locations content-type
@@ -89,10 +90,6 @@ export const API_ENDPOINTS = {
   // Module video progress (mark-as-read creates/updates module_video_progress)
   MODULE_VIDEO_PROGRESS: {
     MARK_AS_READ: '/module-video-progresses/mark-as-read',
-  },
-
-  ORIENTATION: {
-    CONFIRM: '/orientation-confirmations/confirm',
   },
 
   // Gallery endpoints (baseURL already includes /api)

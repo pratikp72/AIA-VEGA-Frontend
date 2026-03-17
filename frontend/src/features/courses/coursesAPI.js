@@ -124,12 +124,7 @@ function normalizeCourse(course) {
     // Additional metadata
     minPassingScore: course.min_passing_score || 0,
     languages: courseLanguages,
-    orientationRequired: course.orientation_required || false,
-    orientation_detail: Array.isArray(course.orientation_detail)
-      ? course.orientation_detail
-      : course.orientation_detail
-        ? [course.orientation_detail]
-        : [],
+    deadline: course.deadline || null,
     prerequisite_courses: Array.isArray(course.prerequisite_courses)
       ? course.prerequisite_courses
       : course.prerequisite_courses
@@ -139,12 +134,209 @@ function normalizeCourse(course) {
   };
 }
 
+function getCurrentUserInfo() {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(localStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+}
+
+async function fetchCourseDueDateMap() {
+  const user = getCurrentUserInfo();
+  const userId = user?.id ?? null;
+  const userDept = String(user?.department ?? '').trim().toLowerCase();
+  const userCompany = String(user?.company ?? '').trim().toLowerCase();
+  const userWorkLocation = String(user?.work_location ?? user?.work_location_id ?? '').trim().toLowerCase();
+
+  let assignments = [];
+  try {
+    const res = await api.get('/course-assignments', {
+      params: {
+        'populate[courses]': true,
+        'populate[departments]': true,
+        'populate[individual_user]': true,
+        'populate[companies]': true,
+        'populate[work_locations]': true,
+        'filters[active][$eq]': true,
+        'pagination[pageSize]': 1000,
+        'pagination[page]': 1,
+      },
+    });
+    assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+  } catch {
+    return {};
+  }
+
+  const dueDateMap = {};
+  for (const assignment of assignments) {
+    const dueDate = assignment.due_date;
+    if (!dueDate) continue;
+
+    const targetType = assignment.assignment_target_type;
+    let applicable = false;
+
+    if (targetType === 'Company') {
+      const names = (Array.isArray(assignment.companies) ? assignment.companies : [])
+        .map(c => String(c?.name ?? c?.title ?? '').trim().toLowerCase());
+      applicable = userCompany && names.some(n => n === userCompany || n.includes(userCompany) || userCompany.includes(n));
+    } else if (targetType === 'Department') {
+      const names = (Array.isArray(assignment.departments) ? assignment.departments : [])
+        .map(d => String(d?.name ?? d?.title ?? '').trim().toLowerCase());
+      applicable = userDept && names.some(n => n === userDept || n.includes(userDept) || userDept.includes(n));
+    } else if (targetType === 'Individual') {
+      const users = Array.isArray(assignment.individual_user) ? assignment.individual_user : [];
+      applicable = userId != null && users.some(u => String(u?.id) === String(userId) || String(u?.documentId) === String(userId));
+    } else if (targetType === 'Location') {
+      const names = (Array.isArray(assignment.work_locations) ? assignment.work_locations : [])
+        .map(l => String(l?.name ?? l?.title ?? l?.id ?? '').trim().toLowerCase());
+      applicable = userWorkLocation && names.some(n => n === userWorkLocation || n.includes(userWorkLocation) || userWorkLocation.includes(n));
+    }
+
+    if (!applicable) continue;
+
+    const courses = Array.isArray(assignment.courses) ? assignment.courses : [];
+    for (const course of courses) {
+      const cid = course?.id;
+      if (!cid) continue;
+      if (!dueDateMap[cid] || new Date(dueDate) < new Date(dueDateMap[cid])) {
+        dueDateMap[cid] = dueDate;
+      }
+    }
+  }
+
+  return dueDateMap;
+}
+
+function toArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (Array.isArray(value.data)) return value.data;
+  if (value.data) return [value.data];
+  return [value];
+}
+
+function toEntityObject(value) {
+  if (!value) return null;
+  const entity = value?.data ? value.data : value;
+  if (!entity) return null;
+  const attrs = entity.attributes || {};
+  return {
+    ...entity,
+    ...attrs,
+    id: entity.id ?? attrs.id ?? null,
+    documentId: entity.documentId ?? attrs.documentId ?? null,
+  };
+}
+
+function normalizeWorkflowUser(user) {
+  const entity = toEntityObject(user);
+  if (!entity) return null;
+  const id = entity.id ?? null;
+  const documentId = entity.documentId ?? null;
+  const username = entity.username || '';
+  if (id == null && documentId == null && !username) return null;
+  return {
+    id,
+    documentId,
+    username,
+  };
+}
+
+function normalizeWorkflowCourseRef(courseRef) {
+  const entity = toEntityObject(courseRef);
+  if (!entity) return null;
+  const id = entity.id ?? null;
+  const documentId = entity.documentId ?? null;
+  const title = entity.title || '';
+  const category = entity.course_category || entity.category || '';
+  if (id == null && documentId == null && !title) return null;
+  return {
+    id,
+    documentId,
+    title,
+    category,
+  };
+}
+
+function normalizeWorkflowCourseRefs(courseRefValue) {
+  return toArray(courseRefValue)
+    .map(normalizeWorkflowCourseRef)
+    .filter(Boolean);
+}
+
+function normalizeWorkflowOfflineModuleEntry(entry) {
+  const entity = toEntityObject(entry) || entry;
+  if (!entity) return null;
+  return {
+    id: entity.id ?? null,
+    username: entity.username || '',
+    score: entity.score ?? null,
+    attempt: entity.attempt ?? null,
+    description: entity.description ?? null,
+    attachment: entity.attachment ?? null,
+  };
+}
+
+function normalizeWorkflowModule(module, index) {
+  const entity = toEntityObject(module) || module;
+  if (!entity) return null;
+  const courseRefs = normalizeWorkflowCourseRefs(entity.course);
+  const offlineModules = toArray(entity.offline_module)
+    .map(normalizeWorkflowOfflineModuleEntry)
+    .filter(Boolean);
+  let prerequisiteModule = entity.prerequisite_modules ?? null;
+  if (Array.isArray(prerequisiteModule)) {
+    prerequisiteModule = prerequisiteModule[0] ?? null;
+  }
+  return {
+    id: entity.id ?? null,
+    documentId: entity.documentId ?? null,
+    moduleIndex: typeof index === 'number' ? index : null,
+    moduleType: entity.module_type || '',
+    course: courseRefs[0] || null,
+    courseRefs,
+    courseCount: Number.isFinite(Number(entity?.course?.count)) ? Number(entity.course.count) : null,
+    offlineModules,
+    prerequisiteModule,
+  };
+}
+
+function workflowManagerName(createdBy) {
+  const entity = toEntityObject(createdBy);
+  if (!entity) return '';
+  const fullName = [entity.firstname, entity.lastname].filter(Boolean).join(' ').trim();
+  return fullName || entity.username || entity.email || '';
+}
+
+function normalizeCourseWorkflow(workflow) {
+  const entity = toEntityObject(workflow) || workflow;
+  if (!entity) return null;
+  const usersRaw = entity.users_permissions_users;
+  const modules = toArray(entity.modules)
+    .map((module, index) => normalizeWorkflowModule(module, index))
+    .filter(Boolean);
+
+  return {
+    id: entity.id ?? null,
+    documentId: entity.documentId ?? null,
+    category: String(entity.category || '').toLowerCase(),
+    users: toArray(usersRaw)
+      .map(normalizeWorkflowUser)
+      .filter(Boolean),
+    usersCount: Number.isFinite(Number(usersRaw?.count)) ? Number(usersRaw.count) : null,
+    modules,
+    managerName: workflowManagerName(entity.createdBy),
+  };
+}
+
 const COURSES_LIST_PARAMS = {
   'populate[thumbnail]': true,
   'populate[quiz][populate][quiz_questions][populate][options]': true,
   'populate[modules]': true,
-  'populate[orientation_detail]': true,
   'populate[prerequisite_courses]': true,
+  
   'pagination[pageSize]': 50,
   sort: 'createdAt:desc',
 };
@@ -169,7 +361,54 @@ export const fetchAllCourses = async () => {
     pageCount = response?.meta?.pagination?.pageCount ?? 1;
     page += 1;
   } while (page <= pageCount);
-  return all.filter(c => c.active !== false).map(normalizeCourse);
+  const dueDateMap = await fetchCourseDueDateMap();
+  return all
+    .filter(c => c.active !== false)
+    .map((course) => {
+      const normalizedCourse = normalizeCourse(course);
+      const assignedDueDate = dueDateMap[course?.id] || null;
+      return {
+        ...normalizedCourse,
+        deadline: assignedDueDate || normalizedCourse.deadline || null,
+      };
+    });
+};
+
+const COURSE_WORKFLOWS_LIST_PARAMS = {
+  'populate[users_permissions_users]': true,
+  'populate[modules][populate][course]': true,
+  'populate[modules][populate][offline_module]': true,
+  'populate[createdBy][fields][0]': 'firstname',
+  'populate[createdBy][fields][1]': 'lastname',
+  'populate[createdBy][fields][2]': 'username',
+  'pagination[pageSize]': 50,
+  sort: 'createdAt:desc',
+};
+
+export const fetchCourseWorkflows = async (opts = {}) => {
+  const all = [];
+  let page = 1;
+  let pageCount = 1;
+
+  do {
+    const response = await api.get('/course-workflows', {
+      params: {
+        ...COURSE_WORKFLOWS_LIST_PARAMS,
+        'pagination[page]': page,
+        ...(opts.fresh ? { _t: Date.now() } : {}),
+      },
+    });
+    const data = Array.isArray(response?.data)
+      ? response.data
+      : Array.isArray(response)
+        ? response
+        : [];
+    all.push(...data);
+    pageCount = response?.meta?.pagination?.pageCount ?? 1;
+    page += 1;
+  } while (page <= pageCount);
+
+  return all.map(normalizeCourseWorkflow).filter(Boolean);
 };
 
 /**
@@ -183,7 +422,6 @@ export const fetchCourseById = async (documentId, opts = {}) => {
     'populate[modules][populate]': '*',
     'populate[thumbnail]': true,
     'populate[feedback][populate][feedback_question]': true,
-    'populate[orientation_detail]': true,
     'populate[prerequisite_courses]': true,
     'populate[quiz][populate][quiz_questions][populate][options]': true,
     'populate[quiz][populate][quiz_instruction]': true,
@@ -223,8 +461,29 @@ export const updateModuleMarkAsRead = async (courseDocumentId, moduleId, rawModu
   }, { timeout: 30000 });
 };
 
-export const markModuleProgress = async ({ userId, courseId, moduleId }) => {
-  return api.post('/user-progress/mark-module', { userId, courseId, moduleId });
+export const markModuleProgress = async ({ userId, courseId, moduleId, timeSpentMinutes = 0, selectedLanguage = null, startedAt = null }) => {
+  return api.post('/user-progress/mark-module', {
+    userId,
+    courseId,
+    moduleId,
+    last_accessed_at: new Date().toISOString(),
+    time_spent_minutes: Number(timeSpentMinutes) || 0,
+    selected_language: selectedLanguage || null,
+    // Only sent on the very first module mark (course not yet started)
+    ...(startedAt ? { started_at: startedAt } : {}),
+  });
+};
+
+/**
+ * Transition a course to In_progress without marking any module complete.
+ * Called when the user first engages with content (video play, View Full Content).
+ */
+export const startCourse = async ({ userId, courseId, language }) => {
+  return api.post('/user-progress/start-course', {
+    userId: Number(userId),
+    courseId,
+    language,
+  });
 };
 
 /**
@@ -238,14 +497,18 @@ export const markModuleVideoProgress = async ({
   moduleTitle = null,
   videoDurationMin = 0,
   timeWatchedMin = 0,
+  videoCompletionType = 'full_watch',
 }) => {
   return api.post(API_ENDPOINTS.MODULE_VIDEO_PROGRESS.MARK_AS_READ, {
     userId: Number(userId),
     courseId: Number(courseId),
+    course: Number(courseId),   // explicit relation field for backend controller
     moduleIndex: Number(moduleIndex),
     moduleTitle: moduleTitle ?? null,
     videoDurationMin: Number(videoDurationMin) || 0,
     timeWatchedMin: Number(timeWatchedMin) || 0,
+    video_completion_type: videoCompletionType,
+    last_updated: new Date().toISOString(),
   });
 };
 
@@ -253,16 +516,21 @@ export const markModuleVideoProgress = async ({
 // Falls back to empty on any error so the UI stays functional.
 // Pass { fresh: true } to bypass GET deduplication cache (use after mutations like mark-as-read).
 export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}) => {
-  if (!userId || !courseNumericId) return { completedModules: [], progressStatus: null };
+  if (!userId || !courseNumericId) {
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0, selectedLanguage: null };
+  }
   try {
     const params = { userId, courseId: courseNumericId };
     if (opts.fresh) params._t = Date.now(); // bypass dedupe cache
     const response = await api.get('/user-progress/progress', { params });
     const data = response?.data || response;
     const completedModules = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
-    return { completedModules, progressStatus: data?.progress_status ?? null };
+    const feedbackSubmitted = !!data?.feedback_submission;
+    const progressPercentage = data?.progress_percentage ?? 0;
+    const selectedLanguage = data?.selected_language ?? null;
+    return { completedModules, progressStatus: data?.progress_status ?? null, feedbackSubmitted, progressPercentage, selectedLanguage };
   } catch {
-    return { completedModules: [], progressStatus: null };
+    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0, selectedLanguage: null };
   }
 };
 
@@ -279,20 +547,9 @@ export const fetchAllUserProgress = async (userId) => {
 
 export const fetchCourseCategories = fetchAllCourses;
 
-// Create a backend audit entry that the user acknowledged orientation warning.
-export const confirmOrientationAttendance = async ({ userId, courseId, courseDocumentId, language }) => {
-  return api.post(API_ENDPOINTS.ORIENTATION.CONFIRM, {
-    userId: userId != null ? Number(userId) : null,
-    courseId: courseId != null ? Number(courseId) : null,
-    courseDocumentId: courseDocumentId ?? null,
-    language: language ?? null,
-    confirmedAt: new Date().toISOString(),
-  });
-};
-
 export default {
   fetchAllCourses,
+  fetchCourseWorkflows,
   fetchCourseCategories,
   fetchCourseById,
-  confirmOrientationAttendance,
 };

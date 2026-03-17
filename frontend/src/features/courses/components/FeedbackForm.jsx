@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Star } from "lucide-react";
 import api from '@/services/api';
 import Loader from '@/components/common/Loader';
+import telemetryService from '@/services/telemetry';
 
 // Fallback questions used when no API feedback questions are available
 const FALLBACK_QUESTIONS = [
@@ -98,6 +99,20 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
+  React.useEffect(() => {
+    const numericCourseId = Number(courseId);
+    if (!Number.isFinite(numericCourseId) || numericCourseId <= 0) return;
+    telemetryService.trackLearningFeedbackOpened({
+      courseId: numericCourseId,
+      routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+      feedbackId: String(courseId),
+      metadata: {
+        user_id: Number(userId),
+        question_count: activeQuestions.length,
+      },
+    });
+  }, [courseId, userId, activeQuestions.length]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -134,15 +149,45 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
         course: Number(courseId),
         users_permissions_user: Number(userId),
       },
+      // Keep flat fields too for custom backend controllers that read ctx.request.body directly.
+      courseId: Number(courseId),
+      userId: Number(userId),
+      course: Number(courseId),
+      users_permissions_user: Number(userId),
+      submitted_at: new Date().toISOString(),
     };
 
     setIsSubmitting(true);
     setSubmitError(null);
     try {
       const response = await api.post('/feedback-submission/submit', payload);
+      telemetryService.trackLearningFeedbackSubmitted({
+        courseId: Number(courseId),
+        routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+        feedbackId: String(courseId || ''),
+        rating: courseRating || null,
+        metadata: {
+          course_id: Number(courseId),
+          user_id: Number(userId),
+          question_count: activeQuestions.length,
+          success: true,
+        },
+      });
       onSubmit?.(response);
     } catch (error) {
       setSubmitError(error?.error?.message || error?.message || 'Failed to submit feedback. Please try again.');
+      telemetryService.trackLearningFeedbackSubmitted({
+        courseId: Number(courseId),
+        routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
+        feedbackId: String(courseId || ''),
+        rating: courseRating || null,
+        metadata: {
+          course_id: Number(courseId),
+          user_id: Number(userId),
+          success: false,
+          error: error?.message || 'Feedback submission failed',
+        },
+      });
     } finally {
       setIsSubmitting(false);
     }
