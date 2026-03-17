@@ -41,6 +41,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const videoRef = useRef(null);
   const lastVideoHeartbeatSecRef = useRef(0);
   const moduleEnterTimeRef = useRef(null); // tracks when user entered current module
+  const modulePausedAtRef = useRef(null);  
+  const modulePausedMsRef = useRef(0);    
   const hasStartedRef = useRef(false); // prevents duplicate In_progress calls per session
 
   // If initialLanguage (e.g. English) is not actually available for this course
@@ -125,7 +127,25 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const routePath = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : pathname;
     const moduleTitle = currentModule?.moduleTitle || currentModule?.title || null;
 
-    moduleEnterTimeRef.current = Date.now();
+    // Reset timer state when module changes — timer starts only on user engagement
+    moduleEnterTimeRef.current = null;
+    modulePausedAtRef.current = null;
+    modulePausedMsRef.current = 0;
+
+    // Pause the timer when the tab goes to background, resume when it returns
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab hidden — record when we paused
+        modulePausedAtRef.current = Date.now();
+      } else {
+        // Tab visible again — accumulate the hidden duration
+        if (modulePausedAtRef.current != null) {
+          modulePausedMsRef.current += Date.now() - modulePausedAtRef.current;
+          modulePausedAtRef.current = null;
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     telemetryService.trackLearningModuleEnter({
       courseId,
@@ -139,6 +159,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     });
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       telemetryService.trackLearningModuleExit({
         courseId,
         moduleIndex: currentModuleIdx,
@@ -243,6 +264,13 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   // Called when user first engages with content (video play or View Full Content).
   // Transitions the course from Not_started → In_progress without marking any module complete.
   const handleContentEngaged = async () => {
+    // Start the module timer on first engagement (video play or View Full Content)
+    if (moduleEnterTimeRef.current == null) {
+      moduleEnterTimeRef.current = Date.now();
+      modulePausedAtRef.current = null;
+      modulePausedMsRef.current = 0;
+    }
+
     if (hasStartedRef.current) return;
     if (courseProgress.progressStatus && courseProgress.progressStatus !== 'Not_started') return;
     const userId = getCurrentUserId();
@@ -277,9 +305,13 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
     // Calculate actual time spent before both POST calls below need it
     const durationMin = Number(module_?.moduleDuration) || 0;
+    // Subtract any time the tab was hidden (paused) from the elapsed wall-clock time
+    const hiddenMs = modulePausedMsRef.current +
+      (modulePausedAtRef.current != null ? Date.now() - modulePausedAtRef.current : 0);
+    // If timer never started (user never engaged with content), record 0
     const elapsedMin = moduleEnterTimeRef.current
-      ? Math.max(1, Math.round((Date.now() - moduleEnterTimeRef.current) / 60000))
-      : durationMin;
+      ? Math.max(1, Math.round((Date.now() - moduleEnterTimeRef.current - hiddenMs) / 60000))
+      : 0;
     const timeWatchedMin = durationMin > 0 ? Math.min(elapsedMin, durationMin) : elapsedMin;
 
     try {
