@@ -278,12 +278,12 @@ export default function CoursesCategoryPage({ category }) {
   const resolvePrerequisiteModule = (workflow, module) => {
     if (!workflow || !module) return null;
     let prerequisite = module.prerequisiteModule;
-    if (!prerequisite) return null;
+    if (prerequisite == null) return null;
 
     if (Array.isArray(prerequisite)) {
       prerequisite = prerequisite[0] ?? null;
     }
-    if (!prerequisite) return null;
+    if (prerequisite == null) return null;
 
     if (prerequisite?.data) {
       prerequisite = prerequisite.data;
