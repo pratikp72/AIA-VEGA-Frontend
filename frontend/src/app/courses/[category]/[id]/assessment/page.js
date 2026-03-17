@@ -69,7 +69,7 @@ export default function AssessmentInstructionsRoutePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-8 bg-[#fafafa]">
         <h1 className="text-xl font-semibold text-gray-800">No assessment available</h1>
-        <p className="text-sm text-gray-600 text-center max-w-md">
+        <p className="text-sm text-gray-600 text-center max-w-3xl">
           This course has no quiz in <strong>{selectedLanguage}</strong>. Go back to the course and try another
           language, or contact support if you expect an assessment here.
         </p>
