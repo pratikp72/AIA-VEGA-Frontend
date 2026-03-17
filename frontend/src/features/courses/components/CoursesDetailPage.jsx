@@ -562,6 +562,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         course={course}
         category={category}
         selectedModule={currentModule}
+        filteredModules={contents}
         onBack={() => setShowFullReadingView(false)}
         onMarkAsRead={() => handleMarkAsRead(currentModule?.moduleId || currentModule?.id)}
         onNextLecture={() => {
