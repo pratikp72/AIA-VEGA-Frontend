@@ -43,6 +43,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const moduleEnterTimeRef = useRef(null); // tracks when user entered current module
   const modulePausedAtRef = useRef(null);  
   const modulePausedMsRef = useRef(0);    
+  const pdfNewTabRef = useRef(false); // when true, keep timer running while tab is hidden (PDF opened in new tab)
   const hasStartedRef = useRef(false); // prevents duplicate In_progress calls per session
 
   // If initialLanguage (e.g. English) is not actually available for this course
@@ -135,9 +136,13 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     // Pause the timer when the tab goes to background, resume when it returns
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        // If user opened PDF in new tab, keep timer running
+        if (pdfNewTabRef.current) return;
         // Tab hidden — record when we paused
         modulePausedAtRef.current = Date.now();
       } else {
+        // Clear the PDF-new-tab flag when user comes back
+        pdfNewTabRef.current = false;
         // Tab visible again — accumulate the hidden duration
         if (modulePausedAtRef.current != null) {
           modulePausedMsRef.current += Date.now() - modulePausedAtRef.current;
@@ -565,6 +570,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         filteredModules={contents}
         onBack={() => setShowFullReadingView(false)}
         onMarkAsRead={() => handleMarkAsRead(currentModule?.moduleId || currentModule?.id)}
+        onPdfOpenNewTab={() => { pdfNewTabRef.current = true; }}
         onNextLecture={() => {
           setShowFullReadingView(false);
           handleNextLecture();
@@ -689,17 +695,23 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {currentModule?.pdf_file?.url ? (
                     <>
-                      <div className="w-full h-[467px] overflow-hidden pointer-events-none">
+                      <div className="relative w-full h-[467px] overflow-hidden pointer-events-none">
                         {pdfPreviewLoading ? (
                           <div className="w-full h-full flex items-center justify-center text-gray-500">
                             Loading PDF preview...
                           </div>
                         ) : pdfPreviewBlobUrl ? (
-                          <iframe
-                            src={pdfPreviewBlobUrl}
-                            title={currentModule.moduleTitle || 'PDF preview'}
-                            className="w-full h-full"
-                          />
+                          <>
+                            <iframe
+                              src={`${pdfPreviewBlobUrl}#page=1&toolbar=0&scrollbar=0&view=FitH`}
+                              title={currentModule.moduleTitle || 'PDF preview'}
+                              className="border-0 absolute top-0 left-0"
+                              style={{ width: 'calc(100% + 20px)', height: '200%' }}
+                              scrolling="no"
+                            />
+                            {/* Gradient fade to indicate more content below */}
+                            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent z-10" />
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-500 px-4 text-center">
                             Inline PDF preview is not available. Use full view or open it in a new tab.
