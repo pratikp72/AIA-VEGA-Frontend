@@ -248,7 +248,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
 
   useEffect(() => {
-    if (timeLeft <= 0 || submitted) return;
+    if (timeLeft <= 0 || submitted || isSubmitting) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -259,7 +259,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, isSubmitting]);
 
   useEffect(() => {
     const el = document.documentElement;

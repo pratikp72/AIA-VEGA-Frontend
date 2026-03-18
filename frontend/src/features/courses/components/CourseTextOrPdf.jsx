@@ -2,10 +2,12 @@ import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft } from "lucide-react";
 
-export default function CourseTextOrPdf({ course, category, selectedModule, onBack, onMarkAsRead, onNextLecture, isRead, isLastModule = false, onGoToAssessment }) {
+export default function CourseTextOrPdf({ course, category, selectedModule, filteredModules, onBack, onMarkAsRead, onNextLecture, isRead, isLastModule = false, onGoToAssessment }) {
   if (!course) return null;
 
-  const contents = Array.isArray(course.modulesList) ? course.modulesList : [];
+  const contents = Array.isArray(filteredModules) && filteredModules.length > 0
+    ? filteredModules
+    : Array.isArray(course.modulesList) ? course.modulesList : [];
   const contentToDisplay = selectedModule?.text_content || course.text_content || "";
   const isPdfModule = String(selectedModule?.moduleType || '').toLowerCase() === 'pdf';
   const markEnabled = !isRead;
@@ -139,7 +141,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, onBa
         </div>
         <div className="flex items-center gap-2 text-gray-700">
           <Clock className="w-5 h-5 text-primary" />
-          <span className="text-sm">{selectedModule?.moduleDuration || "Duration"}</span>
+          <span className="text-sm">{selectedModule?.moduleDuration || "Duration"} mins</span>
         </div>
       </div>
 
