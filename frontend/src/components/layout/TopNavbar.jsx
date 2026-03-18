@@ -52,7 +52,13 @@ function NotificationBellDropdown() {
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setOpen((o) => {
+            // When opening the dropdown, mark all as read
+            if (!o && unreadCount > 0) markAllRead();
+            return !o;
+          });
+        }}
         className="relative p-2 hover:bg-gray-800 rounded-lg"
         aria-label="Notifications"
       >
