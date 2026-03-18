@@ -4,7 +4,22 @@ import Link from "next/link";
 import { Clock, MapPin, Monitor } from "lucide-react";
 import MarkdownIt from "markdown-it";
 
-const md = new MarkdownIt();
+const md = new MarkdownIt().disable(["image"]);
+
+const renderDescription = (description) => {
+  if (!description) return "";
+
+  // Remove HTML tags and any markdown/URL image patterns before rendering text.
+  const withoutHtml = description.replace(/<[^>]*>/g, "");
+  const withoutMarkdownImages = withoutHtml
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/!\[[^\]]*\]\[[^\]]*\]/g, "");
+  const withoutImageUrls = withoutMarkdownImages.replace(
+    /https?:\/\/\S+\.(?:png|jpe?g|gif|webp|svg)(?:\?\S*)?/gi,
+    ""
+  );
+  return md.render(withoutImageUrls);
+};
 
 const defaultDescription =
   "Annual Tech Conference 2024 brings together industry leaders and teams for a day of insights, innovation, and collaboration shaping the future of technology.";
@@ -84,7 +99,7 @@ export default function UpcomingEvents({ events = [] }) {
                   <div className="rich-content line-clamp-1">
                     <div
                       dangerouslySetInnerHTML={{
-                        __html: md.render(event.description || ""),
+                        __html: renderDescription(event.description || defaultDescription),
                       }}
                     />
                   </div>

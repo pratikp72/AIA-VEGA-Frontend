@@ -17,6 +17,7 @@ import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress, s
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 import telemetryService from '@/services/telemetry';
+import { getSocket } from '@/services/socket';
 
 const md = new MarkdownIt({ html: true, breaks: true });
 
@@ -263,6 +264,52 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         }
       });
     });
+  }, [course?.id, course?.documentId, dispatch]);
+
+  // Auto-reload progress when admin approves/rejects quiz reattempt (via socket notification)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNotification = (payload) => {
+      const type = payload?.type || '';
+      if (type === 'quiz_reattempt_approved' || type === 'quiz_reattempt_rejected') {
+        const userId = getCurrentUserId();
+        const courseIdForApi = course?.id ?? course?.documentId;
+        if (!userId || !courseIdForApi) return;
+
+        Promise.all([
+          fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
+          checkPendingReattemptRequest(userId, courseIdForApi),
+        ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage }, reattemptStatus]) => {
+          dispatch(initializeModuleReadState(completedModules));
+          setCourseProgress((p) => ({
+            ...p,
+            progressStatus,
+            progressPercentage,
+            hasPendingReattempt: reattemptStatus?.hasPending ?? false,
+            hasRejectedReattempt: reattemptStatus?.hasRejected ?? false,
+          }));
+
+          getLatestSubmission(userId, courseIdForApi).then((res) => {
+            const submission = res?.submission;
+            if (submission) {
+              setCourseProgress((prev) => ({
+                ...prev,
+                quizScore: submission.score,
+                quizAlreadyTaken: true,
+                needsFeedbackSubmission: submission.passed === true && !feedbackSubmitted && progressStatus !== 'Completed',
+              }));
+            } else {
+              setCourseProgress((prev) => ({ ...prev, quizAlreadyTaken: false, needsFeedbackSubmission: false }));
+            }
+          });
+        });
+      }
+    };
+
+    socket.on('new-notification', handleNotification);
+    return () => socket.off('new-notification', handleNotification);
   }, [course?.id, course?.documentId, dispatch]);
 
 

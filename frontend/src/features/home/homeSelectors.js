@@ -1,8 +1,33 @@
 // Selectors for Home feature (news carousel shows only homepage-visible news)
+const isPublishedNewsItem = (item) => {
+  const publishValue =
+    item?.publish_date ??
+    item?.publishDate ??
+    item?.published_at ??
+    item?.publishedAt ??
+    item?.date;
+
+  if (!publishValue) return true;
+
+  const raw = String(publishValue).trim();
+  const dateOnlyMatch = raw.match(/^\d{4}-\d{2}-\d{2}$/);
+  if (dateOnlyMatch) {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return raw <= today;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return true;
+  return parsed <= new Date();
+};
+
 export const selectNewsCarousel = (state) => {
   const list = state.news?.newsList ?? [];
   return list.filter(
-    (n) => n.visible_on_homepage === true || n.visible_on_homepage === 1
+    (n) =>
+      (n.visible_on_homepage === true || n.visible_on_homepage === 1) &&
+      isPublishedNewsItem(n)
   );
 };
 export const selectQuickLinks = (state) => state.home.quickLinks;

@@ -147,9 +147,9 @@ export function useNotificationSocket() {
       .map((n) => n.id ?? n.documentId)
       .filter((id) => id != null);
     if (!ids.length) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     try {
       await api.post(API_ENDPOINTS.NOTIFICATIONS.MARK_READ, { ids });
-      setNotifications([]);
     } catch (e) {
       console.error('[useNotificationSocket] markAllRead failed', e);
     }
