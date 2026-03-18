@@ -54,7 +54,6 @@ function NotificationBellDropdown() {
         type="button"
         onClick={() => {
           setOpen((o) => {
-            // When opening the dropdown, mark all as read
             if (!o && unreadCount > 0) markAllRead();
             return !o;
           });
