@@ -11,7 +11,21 @@ import Loader from '@/components/common/Loader';
 import MarkdownIt from 'markdown-it';
 import 'react-calendar/dist/Calendar.css';
 
-const md = new MarkdownIt();
+const md = new MarkdownIt().disable(['image']);
+
+const renderDescription = (description) => {
+  if (!description) return '';
+  // Remove HTML tags and any markdown/URL image patterns before rendering text.
+  const withoutHtml = description.replace(/<[^>]*>/g, '');
+  const withoutMarkdownImages = withoutHtml
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/!\[[^\]]*\]\[[^\]]*\]/g, '');
+  const withoutImageUrls = withoutMarkdownImages.replace(
+    new RegExp('https?:\\/\\/\\S+\\.(?:png|jpe?g|gif|webp|svg)(?:\\?\\S*)?', 'gi'),
+    ''
+  );
+  return md.render(withoutImageUrls);
+};
 
 const VIEW_MODES = [
   { key: 'day', label: 'Day' },
@@ -821,7 +835,7 @@ export default function CalendarPage() {
                                 {ev.description ? (
                                   <div className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
                                     <div className="rich-content">
-                                      <div dangerouslySetInnerHTML={{ __html: md.render(ev.description || '') }} />
+                                      <div dangerouslySetInnerHTML={{ __html: renderDescription(ev.description || '') }} />
                                     </div>
                                   </div>
                                 ) : null}
@@ -889,14 +903,10 @@ export default function CalendarPage() {
                                       </div>
                                     ) : (
                                       <div>
-                                        {detail.event_type ? (
-                                          <p className="text-gray-500">{detail.event_type}</p>
-                                        ) : null}
                                         {detail.description ? (
-                                           <div className="rich-content">
-                                        <div dangerouslySetInnerHTML={{ __html: md.render(ev.description || '') }} />
-                                    </div>
-                                          // <p className="leading-relaxed">{detail.description}</p>
+                                          <div className="rich-content">
+                                            <div dangerouslySetInnerHTML={{ __html: renderDescription(detail.description || '') }} />
+                                          </div>
                                         ) : null}
                                       </div>
                                     )}

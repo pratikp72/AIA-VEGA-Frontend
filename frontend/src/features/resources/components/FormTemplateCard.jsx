@@ -99,7 +99,7 @@ export default function FormTemplateCard({ resource }) {
       tabIndex={0}
       onClick={handleCardClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } }}
-      className="w-full h-[85px] cursor-pointer p-4 flex flex-row items-center gap-4 py-0 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="w-full min-h-[85px] cursor-pointer p-4 flex flex-row items-start gap-4 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <div className={`flex items-center justify-center h-12 w-12 rounded-md overflow-hidden flex-shrink-0 p-1.5 ${typeIcon ? 'bg-gray-50' : iconBg + ' text-white'}`}>
         {typeIcon ? (
@@ -113,7 +113,7 @@ export default function FormTemplateCard({ resource }) {
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold truncate">{item.title}</h4>
         </div>
-        <p className="text-sm text-[#65758B] truncate">{item.description}</p>
+        <p className="text-sm text-[#65758B]">{item.description}</p>
       </div>
 
       <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>

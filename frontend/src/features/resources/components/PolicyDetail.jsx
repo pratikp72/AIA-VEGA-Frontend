@@ -121,7 +121,7 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
 
         <div className="w-full gap-10 mt-6">
           <div className="">
-            <SurfaceCard className="p-4 max-h-[520px] overflow-y-auto scrollbar-default gap-2">
+            <SurfaceCard className="p-4 gap-2">
               <div className="mb-3">
                 <h3 className="text-lg font-semibold">Policy Details</h3>
               </div>
