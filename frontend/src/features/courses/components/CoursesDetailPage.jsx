@@ -695,17 +695,23 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 <div className="bg-white rounded-xl border border-gray-200 mt-4 overflow-hidden">
                   {currentModule?.pdf_file?.url ? (
                     <>
-                      <div className="w-full h-[467px] overflow-hidden pointer-events-none">
+                      <div className="relative w-full h-[467px] overflow-hidden pointer-events-none">
                         {pdfPreviewLoading ? (
                           <div className="w-full h-full flex items-center justify-center text-gray-500">
                             Loading PDF preview...
                           </div>
                         ) : pdfPreviewBlobUrl ? (
-                          <iframe
-                            src={pdfPreviewBlobUrl}
-                            title={currentModule.moduleTitle || 'PDF preview'}
-                            className="w-full h-full"
-                          />
+                          <>
+                            <iframe
+                              src={`${pdfPreviewBlobUrl}#page=1&toolbar=0&scrollbar=0&view=FitH`}
+                              title={currentModule.moduleTitle || 'PDF preview'}
+                              className="border-0 absolute top-0 left-0"
+                              style={{ width: 'calc(100% + 20px)', height: '200%' }}
+                              scrolling="no"
+                            />
+                            {/* Gradient fade to indicate more content below */}
+                            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent z-10" />
+                          </>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-500 px-4 text-center">
                             Inline PDF preview is not available. Use full view or open it in a new tab.
