@@ -6,6 +6,11 @@ import 'react-circular-progressbar/dist/styles.css';
 
 export default function CourseStats({ course, progressPercentage = 0, quizScore, totalModuleTimeMin = 0 }) {
   if (!course) return null;
+  const minPassingScore = course.minPassingScore ?? course.min_passing_score ?? 0;
+  const hasTakenQuiz = quizScore != null && quizScore > 0;
+  const passed = !hasTakenQuiz || quizScore >= minPassingScore;
+  const scoreColor = passed ? 'var(--color-success)' : 'var(--color-danger, #ef4444)';
+  const scoreTextClass = passed ? 'text-success' : 'text-red-500';
   return (
     <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4 relative">
       <div className="flex justify-between items-start mb-2">
@@ -36,6 +41,19 @@ export default function CourseStats({ course, progressPercentage = 0, quizScore,
               </span>
             </div>
           </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-teal-50">
+              <CheckCircle2 className="w-5 h-5 text-teal" />
+            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-gray-400">Min. Passing Score</span>
+              <span className="text-base font-bold text-gray-900">
+                {minPassingScore}%
+              </span>
+            </div>
+          </div>
+
         </div>
         {/* Circular Progress */}
         <div className="relative shrink-0 w-36 max-w-[40%] aspect-square">
@@ -43,14 +61,14 @@ export default function CourseStats({ course, progressPercentage = 0, quizScore,
             value={quizScore ?? 0}
             strokeWidth={8}
             styles={buildStyles({
-              pathColor: 'var(--color-success)',
+              pathColor: scoreColor,
               trailColor: 'var(--color-primary-light)',
               pathTransitionDuration: 0.5,
               strokeLinecap: 'round',
             })}
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-[22px] font-bold leading-tight text-success">{quizScore != null ? `${quizScore}%` : '0%'}</span>
+            <span className={`text-[22px] font-bold leading-tight ${scoreTextClass}`}>{quizScore != null ? `${quizScore}%` : '0%'}</span>
             <span className="text-[10px] text-gray-400 leading-tight">Grades Completed</span>
           </div>
         </div>
