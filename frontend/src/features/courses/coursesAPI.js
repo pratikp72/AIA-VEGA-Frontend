@@ -147,7 +147,6 @@ async function fetchCourseDueDateMap() {
   const user = getCurrentUserInfo();
   const userId = user?.id ?? null;
   const userDept = String(user?.department ?? '').trim().toLowerCase();
-  const userCompany = String(user?.company ?? '').trim().toLowerCase();
   const userWorkLocation = String(user?.work_location ?? user?.work_location_id ?? '').trim().toLowerCase();
 
   let assignments = [];
@@ -157,7 +156,6 @@ async function fetchCourseDueDateMap() {
         'populate[courses]': true,
         'populate[departments]': true,
         'populate[individual_user]': true,
-        'populate[companies]': true,
         'populate[work_locations]': true,
         'filters[active][$eq]': true,
         'pagination[pageSize]': 1000,
@@ -177,11 +175,7 @@ async function fetchCourseDueDateMap() {
     const targetType = assignment.assignment_target_type;
     let applicable = false;
 
-    if (targetType === 'Company') {
-      const names = (Array.isArray(assignment.companies) ? assignment.companies : [])
-        .map(c => String(c?.name ?? c?.title ?? '').trim().toLowerCase());
-      applicable = userCompany && names.some(n => n === userCompany || n.includes(userCompany) || userCompany.includes(n));
-    } else if (targetType === 'Department') {
+    if (targetType === 'Department') {
       const names = (Array.isArray(assignment.departments) ? assignment.departments : [])
         .map(d => String(d?.name ?? d?.title ?? '').trim().toLowerCase());
       applicable = userDept && names.some(n => n === userDept || n.includes(userDept) || userDept.includes(n));
