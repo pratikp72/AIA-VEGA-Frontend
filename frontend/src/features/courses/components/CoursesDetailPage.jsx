@@ -43,6 +43,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const moduleEnterTimeRef = useRef(null); // tracks when user entered current module
   const modulePausedAtRef = useRef(null);  
   const modulePausedMsRef = useRef(0);    
+  const pdfNewTabRef = useRef(false); // when true, keep timer running while tab is hidden (PDF opened in new tab)
   const hasStartedRef = useRef(false); // prevents duplicate In_progress calls per session
 
   // If initialLanguage (e.g. English) is not actually available for this course
@@ -135,9 +136,13 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     // Pause the timer when the tab goes to background, resume when it returns
     const handleVisibilityChange = () => {
       if (document.hidden) {
+        // If user opened PDF in new tab, keep timer running
+        if (pdfNewTabRef.current) return;
         // Tab hidden — record when we paused
         modulePausedAtRef.current = Date.now();
       } else {
+        // Clear the PDF-new-tab flag when user comes back
+        pdfNewTabRef.current = false;
         // Tab visible again — accumulate the hidden duration
         if (modulePausedAtRef.current != null) {
           modulePausedMsRef.current += Date.now() - modulePausedAtRef.current;
@@ -565,6 +570,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
         filteredModules={contents}
         onBack={() => setShowFullReadingView(false)}
         onMarkAsRead={() => handleMarkAsRead(currentModule?.moduleId || currentModule?.id)}
+        onPdfOpenNewTab={() => { pdfNewTabRef.current = true; }}
         onNextLecture={() => {
           setShowFullReadingView(false);
           handleNextLecture();

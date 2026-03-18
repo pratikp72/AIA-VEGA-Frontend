@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft } from "lucide-react";
 
-export default function CourseTextOrPdf({ course, category, selectedModule, filteredModules, onBack, onMarkAsRead, onNextLecture, isRead, isLastModule = false, onGoToAssessment }) {
+export default function CourseTextOrPdf({ course, category, selectedModule, filteredModules, onBack, onMarkAsRead, onNextLecture, isRead, isLastModule = false, onGoToAssessment, onPdfOpenNewTab }) {
   if (!course) return null;
 
   const contents = Array.isArray(filteredModules) && filteredModules.length > 0
@@ -172,6 +172,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, filt
                   href={selectedModule.pdf_file.url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={() => onPdfOpenNewTab && onPdfOpenNewTab()}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary/90"
                 >
                   Open PDF In New Tab
