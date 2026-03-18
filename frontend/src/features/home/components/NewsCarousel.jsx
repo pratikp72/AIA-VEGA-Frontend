@@ -9,6 +9,29 @@ import MarkdownIt from 'markdown-it';
 
 const md = new MarkdownIt({ html: true });
 
+const isPublishedNewsItem = (item) => {
+  const publishValue =
+    item?.publish_date ??
+    item?.publishDate ??
+    item?.published_at ??
+    item?.publishedAt ??
+    item?.date;
+
+  if (!publishValue) return true;
+
+  const raw = String(publishValue).trim();
+  const dateOnlyMatch = raw.match(/^\d{4}-\d{2}-\d{2}$/);
+  if (dateOnlyMatch) {
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    return raw <= today;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return true;
+  return parsed <= new Date();
+};
+
 const renderDescription = (description) => {
   if (!description) return '';
   
@@ -18,14 +41,8 @@ const renderDescription = (description) => {
 };
 
 export default function NewsCarousel({ news = [] }) {
-  // Only show news whose publish_date is today or in the past
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const publishedNews = news.filter((n) => {
-    const pub = n.publish_date || n.date;
-    if (!pub) return true; // no date set → show it
-    return new Date(pub) <= now;
-  });
+  // Only show news whose publish date has already arrived.
+  const publishedNews = news.filter(isPublishedNewsItem);
 
   // ✅ Cap at 6 items
   const visibleNews = publishedNews.slice(0, 6);
