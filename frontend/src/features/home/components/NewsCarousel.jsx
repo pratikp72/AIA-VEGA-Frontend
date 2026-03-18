@@ -18,8 +18,17 @@ const renderDescription = (description) => {
 };
 
 export default function NewsCarousel({ news = [] }) {
+  // Only show news whose publish_date is today or in the past
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const publishedNews = news.filter((n) => {
+    const pub = n.publish_date || n.date;
+    if (!pub) return true; // no date set → show it
+    return new Date(pub) <= now;
+  });
+
   // ✅ Cap at 6 items
-  const visibleNews = news.slice(0, 6);
+  const visibleNews = publishedNews.slice(0, 6);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
