@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import PageHeader from "@/components/common/PageHeader";
-import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft } from "lucide-react";
+import { FolderOpen, Clock, SquareCheckBig, ChevronRight, ArrowLeft, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
+import openPdfInNewTab from "../utils/openPdfInNewTab";
 
 export default function CourseTextOrPdf({ course, category, selectedModule, filteredModules, onBack, onMarkAsRead, onNextLecture, isRead, isLastModule = false, onGoToAssessment, onPdfOpenNewTab }) {
   if (!course) return null;
@@ -13,6 +14,18 @@ export default function CourseTextOrPdf({ course, category, selectedModule, filt
   const markEnabled = !isRead;
   const [pdfBlobUrl, setPdfBlobUrl] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfZoom, setPdfZoom] = useState(100);
+
+  // Reset zoom when module changes
+  useEffect(() => {
+    setPdfZoom(100);
+  }, [selectedModule?.moduleId, selectedModule?.id]);
+
+  const handleOpenInNewTab = () => {
+    if (openPdfInNewTab(pdfBlobUrl, selectedModule?.moduleTitle)) {
+      onPdfOpenNewTab && onPdfOpenNewTab();
+    }
+  };
 
   useEffect(() => {
     const sourceUrl = selectedModule?.pdf_file?.url;
@@ -152,15 +165,51 @@ export default function CourseTextOrPdf({ course, category, selectedModule, filt
             selectedModule?.pdf_file?.url ? (
               <>
                 {pdfLoading ? (
-                  <div className="w-full h-[78vh] rounded-xl border border-gray-200 bg-white overflow-hidden flex items-center justify-center text-gray-500">
+                  <div className="w-full h-[90vh] rounded-xl border border-gray-200 bg-white overflow-hidden flex items-center justify-center text-gray-500">
                     Loading PDF preview...
                   </div>
                 ) : pdfBlobUrl ? (
-                  <div className="w-full h-[78vh] rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div className="w-full h-[90vh] rounded-xl border border-gray-200 bg-white overflow-hidden flex flex-col">
+                    {/* Custom read-only toolbar: title + zoom + open in new tab */}
+                    <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200 flex-shrink-0">
+                      <span className="text-sm font-semibold text-gray-700 truncate max-w-[45%]">
+                        {selectedModule?.moduleTitle || 'PDF'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setPdfZoom(z => Math.max(25, z - 25))}
+                          disabled={pdfZoom <= 25}
+                          className="w-8 h-8 rounded-md border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Zoom Out"
+                        >
+                          <ZoomOut className="w-4 h-4" />
+                        </button>
+                        <span className="text-xs text-gray-500 min-w-[40px] text-center select-none">{pdfZoom}%</span>
+                        <button
+                          onClick={() => setPdfZoom(z => Math.min(500, z + 25))}
+                          disabled={pdfZoom >= 500}
+                          className="w-8 h-8 rounded-md border border-gray-300 bg-white flex items-center justify-center text-gray-600 hover:bg-gray-100 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Zoom In"
+                        >
+                          <ZoomIn className="w-4 h-4" />
+                        </button>
+                        <div className="w-px h-5 bg-gray-300 mx-1" />
+                        <button
+                          onClick={handleOpenInNewTab}
+                          className="flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition
+                bg-primary text-white hover:bg-primary/90 cursor-pointer"
+                          title="Open PDF In New Tab"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Open In New Tab
+                        </button>
+                      </div>
+                    </div>
                     <iframe
-                      src={pdfBlobUrl}
+                      key={pdfZoom}
+                      src={`${pdfBlobUrl}#toolbar=0&navpanes=0&zoom=${pdfZoom}`}
                       title={selectedModule?.moduleTitle || 'PDF'}
-                      className="w-full h-full"
+                      className="w-full flex-1"
                     />
                   </div>
                 ) : (
@@ -168,15 +217,7 @@ export default function CourseTextOrPdf({ course, category, selectedModule, filt
                     Inline PDF preview is not available in this browser. Please open it in a new tab.
                   </div>
                 )}
-                <a
-                  href={selectedModule.pdf_file.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => onPdfOpenNewTab && onPdfOpenNewTab()}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary/90"
-                >
-                  Open PDF In New Tab
-                </a>
+
               </>
             ) : (
               <div className="text-lg text-gray-700 leading-relaxed">No PDF file available for this module.</div>
