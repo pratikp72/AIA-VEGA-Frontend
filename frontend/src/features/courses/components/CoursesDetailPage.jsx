@@ -660,7 +660,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 onChange={(e) => handleLanguageChange(e.target.value)}
                 disabled={courseProgress.quizAlreadyTaken}
                 title={courseProgress.quizAlreadyTaken ? "Language cannot be changed after attempting the quiz" : undefined}
-                className={`border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${courseProgress.quizAlreadyTaken ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                className={`w-[170px] max-w-[170px] border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${courseProgress.quizAlreadyTaken ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
                 {languageOptions.map((lang) => (
                   <option key={lang} value={lang}>{lang}</option>
@@ -682,7 +682,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
           { label: course.title },
         ]}
         showBreadcrumbSeparator
-        containerClassName="pt-xl pb-0 px-xl bg-transparent"
+        containerClassName="pt-xl pb-0 px-xl bg-transparent [&>div:nth-child(2)]:flex-nowrap [&>div:nth-child(2)]:items-start [&>div:nth-child(2)>h1]:min-w-0 [&>div:nth-child(2)>h1]:flex-1 [&>div:nth-child(2)>h1]:break-words"
       />
       <main>
         <PageSection>

@@ -45,7 +45,7 @@ export default function MyCourses({ courses = [] }) {
 
                   {/* Course Info */}
                   <div className="flex-1 min-w-0 flex flex-col justify-start overflow-visible pt-0.5">
-                    <h3 className="text-h3 font-semibold text-gray-900 line-clamp-2 break-words min-h-[2.5em] leading-normal">
+                    <h3 className="text-h3 font-semibold text-gray-900 truncate leading-normal">
                       {course.title}
                     </h3>
                     <p className="text-small text-muted-foreground mb-2">

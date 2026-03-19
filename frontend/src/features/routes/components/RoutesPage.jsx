@@ -192,9 +192,9 @@ export default function RoutesPage() {
         </div>
 
         {/* Top controls: unit + shift (horizontal, identical styling) */}
-        <div className="flex flex-wrap md:flex-nowrap items-end gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-4">
           {/* Unit / Plant dropdown */}
-          <div className="w-full md:basis-1/2">
+          <div className="w-full min-w-0">
             <div className="font-semibold text-[18px] text-[#363A4D] mb-2">
               Select Unit / Plant
             </div>
@@ -210,13 +210,14 @@ export default function RoutesPage() {
                   }
                   placeholder="Select Unit / Plant"
                   textSize="text-base"
+                  wrapValue
                 />
               </div>
             </div>
           </div>
 
           {/* Shift pills */}
-          <div className="w-full md:basis-1/2">
+          <div className="w-full min-w-0">
             <div className="font-semibold text-[18px] text-[#363A4D] mb-2">
               Select Shift
             </div>
