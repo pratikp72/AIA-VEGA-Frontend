@@ -716,6 +716,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                     <video
                       ref={videoRef}
                       controls
+                      controlsList="nodownload noplaybackrate"
+                      disablePictureInPicture
                       onPlay={handleContentEngaged}
                       onLoadedMetadata={handleVideoLoadedMetadata}
                       onTimeUpdate={handleVideoTimeUpdate}

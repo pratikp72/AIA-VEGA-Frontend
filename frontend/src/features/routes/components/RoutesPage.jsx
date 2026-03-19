@@ -163,8 +163,15 @@ export default function RoutesPage() {
     }
   }, [activeUnit, selectedShift]);
 
+  const routesBgStyle = {
+    backgroundImage: 'url(/location-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-[#F4F4F8]">
+    <div className="min-h-screen" style={routesBgStyle}>
       <PageHeader title="Routes" breadcrumbs={breadcrumbs}>
         <p className="text-gray-500 text-base">
           Access a detailed directory of all plant sites, unit locations, and
