@@ -38,21 +38,6 @@ const LoginPage = () => {
       {/* Login Form */}
       <LoginForm />
 
-      {/* Image Counter */}
-      <div style={{
-        position: 'absolute',
-        bottom: 20,
-        right: 20,
-        color: '#fff',
-        fontSize: 14,
-        zIndex: 2,
-        background: 'rgba(0,0,0,0.5)',
-        padding: '8px 16px',
-        borderRadius: '20px',
-        backdropFilter: 'blur(10px)',
-      }}>
-        1 / 64
-      </div>
     </div>
   );
 };

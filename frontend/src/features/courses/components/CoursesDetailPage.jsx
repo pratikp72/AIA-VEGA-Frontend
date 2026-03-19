@@ -712,15 +712,17 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
               {/* Show content based on moduleType */}
               {currentModule?.moduleType === 'Video' ? (
                 <>
-                  <div className="relative max-h-[467px] overflow-hidden rounded-xl mt-2">
+                  <div className="relative w-full rounded-xl mt-2 bg-black" style={{ aspectRatio: '16/9' }}>
                     <video
                       ref={videoRef}
                       controls
+                      controlsList="nodownload noplaybackrate"
+                      disablePictureInPicture
                       onPlay={handleContentEngaged}
                       onLoadedMetadata={handleVideoLoadedMetadata}
                       onTimeUpdate={handleVideoTimeUpdate}
                       onEnded={handleVideoEnded}
-                      className="w-full h-full object-cover rounded-xl"
+                      className="w-full h-full object-contain rounded-xl"
                     >
                       <source
                         src={currentModule.video_file?.url || "https://www.w3schools.com/html/mov_bbb.mp4"}

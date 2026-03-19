@@ -45,8 +45,15 @@ export default function NewsListingPage() {
 
   const categoryOptions = [...categories.map((c) => c.name)];
 
+  const newsBgStyle = {
+    backgroundImage: 'url(/feedback-form-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'right center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={newsBgStyle}>
       <PageHeader
         title="News"
         breadcrumbs={[{ label: 'Home', href: '/home' }, { label: 'News' }]}

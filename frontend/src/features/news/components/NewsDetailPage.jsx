@@ -145,8 +145,15 @@ export default function NewsDetailPage() {
     );
   }
 
+  const newsBgStyle = {
+    backgroundImage: 'url(/feedback-form-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'right center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={newsBgStyle}>
       {/* Header */}
       <PageHeader
         title={null}

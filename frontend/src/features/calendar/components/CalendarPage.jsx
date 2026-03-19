@@ -455,8 +455,15 @@ export default function CalendarPage() {
       });
   }, [pendingSelectedEventId, eventsLoading, eventsList]);
 
+  const calendarBgStyle = {
+    backgroundImage: 'url(/gallery-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   return (
-    <div className="min-h-screen bg-[#e8e8e8]">
+    <div className="min-h-screen" style={calendarBgStyle}>
       <PageHeader
         title="Calendar"
         breadcrumbs={[{ label: 'Calendar' }]}

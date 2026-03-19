@@ -111,7 +111,7 @@ export default function FormTemplateCard({ resource }) {
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold">{item.title}</h4>
+          <h4 className="text-base font-semibold">{item.title}</h4>
         </div>
         <p className="text-sm text-[#65758B]">{item.description}</p>
       </div>

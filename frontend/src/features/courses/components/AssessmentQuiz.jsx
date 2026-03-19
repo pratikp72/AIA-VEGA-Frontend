@@ -7,6 +7,7 @@ import {
   ChevronRight,
   XCircle,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import {
   MOCK_ASSESSMENT_QUESTIONS,
@@ -227,11 +228,14 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const [reattemptError, setReattemptError] = useState(null);
   const [showReattemptSuccessModal, setShowReattemptSuccessModal] = useState(false);
   const [violationWarning, setViolationWarning] = useState(false);
+  const [timeLimitExceeded, setTimeLimitExceeded] = useState(false);
+  const [quizStarted, setQuizStarted] = useState(false);
 
   const isSubmittingRef = useRef(false);
   const submittedRef = useRef(false);
   const answersRef = useRef({});
   const timeLeftRef = useRef(quizDurationSeconds);
+  const quizStartedRef = useRef(false);
 
   const currentQuestion = questions[currentIndex];
 
@@ -248,7 +252,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   useEffect(() => { timeLeftRef.current = timeLeft; }, [timeLeft]);
 
   useEffect(() => {
-    if (timeLeft <= 0 || submitted || isSubmitting) return;
+    if (!quizStarted || timeLeft <= 0 || submitted || isSubmitting) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -259,9 +263,10 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, submitted, isSubmitting]);
+  }, [quizStarted, timeLeft, submitted, isSubmitting]);
 
   useEffect(() => {
+    if (!quizStarted) return;
     const el = document.documentElement;
     if (el.requestFullscreen) {
       el.requestFullscreen().catch(() => {});
@@ -271,7 +276,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         document.exitFullscreen().catch(() => {});
       }
     };
-  }, []);
+  }, [quizStarted]);
 
   useEffect(() => {
     if (submitted && document.fullscreenElement) {
@@ -328,7 +333,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }
   };
 
-  const performSubmit = useCallback(async (currentAnswers, currentTimeLeft) => {
+  const performSubmit = useCallback(async (currentAnswers, currentTimeLeft, submissionType = 'Manual Submit') => {
     if (isSubmittingRef.current || submittedRef.current) return;
     isSubmittingRef.current = true;
     setIsSubmitting(true);
@@ -366,6 +371,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       // Ensure non-zero quiz duration for analytics when submission happens under 60s.
       time_taken_minutes: Math.max(1, Math.round((quizDurationSeconds - currentTimeLeft) / 60)),
       submitted_at: new Date().toISOString(),
+      submission_type: submissionType,
     };
 
     try {
@@ -445,14 +451,22 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
   const handleSubmit = async () => {
     if (!hasAnswered || isSubmitting) return;
-    await performSubmit(answers, timeLeft);
+    await performSubmit(answers, timeLeft, 'Manual Submit');
   };
 
   const handleAutoSubmit = useCallback(() => {
-    if (submittedRef.current || isSubmittingRef.current) return;
+    if (!quizStartedRef.current || submittedRef.current || isSubmittingRef.current) return;
     setViolationWarning(true);
-    performSubmit(answersRef.current, timeLeftRef.current);
+    performSubmit(answersRef.current, timeLeftRef.current, 'Auto Submit or Leave');
   }, [performSubmit]);
+
+  // Auto-submit with "Time Limit Exceed" when the countdown reaches zero
+  useEffect(() => {
+    if (timeLeft === 0 && !submittedRef.current && !isSubmittingRef.current) {
+      setTimeLimitExceeded(true);
+      performSubmit(answersRef.current, 0, 'Time Limit Exceed');
+    }
+  }, [timeLeft, performSubmit]);
 
   useEffect(() => {
     const onFullscreenChange = () => {
@@ -483,6 +497,11 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, []);
+  const handleStartAssessment = () => {
+    quizStartedRef.current = true;
+    setQuizStarted(true);
+  };
+
   const handleTryAgain = () => {
     setCurrentIndex(0);
     setAnswers({});
@@ -494,12 +513,11 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     setAttemptNumber(undefined);
     setReattemptRequired(false);
     setViolationWarning(false);
+    setTimeLimitExceeded(false);
     submittedRef.current = false;
     isSubmittingRef.current = false;
-    const el = document.documentElement;
-    if (el.requestFullscreen) {
-      el.requestFullscreen().catch(() => {});
-    }
+    quizStartedRef.current = true;
+    setQuizStarted(true);
   };
 
   const handleSendReattemptRequest = async () => {
@@ -620,7 +638,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
   if (submitted && showReattemptSuccessModal) {
     return (
-      <div className="fixed inset-0 z-[60] bg-black/40 flex items-center justify-center px-4">
+      <div className="fixed inset-0 z-60 bg-black/40 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="w-14 h-14 text-success" />
@@ -659,12 +677,66 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     );
   }
 
+  if (!quizStarted) {
+    return (
+      <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-primary" />
+            </div>
+            <h2 className="text-xl font-semibold text-gray-900">Before You Begin</h2>
+          </div>
+          <ul className="space-y-3 mb-8">
+            {[
+              "The quiz will run in fullscreen mode.",
+              "Switching tabs or exiting fullscreen will automatically submit your quiz.",
+              "Reloading or closing the page will also trigger auto-submission.",
+              "Once the timer runs out, your quiz will be submitted automatically.",
+              "You cannot pause the timer once you start.",
+            ].map((rule, i) => (
+              <li key={i} className="flex items-start gap-3 text-sm text-gray-700">
+                <span className="mt-0.5 shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                  {i + 1}
+                </span>
+                {rule}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={handleStartAssessment}
+            className="w-full bg-primary text-white py-3 rounded-full font-semibold hover:bg-primary/90 transition cursor-pointer"
+          >
+            Start Assessment
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const isLastQuestion = currentIndex === totalQuestions - 1;
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col">
+      {timeLimitExceeded && (
+        <div className="fixed inset-0 z-110 bg-black/70 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
+            <Clock className="w-14 h-14 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Time&apos;s Up!</h2>
+            <p className="text-gray-600 text-sm mb-4">
+              Your quiz has been automatically submitted.
+            </p>
+            {isSubmitting && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                Submitting...
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {violationWarning && (
-        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-100 bg-black/70 flex items-center justify-center px-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
             <XCircle className="w-14 h-14 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Quiz Auto-Submitted</h2>

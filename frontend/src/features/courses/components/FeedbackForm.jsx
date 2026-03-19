@@ -226,6 +226,9 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
               }
 
               if (q.answer_type === "Text") {
+                const charCount = (answers[qid] || "").length;
+                const isNearLimit = charCount >= 230;
+                const isAtLimit = charCount >= 255;
                 return (
                   <div key={qid} className="mb-6">
                     <p className="text-[15px] font-medium text-[#2d2a6e] mb-3">{label}</p>
@@ -234,8 +237,16 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
                       onChange={(e) => setAnswer(qid, e.target.value)}
                       placeholder="Type your answer here..."
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                      maxLength={255}
+                      className={`w-full px-4 py-3 rounded-xl border bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 resize-none ${
+                        isAtLimit
+                          ? "border-red-400 focus:ring-red-200 focus:border-red-400"
+                          : "border-gray-200 focus:ring-primary/20 focus:border-primary"
+                      }`}
                     />
+                    <p className={`text-xs mt-1 text-right ${isAtLimit ? "text-red-500 font-medium" : isNearLimit ? "text-orange-500" : "text-gray-400"}`}>
+                      {charCount}/255{isAtLimit && " — character limit reached"}
+                    </p>
                   </div>
                 );
               }
