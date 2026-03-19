@@ -104,6 +104,28 @@ export default function ResourcesPage() {
     });
   }, [allResources, tab, search, date, type]);
 
+  // Filter form templates by title and created date
+  const filteredFormTemplates = useMemo(() => {
+    return (formTemplates || []).filter((template) => {
+      if (search) {
+        const query = search.trim().toLowerCase();
+        if (!String(template?.title || '').toLowerCase().includes(query)) return false;
+      }
+
+      if (date) {
+        try {
+          const selectedDate = new Date(date).toDateString();
+          const createdDate = template?.createdAt || template?.created_at || template?.date;
+          if (!createdDate || new Date(createdDate).toDateString() !== selectedDate) return false;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [formTemplates, search, date]);
+
   // Infinite scroll for policies/resources
   const sentinelRef = useRef(null);
 
@@ -201,12 +223,12 @@ export default function ResourcesPage() {
       <div className="text-center py-20">
         <p className="text-body text-muted-foreground">{formTemplatesError}</p>
       </div>
-    ) : formTemplates.length === 0 ? (
+    ) : filteredFormTemplates.length === 0 ? (
       <div className="text-center py-20">
-        <p className="text-body text-muted-foreground">No form templates found</p>
+        <p className="text-body text-muted-foreground">{date ? 'No data for that date' : 'No form templates found'}</p>
       </div>
     ) : (
-      <FormTemplatesGrid resources={formTemplates} />
+      <FormTemplatesGrid resources={filteredFormTemplates} />
     )
   )}
 </PageSection>

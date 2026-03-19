@@ -19,6 +19,7 @@ export default function NewsDetailPage() {
   const params = useParams();
   const id = params?.id;
   const md = new MarkdownIt({ html: true });
+  const sidebarMd = new MarkdownIt({ html: true }).disable(['image']);
   const dispatch = useAppDispatch();
   const newsList = useAppSelector(selectNewsList);
   const [article, setArticle] = useState(null);
@@ -45,6 +46,21 @@ export default function NewsDetailPage() {
       .filter((n) => (n.documentId ?? String(n.id)) !== String(id))
       .slice(0, 8);
   }, [newsList, id]);
+
+  const renderSidebarDescription = (description) => {
+    if (!description) return '';
+
+    const withoutHtmlImages = description.replace(/<img[^>]*>/gi, '');
+    const withoutMarkdownImages = withoutHtmlImages
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+      .replace(/!\[[^\]]*\]\[[^\]]*\]/g, '');
+    const withoutImageUrls = withoutMarkdownImages.replace(
+      /https?:\/\/\S+\.(?:png|jpe?g|gif|webp|svg)(?:\?\S*)?/gi,
+      ''
+    );
+
+    return sidebarMd.render(withoutImageUrls);
+  };
 
   useEffect(() => {
     dispatch(loadAllNews());
@@ -223,7 +239,7 @@ export default function NewsDetailPage() {
                           <h3 className="text-h3 text-gray-900 line-clamp-2">
                             {item.title}
                           </h3>
-                          <p className="text-body text-gray-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: md.render(item.description || '') }} />
+                          <p className="text-body text-gray-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: renderSidebarDescription(item.description || '') }} />
                           <p className="text-small text-gray-400">
                             {(() => {
                               const date = item.createdAt || item.date;
