@@ -342,8 +342,8 @@ export const fetchMyCourses = async () => {
   }
   const userId = getCurrentUserId();
 
-  // Two parallel calls: courses list + all user progress (replaces N+1 pattern)
-  const [response, allProgressRes] = await Promise.allSettled([
+  // Three parallel calls: courses list + all user progress + assignment due dates
+  const [response, allProgressRes, dueDateRes] = await Promise.allSettled([
     api.get(API_ENDPOINTS.COURSES.LIST, {
       params: {
         'populate[thumbnail]': true,
@@ -354,6 +354,7 @@ export const fetchMyCourses = async () => {
     userId
       ? api.get('/user-progress/all', { params: { userId } })
       : Promise.resolve(null),
+    fetchCourseDueDateMap(),
   ]);
 
   const raw = response.status === 'fulfilled'
@@ -361,30 +362,79 @@ export const fetchMyCourses = async () => {
     : [];
   const courses = raw.filter(c => c.active !== false).slice(0, 4);
 
-  // Build a map of courseId -> completed_modules array from the batch progress response
+  // Build a map of courseId -> progress payload from the batch progress response.
+  // Supports both shapes returned by backend:
+  // 1) array of entries [{ course, completed_modules, progress_status, progress_percentage }]
+  // 2) object map { [courseId]: { ...progressFields } }
   const progressMap = {};
+  const setProgressEntry = (courseId, entry) => {
+    if (courseId == null || !entry || typeof entry !== 'object') return;
+    progressMap[String(courseId)] = {
+      completedModules: Array.isArray(entry.completed_modules)
+        ? entry.completed_modules.map(String)
+        : [],
+      progressStatus: entry.progress_status ?? null,
+      progressPercentage: Number(entry.progress_percentage ?? 0) || 0,
+    };
+  };
+
   if (allProgressRes.status === 'fulfilled' && allProgressRes.value) {
     const progressData = allProgressRes.value?.data ?? allProgressRes.value;
-    const progressList = Array.isArray(progressData) ? progressData : [];
-    for (const entry of progressList) {
-      const cId = entry?.course?.id ?? entry?.courseId ?? entry?.course_id;
-      if (cId != null) {
-        progressMap[String(cId)] = Array.isArray(entry.completed_modules)
-          ? entry.completed_modules.map(String)
-          : [];
+    if (Array.isArray(progressData)) {
+      for (const entry of progressData) {
+        const cId = entry?.course?.id ?? entry?.courseId ?? entry?.course_id;
+        setProgressEntry(cId, entry);
       }
+    } else if (progressData && typeof progressData === 'object') {
+      Object.entries(progressData).forEach(([key, entry]) => {
+        const cId = entry?.course?.id ?? entry?.courseId ?? entry?.course_id ?? key;
+        setProgressEntry(cId, entry);
+      });
     }
   }
 
+  const dueDateMap =
+    dueDateRes.status === 'fulfilled' && dueDateRes.value && typeof dueDateRes.value === 'object'
+      ? dueDateRes.value
+      : {};
+
   return courses.map((c) => {
-    const totalLessons = Array.isArray(c.modules) ? c.modules.length : 0;
+    const courseModules = Array.isArray(c.modules)
+      ? c.modules
+      : Array.isArray(c.modulesList)
+        ? c.modulesList
+        : [];
+    const totalLessons = courseModules.length;
     const courseId = c.id ?? c.documentId;
-    const completed = progressMap[String(courseId)] ?? [];
-    const courseModules = Array.isArray(c.modules) ? c.modules : [];
-    const completedLessons = courseModules.filter(m =>
-      completed.includes(String(m.id)) || (m.module_id && completed.includes(String(m.module_id)))
+    const progressEntry = progressMap[String(courseId)] || null;
+    const completedModules = progressEntry?.completedModules || [];
+    const completedLessonsById = courseModules.filter((m) =>
+      completedModules.includes(String(m.id)) ||
+      (m.module_id && completedModules.includes(String(m.module_id))) ||
+      (m.moduleId && completedModules.includes(String(m.moduleId)))
     ).length;
-    const progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessons / totalLessons) * 100)) : 0;
+
+    const statusNorm = String(progressEntry?.progressStatus || '').trim().toLowerCase();
+    const progressFromApi = Math.min(100, Math.max(0, Math.round(Number(progressEntry?.progressPercentage || 0))));
+
+    let progress = 0;
+    let completedLessons = completedLessonsById;
+
+    if (statusNorm === 'completed') {
+      progress = 100;
+      completedLessons = totalLessons;
+    } else if (progressFromApi > 0) {
+      progress = progressFromApi;
+      completedLessons = totalLessons > 0
+        ? Math.min(totalLessons, Math.round((progressFromApi / 100) * totalLessons))
+        : completedLessonsById;
+    } else {
+      progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessonsById / totalLessons) * 100)) : 0;
+      completedLessons = completedLessonsById;
+    }
+
+    const assignmentDueDate = dueDateMap[String(courseId)] ?? dueDateMap[courseId];
+
     return {
       id: c.id,
       documentId: c.documentId,
@@ -394,7 +444,8 @@ export const fetchMyCourses = async () => {
       progress,
       completedLessons,
       totalLessons,
-      deadline: c.deadline || '2026-12-31',
+      progressStatus: progressEntry?.progressStatus ?? null,
+      deadline: assignmentDueDate || c.deadline || null,
     };
   });
 };

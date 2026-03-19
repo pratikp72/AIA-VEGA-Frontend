@@ -75,7 +75,7 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
     Array.isArray(apiChecklist) && apiChecklist.length > 0
       ? {
           subtitle: mockChecklist?.subtitle || "",
-          items: apiChecklist.map((item) => item.discription), // note: Strapi has typo "discription"
+          items: apiChecklist.map((item) => item.description), 
         }
       : mockChecklist;
 

@@ -9,19 +9,19 @@ import telemetryService from '@/services/telemetry';
 const FALLBACK_QUESTIONS = [
   {
     question_id: "objectives",
-    qestion: "Did you clearly understand the learning objectives of this course?",
+    question: "Did you clearly understand the learning objectives of this course?",
     answer_type: "YesNo",
     mandatory: true,
   },
   {
     question_id: "relevant",
-    qestion: "Was the course content relevant to your role?",
+    question: "Was the course content relevant to your role?",
     answer_type: "YesNo",
     mandatory: true,
   },
   {
     question_id: "quality",
-    qestion: "How would you rate the quality of the course content?",
+    question: "How would you rate the quality of the course content?",
     answer_type: "AgreeOrDisagree",
     mandatory: true,
   },
@@ -121,7 +121,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
     const answersArray = [
       ...activeQuestions.map((q) => ({
         question_id: q.question_id,
-        question: q.qestion || q.question || q.question_id,
+        question: q.question || q.question_id,
         answer_type: q.answer_type === 'Rating' ? 'Rating'
           : q.answer_type === 'Text' ? 'Text'
           : 'Text',
@@ -211,7 +211,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
 
             {activeQuestions.map((q) => {
               const qid = q.question_id;
-              const label = q.qestion || q.question || "";
+              const label = q.question || "";
 
               if (q.answer_type === "Rating") {
                 return (

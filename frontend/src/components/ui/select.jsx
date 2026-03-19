@@ -4,7 +4,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function Select({ value, onChange, options = [], placeholder = 'Select', textSize = 'text-sm' }) {
+export default function Select({
+  value,
+  onChange,
+  options = [],
+  placeholder = 'Select',
+  textSize = 'text-sm',
+  wrapValue = false,
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -31,11 +38,20 @@ export default function Select({ value, onChange, options = [], placeholder = 'S
         type="button"
         onClick={() => setOpen((s) => !s)}
         className={cn(
-          'relative h-12 w-full rounded-[12px] border border-gray-100 bg-white px-4 pr-10 text-left text-small shadow-sm overflow-hidden',
+          'relative w-full rounded-[12px] border border-gray-100 bg-white px-4 pr-10 text-left text-small shadow-sm overflow-hidden',
+          wrapValue ? 'min-h-12 h-auto py-2' : 'h-12',
           value ? 'text-black' : 'text-[#B3B3B3]'
         )}
       >
-        <span className={cn('truncate pr-6', textSize)}>{value || placeholder}</span>
+        <span
+          className={cn(
+            'pr-6 block',
+            wrapValue ? 'whitespace-normal break-words line-clamp-2 leading-5' : 'truncate',
+            textSize,
+          )}
+        >
+          {value || placeholder}
+        </span>
         <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#B3B3B3]" />
       </button>
 
