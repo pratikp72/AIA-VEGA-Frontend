@@ -2,6 +2,7 @@ import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
+import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
 function getCurrentUserCompany() {
   if (typeof window === 'undefined') return null;
   try {
@@ -117,14 +118,11 @@ export const fetchEmployeeBirthdays = async () => {
 
   try {
     const company = normalizeCompanyForFilter(getCurrentUserCompany());
-    const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-      params: {
-        pageSize: 1000,
-        ...(company && { company }),
-      },
-    });
-
-    const employees = response?.items || [];
+    const employees = await fetchAllAnalyticsEmployees(
+      api,
+      API_ENDPOINTS.ANALYTICS.EMPLOYEES,
+      { ...(company && { company }) }
+    );
     const today = new Date();
     const currentYear = today.getFullYear();
     
@@ -162,14 +160,11 @@ export const fetchEmployeeAnniversaries = async () => {
 
   try {
     const company = normalizeCompanyForFilter(getCurrentUserCompany());
-    const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-      params: {
-        pageSize: 1000,
-        ...(company && { company }),
-      },
-    });
-
-    const employees = response?.items || [];
+    const employees = await fetchAllAnalyticsEmployees(
+      api,
+      API_ENDPOINTS.ANALYTICS.EMPLOYEES,
+      { ...(company && { company }) }
+    );
     const today = new Date();
     const currentYear = today.getFullYear();
     

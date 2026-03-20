@@ -2,6 +2,7 @@ import api from '@/services/api';
 import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
+import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
 
 export const fetchDashboardData = async () => {
   const rest = USE_MOCK_DATA
@@ -206,6 +207,12 @@ function isNewJoinee(joiningDateStr, withinDays = NEW_JOINEE_DAYS) {
   return daysSinceJoin >= 0 && daysSinceJoin <= withinDays;
 }
 
+function toUtcDateStringDaysAgo(daysAgo) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - daysAgo);
+  return d.toISOString().slice(0, 10);
+}
+
 export const fetchNewJoinees = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(400);
@@ -219,15 +226,15 @@ export const fetchNewJoinees = async () => {
   }
 
   const company = normalizeCompanyForFilter(getCurrentUserCompany());
-  const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-    params: {
-      pageSize: 1000,
-      ...(company && { company }),
-    },
-  });
+  const cutoffDate = toUtcDateStringDaysAgo(NEW_JOINEE_DAYS);
+  const baseParams = {
+    sortBy: 'join-newest',
+    dateFrom: cutoffDate,
+    ...(company && { company }),
+  };
+  const allItems = await fetchAllAnalyticsEmployees(api, API_ENDPOINTS.ANALYTICS.EMPLOYEES, baseParams);
 
-  const items = response?.items || [];
-  const newJoinees = items
+  const newJoinees = allItems
     .filter((emp) => emp.joining_date && emp.blocked !== true && isNewJoinee(emp.joining_date, NEW_JOINEE_DAYS))
     .sort((a, b) => new Date(b.joining_date) - new Date(a.joining_date))
     .map(normalizeUserForJoinee);
