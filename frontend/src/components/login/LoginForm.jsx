@@ -171,6 +171,8 @@ const parseApiError = (err) => {
 
 const toFriendlyMessage = (raw = '') => {
   const lower = raw.toLowerCase();
+  if (lower.includes('inactive'))
+    return 'User is inactive.';
   if (
     lower.includes('invalid') ||
     lower.includes('password') ||

@@ -80,6 +80,10 @@ function normalizeDetail(item) {
   return withImageUrl(flat, 'medium');
 }
 
+function isActiveNews(item) {
+  return (item?.active ?? true) !== false;
+}
+
 function getCompanyFilterParams() {
   const company = normalizeCompanyForFilter(getCurrentUserCompany());
   if (!company) return {};
@@ -92,7 +96,7 @@ async function fetchNewsInternal(params = {}) {
     params: { populate: '*', sort: 'createdAt:desc', ...getCompanyFilterParams(), ...params },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
-  return { news: raw.map(normalizeItem) };
+  return { news: raw.map(normalizeItem).filter(isActiveNews) };
 }
 
 /** Fetch ALL news (no filter). Used for the "View all news" listing page. Filters by user company (AIA/Vega) when applicable. */
@@ -105,7 +109,7 @@ export async function fetchAllNews() {
     params: { populate: '*', sort: 'createdAt:desc', ...getCompanyFilterParams() },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
-  return { news: raw.map(normalizeItem) };
+  return { news: raw.map(normalizeItem).filter(isActiveNews) };
 }
 
 
@@ -167,7 +171,8 @@ export async function fetchNewsById(id) {
   });
   const data = res?.data;
   if (!data) return null;
-  return normalizeDetail(data);
+  const detail = normalizeDetail(data);
+  return isActiveNews(detail) ? detail : null;
 }
 
 // Like a news item by documentId (backend resolves documentId → document)

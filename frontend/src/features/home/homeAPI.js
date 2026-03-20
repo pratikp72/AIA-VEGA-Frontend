@@ -91,14 +91,16 @@ export const fetchQuickLinks = async () => {
   };
 
   // Map to expected frontend format if needed
-  return links.map(link => ({
-    id: link.id,
-    documentId: link.documentId,
-    title: link.title,
-    url: link.url,
-    icon: resolveIcon(link),
-    active: link.active,
-  }));
+  return links
+    .filter((link) => link?.active !== false)
+    .map(link => ({
+      id: link.id,
+      documentId: link.documentId,
+      title: link.title,
+      url: link.url,
+      icon: resolveIcon(link),
+      active: link.active,
+    }));
 };
 
 function formatTimeString(timeStr) {

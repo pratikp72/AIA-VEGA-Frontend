@@ -98,7 +98,9 @@ export const fetchPeople = async ({
   const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, { params });
 
   // /analytics/employees returns { items, total, page, pageSize, totalPages }
-  const items = (response?.items || []).map(normalizeUser);
+  const items = (response?.items || [])
+    .filter((user) => user?.active !== false)
+    .map(normalizeUser);
   return {
     items,
     totalPages: response?.totalPages || 1,
@@ -127,7 +129,7 @@ export const fetchEmployeeBirthdays = async () => {
     const currentYear = today.getFullYear();
     
     return employees
-      .filter(emp => emp.date_of_birth && emp.blocked !== true)
+      .filter(emp => emp.date_of_birth && emp.blocked !== true && emp.active !== false)
       .map(emp => {
         const birthday = new Date(emp.date_of_birth);
         // Use UTC to avoid timezone shift (e.g. "1990-03-06" is midnight UTC; getMonth/getDate would give March 5 in US timezones)
@@ -169,7 +171,7 @@ export const fetchEmployeeAnniversaries = async () => {
     const currentYear = today.getFullYear();
     
     return employees
-      .filter(emp => emp.joining_date)
+      .filter(emp => emp.joining_date && emp.active !== false)
       .map(emp => {
         const joinDate = new Date(emp.joining_date);
         // Use UTC to avoid timezone shift (e.g. "2020-03-06" is midnight UTC; getMonth/getDate would give March 5 in US timezones)

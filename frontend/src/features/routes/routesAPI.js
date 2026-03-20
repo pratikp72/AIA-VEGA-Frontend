@@ -67,11 +67,13 @@ export const fetchLocationRoutes = async (locationId) => {
   const data = res?.data ?? res;
   const unitsRaw = data?.units ?? data?.attributes?.units ?? [];
   const unitsArr = Array.isArray(unitsRaw) ? unitsRaw : unitsRaw?.data ?? [];
+  const activeFlag = data?.attributes?.active ?? data?.active ?? true;
+  if (activeFlag === false) return null;
 
   return {
     id: data?.id ?? data?.documentId ?? null,
     name: data?.attributes?.name ?? data?.name ?? '',
-    active: data?.attributes?.active ?? data?.active ?? true,
+    active: activeFlag,
     note: data?.attributes?.note ?? data?.note ?? null,
     company: data?.attributes?.company ?? data?.company ?? null,
     units: unitsArr.map(normalizeUnitWithRoutes),
