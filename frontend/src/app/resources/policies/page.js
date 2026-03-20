@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
@@ -33,27 +33,13 @@ export default function PoliciesPage() {
   const RES_PER_PAGE = 6;
 
   useEffect(() => {
-    dispatch(loadPolicies({ page: 1, limit: RES_PER_PAGE, append: false }));
-    dispatch(setPoliciesPage(1));
-  }, [dispatch]);
+    const timeoutId = setTimeout(() => {
+      dispatch(loadPolicies({ page: 1, limit: RES_PER_PAGE, search, date, append: false }));
+      dispatch(setPoliciesPage(1));
+    }, search ? 300 : 0);
 
-  const filteredPolicies = useMemo(() => {
-    return (policiesList || []).filter((p) => {
-      if (search) {
-        const s = search.toLowerCase();
-        if (!(`${p.title} ${p.description}`.toLowerCase().includes(s))) return false;
-      }
-      if (date) {
-        try {
-          const selected = new Date(date).toDateString();
-          if (new Date(p.createdAt).toDateString() !== selected) return false;
-        } catch (e) {
-          return false;
-        }
-      }
-      return true;
-    });
-  }, [policiesList, search, date]);
+    return () => clearTimeout(timeoutId);
+  }, [dispatch, search, date]);
 
   const sentinelRef = useRef(null);
 
@@ -61,9 +47,9 @@ export default function PoliciesPage() {
     if (policiesLoading) return;
     if (policiesCurrentPage >= policiesTotalPages) return;
     const next = policiesCurrentPage + 1;
-    dispatch(loadPolicies({ page: next, limit: RES_PER_PAGE, append: true }));
+    dispatch(loadPolicies({ page: next, limit: RES_PER_PAGE, search, date, append: true }));
     dispatch(setPoliciesPage(next));
-  }, [dispatch, policiesLoading, policiesCurrentPage, policiesTotalPages]);
+  }, [dispatch, policiesLoading, policiesCurrentPage, policiesTotalPages, search, date]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -119,15 +105,15 @@ export default function PoliciesPage() {
             <div className="text-center py-20">
               <p className="text-body text-muted-foreground">{policiesError}</p>
             </div>
-          ) : filteredPolicies.length === 0 ? (
+          ) : policiesList.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-body text-muted-foreground">
-                {date ? 'No data for that date' : 'No policies found'}
+                {search || date ? 'No policies found for the selected filters' : 'No policies found'}
               </p>
             </div>
           ) : (
             <>
-              <PoliciesGrid resources={filteredPolicies} />
+              <PoliciesGrid resources={policiesList} />
               <div ref={sentinelRef} className="h-1 w-full" />
             </>
           )}
