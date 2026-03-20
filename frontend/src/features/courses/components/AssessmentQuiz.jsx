@@ -110,7 +110,7 @@ function ResultScreen({
         </div>
         <h2 className="text-xl font-bold text-destructive mb-4">
           {reattemptRequired
-            ? `Maximum attempts reached`
+            ? `Maximum attempts reached — Score ${score}%`
             : `Not Passed ${score}%`}
         </h2>
         <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
@@ -488,15 +488,34 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [handleAutoSubmit]);
 
+  // Intercept reload keyboard shortcuts (F5, Ctrl+R, Cmd+R) to silently prevent
+  // the reload and auto-submit the quiz — same behavior as switching tabs.
   useEffect(() => {
-    const onBeforeUnload = (e) => {
-      if (submittedRef.current) return;
-      e.preventDefault();
-      e.returnValue = '';
+    const onKeyDown = (e) => {
+      if (submittedRef.current || !quizStartedRef.current) return;
+      const isReload =
+        e.key === 'F5' ||
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r');
+      if (isReload) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleAutoSubmit();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [handleAutoSubmit]);
+
+  // Fallback: if reload is triggered another way (e.g. dev tools), auto-submit before unload
+  useEffect(() => {
+    const onBeforeUnload = () => {
+      if (submittedRef.current || !quizStartedRef.current) return;
+      handleAutoSubmit();
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, []);
+  }, [handleAutoSubmit]);
+
   const handleStartAssessment = () => {
     quizStartedRef.current = true;
     setQuizStarted(true);
