@@ -39,35 +39,6 @@ export default function FormTemplateCard({ resource }) {
     ? '/url-icon.png'
     : null;
 
-  const handleDownload = async (e) => {
-    e.stopPropagation();
-    if (!fileUrl) return;
-    const filename = (item.title && item.title.replace(/[^a-z0-9\-_\.]/gi, '_')) || '';
-    try {
-      const a = document.createElement('a');
-      a.href = fileUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    } catch (err) {
-      try {
-        const resp = await fetch(fileUrl);
-        const blob = await resp.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(blobUrl);
-      } catch (err2) {
-        console.error('Download failed for', fileUrl, err2);
-      }
-    }
-  };
-
   const triggerDownload = () => {
     if (!fileUrl) return;
     const ext = (item.form_type || '').toLowerCase();
@@ -97,9 +68,8 @@ export default function FormTemplateCard({ resource }) {
     <SurfaceCard
       role="button"
       tabIndex={0}
-      onClick={handleCardClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCardClick(); } }}
-      className="w-full min-h-[85px] cursor-pointer p-4 flex flex-row items-start gap-4 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="w-full min-h-[85px] p-4 flex flex-row items-start gap-4 transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <div className={`flex items-center justify-center h-12 w-12 rounded-md overflow-hidden flex-shrink-0 p-1.5 ${typeIcon ? 'bg-gray-50' : iconBg + ' text-white'}`}>
         {typeIcon ? (
@@ -134,7 +104,7 @@ export default function FormTemplateCard({ resource }) {
         ) : (
           <button
             aria-label="download"
-            onClick={handleDownload}
+            onClick={handleCardClick}
             disabled={!fileUrl}
             title={fileUrl ? 'Download' : 'No file available'}
             className={`w-10 h-10 rounded-[8px] bg-primary-purple text-white flex items-center justify-center shadow shrink-0 ${!fileUrl ? 'opacity-50 cursor-not-allowed' : ''}`}

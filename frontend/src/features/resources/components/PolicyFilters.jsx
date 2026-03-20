@@ -10,7 +10,7 @@ export default function PolicyFilters({
   date,
   onDateChange,
 }) {
-  const isForms = tab === 'forms';
+  const isForms = tab === 'forms-templates';
 
   return (
     <Filters
