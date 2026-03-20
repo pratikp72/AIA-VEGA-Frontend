@@ -17,6 +17,19 @@ export default function Pagination({
   onPerPageChange,
   className,
 }) {
+  const normalizeOption = (opt) => {
+    if (opt && typeof opt === 'object' && Object.prototype.hasOwnProperty.call(opt, 'value')) {
+      return {
+        value: opt.value,
+        label: opt.label ?? String(opt.value),
+      };
+    }
+    return {
+      value: opt,
+      label: typeof opt === 'number' ? `${opt} per page` : String(opt),
+    };
+  };
+
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   const goPrev = () => {
@@ -28,9 +41,9 @@ export default function Pagination({
   };
 
   // default per-page options (multiples of 3)
-  const defaultPerPageOptions = Array.isArray(perPageOptions)
+  const defaultPerPageOptions = (Array.isArray(perPageOptions)
     ? perPageOptions
-    : [3, 6, 9, 12, 15];
+    : [3, 6, 9, 12, 15]).map(normalizeOption);
 
   // compute visible page window of length 3
   const visiblePages = (() => {
@@ -93,15 +106,18 @@ export default function Pagination({
           {/* Right: per-page dropdown styled as purple pill */}
           <div className="relative inline-flex">
             <select
-              value={perPage}
-              onChange={(e) => onPerPageChange?.(Number(e.target.value))}
+              value={String(perPage)}
+              onChange={(e) => {
+                const selected = defaultPerPageOptions.find((opt) => String(opt.value) === e.target.value);
+                onPerPageChange?.(selected ? selected.value : e.target.value);
+              }}
               className="appearance-none rounded-full px-4 py-1 text-sm pr-7"
               aria-label="Items per page"
               style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none' }}
             >
               {defaultPerPageOptions.map((opt) => (
-                <option key={opt} value={opt} className="text-black">
-                  {opt} per page
+                <option key={String(opt.value)} value={String(opt.value)} className="text-black">
+                  {opt.label}
                 </option>
               ))}
             </select>

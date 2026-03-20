@@ -30,7 +30,9 @@ import {
   selectPeopleLocationOptions,
 } from '@/features/people/peopleSelectors';
 
-const PER_PAGE = 9;
+const PER_PAGE = 10;
+const AUTO_PER_PAGE = 'auto';
+const PER_PAGE_OPTIONS = [10, 25, 50, { value: AUTO_PER_PAGE, label: 'All Users' }];
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
@@ -57,6 +59,9 @@ export default function PeopleListingPage() {
   const [locationFilter, setLocationFilter] = useState('');
   const [perPage, setPerPage] = useState(PER_PAGE);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const autoLoadTriggerRef = useRef(null);
+  const isAutoMode = perPage === AUTO_PER_PAGE;
+  const resolvedPageSize = isAutoMode ? 100 : Number(perPage) || PER_PAGE;
 
   // Track which company's options have already been loaded so we never
   // fire /analytics/departments + /analytics/unit-locations simultaneously
@@ -84,7 +89,8 @@ export default function PeopleListingPage() {
         search: debouncedSearch,
         sort: sortBy,
         page: currentPage,
-        pageSize: perPage,
+        pageSize: resolvedPageSize,
+        append: isAutoMode && currentPage > 1,
       })
     ).then(() => {
       if (optionsCompanyRef.current !== companyFilter) {
@@ -92,7 +98,28 @@ export default function PeopleListingPage() {
         dispatch(loadPeopleOptions(companyFilter));
       }
     });
-  }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, perPage, dispatch]);
+  }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
+
+  useEffect(() => {
+    if (!isAutoMode) return;
+    if (isLoading) return;
+    if (currentPage >= totalPages) return;
+    const node = autoLoadTriggerRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) return;
+        if (isLoading) return;
+        if (currentPage >= totalPages) return;
+        dispatch(setPage(currentPage + 1));
+      },
+      { root: null, rootMargin: '200px 0px', threshold: 0.01 }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [isAutoMode, isLoading, currentPage, totalPages, dispatch]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);
@@ -115,8 +142,10 @@ export default function PeopleListingPage() {
   };
 
   const handlePerPageChange = (n) => {
-    setPerPage(Number(n) || PER_PAGE);
+    const nextPerPage = n === AUTO_PER_PAGE ? AUTO_PER_PAGE : Number(n) || PER_PAGE;
+    setPerPage(nextPerPage);
     dispatch(setPage(1));
+    setSelectedEmployeeId(null);
   };
 
   const handleSelect = (personId) => {
@@ -237,7 +266,7 @@ export default function PeopleListingPage() {
         ) : (
           <>
             <div className="relative">
-              {isLoading && people.length > 0 && (
+              {isLoading && people.length > 0 && !isAutoMode && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl min-h-[200px]">
                   <Loader size="lg" />
                 </div>
@@ -258,17 +287,52 @@ export default function PeopleListingPage() {
               </div>
             </div>
 
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-              showSummary
-              totalCount={totalCount}
-              perPageOptions={[3, 6, 9, 12, 15]}
-              perPage={perPage}
-              onPerPageChange={handlePerPageChange}
-              className="mt-6"
-            />
+            {isAutoMode ? (
+              <>
+                <div className="mt-6 flex items-center justify-between gap-4">
+                  <div className="text-sm" style={{ color: 'var(--color-primary)' }}>
+                    Showing {people.length} of {totalCount} employees
+                  </div>
+                  <div className="relative inline-flex">
+                    <select
+                      value={String(perPage)}
+                      onChange={(e) => handlePerPageChange(e.target.value)}
+                      className="appearance-none rounded-full px-4 py-1 text-sm pr-7"
+                      aria-label="Items per page"
+                      style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: 'none' }}
+                    >
+                      {PER_PAGE_OPTIONS.map((opt) => {
+                        const value = typeof opt === 'object' ? opt.value : opt;
+                        const label = typeof opt === 'object' ? opt.label : `${opt} per page`;
+                        return (
+                          <option key={String(value)} value={String(value)} className="text-black">
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </div>
+
+                {currentPage < totalPages && (
+                  <div ref={autoLoadTriggerRef} className="mt-4 flex justify-center py-4">
+                    {isLoading ? <Loader size="sm" /> : <span className="text-small text-muted-foreground">Scroll to load more</span>}
+                  </div>
+                )}
+              </>
+            ) : (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                showSummary
+                totalCount={totalCount}
+                perPageOptions={PER_PAGE_OPTIONS}
+                perPage={perPage}
+                onPerPageChange={handlePerPageChange}
+                className="mt-6"
+              />
+            )}
           </>
         )}
       </PageSection>

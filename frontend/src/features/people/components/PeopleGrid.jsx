@@ -8,7 +8,14 @@ import { cn } from '@/lib/utils';
 
 export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSelect, isCompact }) {
   return (
-    <div className={cn('grid w-full gap-6', isCompact ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3')}>
+    <div
+      className={cn(
+        'grid w-full gap-6',
+        isCompact
+          ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-2'
+          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(410px,1fr))]'
+      )}
+    >
       {pagedPeople.map((person) => (
         <SurfaceCard
           key={person.id}

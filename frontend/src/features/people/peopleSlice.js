@@ -66,7 +66,18 @@ const peopleSlice = createSlice({
       })
       .addCase(loadPeople.fulfilled, (state, action) => {
         state.loading = false;
-        state.peopleList = action.payload.items || [];
+        const incomingItems = action.payload.items || [];
+        if (action.meta.arg?.append) {
+          const seen = new Set(state.peopleList.map((p) => String(p.id)));
+          for (const person of incomingItems) {
+            const idKey = String(person?.id);
+            if (seen.has(idKey)) continue;
+            seen.add(idKey);
+            state.peopleList.push(person);
+          }
+        } else {
+          state.peopleList = incomingItems;
+        }
         state.totalPages = action.payload.totalPages || 1;
         state.totalCount = action.payload.totalCount || 0;
         state.currentPage = action.payload.currentPage || 1;
