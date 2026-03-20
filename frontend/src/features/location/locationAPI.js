@@ -38,11 +38,13 @@ function normalizeUnit(u) {
  */
 function normalizeLocationsList(raw) {
   const arr = Array.isArray(raw) ? raw : raw?.data ?? [];
-  return arr.map((item) => ({
-    id: item.id ?? item.documentId,
-    documentId: item.documentId ?? item.id,
-    name: item?.attributes?.name ?? item?.name ?? '',
-  }));
+  return arr
+    .filter((item) => (item?.attributes?.active ?? item?.active ?? true) !== false)
+    .map((item) => ({
+      id: item.id ?? item.documentId,
+      documentId: item.documentId ?? item.id,
+      name: item?.attributes?.name ?? item?.name ?? '',
+    }));
 }
 
 /**
@@ -79,6 +81,7 @@ export const fetchUnitsByLocation = async (locationId) => {
       },
     });
     const data = loc?.data ?? loc;
+    if ((data?.attributes?.active ?? data?.active ?? true) === false) return [];
     return locationToUnits(data);
   } catch (err) {
     console.error('Units fetch failed:', err);

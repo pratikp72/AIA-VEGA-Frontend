@@ -26,6 +26,7 @@ export const selectNewsCarousel = (state) => {
   const list = state.news?.newsList ?? [];
   return list.filter(
     (n) =>
+      n.active !== false &&
       (n.visible_on_homepage === true || n.visible_on_homepage === 1) &&
       isPublishedNewsItem(n)
   );

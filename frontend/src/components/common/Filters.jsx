@@ -70,7 +70,7 @@ export default function Filters({
               value={search}
               onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="h-12 w-full rounded-[12px] border border-gray-100 bg-white px-4 pl-10 text-sm text-muted-foreground placeholder:text-[#B3B3B3] shadow-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
+              className="h-12 w-full rounded-[12px] border border-gray-100 bg-white px-4 pl-10 text-sm text-muted-foreground placeholder:text-[#B3B3B3] shadow-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] selection:bg-gray-200 selection:text-current"
             />
           </div>
         )}

@@ -26,6 +26,7 @@ export default function ResourceDetailPage() {
   const [loading, setLoading] = useState(!!documentId);
   const formType = String(item?.form_type || '').toLowerCase();
   const isFormDownloadable = formType === 'pdf' || formType === 'excel' || formType === 'word';
+  const backHref = isFormTemplate ? '/resources/forms-templates' : '/resources/policies';
 
   useEffect(() => {
     if (!documentId) return;
@@ -69,9 +70,9 @@ export default function ResourceDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={policiesBgStyle}>
-      <PageHeader breadcrumbs={[{ label: 'Resources', href: '/resources' }, { label: isFormTemplate ? 'Forms & Templates' : 'Policies' }]} containerClassName="pt-xl pb-0 px-xl bg-transparent">
+      <PageHeader breadcrumbs={[{ label: 'Resources', href: backHref }, { label: isFormTemplate ? 'Forms & Templates' : 'Policies' }]} containerClassName="pt-xl pb-0 px-xl bg-transparent">
         <div className="flex items-center gap-4">
-          <Link href="/resources" className="text-sm text-primary hover:underline">&larr; Back to {isFormTemplate ? 'Forms & Templates' : 'Policies'}</Link>
+          <Link href={backHref} className="text-sm text-primary hover:underline">&larr; Back to {isFormTemplate ? 'Forms & Templates' : 'Policies'}</Link>
         </div>
       </PageHeader>
       <PageSection>
