@@ -19,17 +19,8 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
       {pagedPeople.map((person) => (
         <SurfaceCard
           key={person.id}
-          role="button"
-          tabIndex={0}
-          onClick={() => handleSelect(person.id)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              handleSelect(person.id);
-            }
-          }}
           className={cn(
-            'w-full cursor-pointer border border-gray-200 bg-white p-4 h-[236px] flex flex-col justify-between transition-all duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+            'w-full border border-gray-200 bg-white p-4 h-[236px] flex flex-col justify-between transition-all duration-200 hover:shadow-md',
             selectedEmployeeId === person.id ? 'ring-2 ring-primary' : ''
           )}
         >
@@ -72,7 +63,13 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
               <span className="truncate">Joined {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
           </div>
-          <Button className="h-10 w-full rounded-full bg-primary text-white" size="default">View Profile</Button>
+          <Button
+            className="h-10 w-full rounded-full bg-primary text-white"
+            size="default"
+            onClick={() => handleSelect(person.id)}
+          >
+            View Details
+          </Button>
         </SurfaceCard>
       ))}
     </div>
