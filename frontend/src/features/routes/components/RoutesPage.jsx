@@ -232,7 +232,7 @@ export default function RoutesPage() {
               <div className="relative justify-center rounded-[12px] bg-white border border-[#F3D4FF] py-2 px-4 flex flex-wrap gap-2 items-center min-h-[48px]">
                 <div className="relative flex flex-wrap gap-2 w-full">
                   {availableShifts.length === 0 ? (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-gray-400">
                       No shifts available
                     </span>
                   ) : (
