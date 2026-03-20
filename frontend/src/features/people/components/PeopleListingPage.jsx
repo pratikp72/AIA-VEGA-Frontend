@@ -32,7 +32,7 @@ import {
 
 const PER_PAGE = 10;
 const AUTO_PER_PAGE = 'auto';
-const PER_PAGE_OPTIONS = [10, 25, 50, { value: AUTO_PER_PAGE, label: 'All Users' }];
+const PER_PAGE_OPTIONS = [10, 25, 50, 100, { value: AUTO_PER_PAGE, label: 'All Users' }];
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
