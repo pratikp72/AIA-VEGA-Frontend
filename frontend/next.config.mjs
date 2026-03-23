@@ -22,13 +22,6 @@ const nextConfig = {
       { protocol: 'http', hostname: '192.168.2.82', port: '1337', pathname: '/uploads/**' },
     ],
   },
-  turbopack: {
-    // Resolve from this app's node_modules so tailwindcss etc. are found (fixes wrong root when C:\Users\DELL\package.json exists)
-    resolveAlias: {
-      tailwindcss: path.join(appNodeModules, "tailwindcss"),
-      "tw-animate-css": path.join(appNodeModules, "tw-animate-css"),
-    },
-  },
   webpack: (config) => {
     config.resolve.modules = [
       appNodeModules,
