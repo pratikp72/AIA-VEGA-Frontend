@@ -118,6 +118,7 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
             </div>
           </div>
         </SurfaceCard>
+        
 
         <div className="w-full gap-10 mt-6">
           <div className="">
