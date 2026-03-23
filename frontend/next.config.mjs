@@ -6,6 +6,7 @@ const appNodeModules = path.join(__dirname, "node_modules");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   images: {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -17,6 +18,8 @@ const nextConfig = {
       { protocol: 'http', hostname: '192.168.2.84', port: '1337', pathname: '/uploads/**' },
       // Localhost dev
       { protocol: 'http', hostname: 'localhost', port: '1337', pathname: '/uploads/**' },
+      // Production backend
+      { protocol: 'http', hostname: '192.168.2.82', port: '1337', pathname: '/uploads/**' },
     ],
   },
   turbopack: {
