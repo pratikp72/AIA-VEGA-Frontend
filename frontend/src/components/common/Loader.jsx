@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Loader({ size = 'md', className = '' }) {
+export default function Loader({ size = 'md', className = '', spinnerClassName = 'border-primary border-t-transparent' }) {
   const sizeClasses = {
     sm: 'w-4 h-4 border-2',
     md: 'w-8 h-8 border-3',
@@ -10,7 +10,7 @@ export default function Loader({ size = 'md', className = '' }) {
   return (
     <div className={`flex items-center justify-center ${className}`}>
       <div
-        className={`${sizeClasses[size]} border-primary border-t-transparent rounded-full animate-spin`}
+        className={`${sizeClasses[size]} ${spinnerClassName} rounded-full animate-spin`}
         role="status"
         aria-label="Loading"
       >

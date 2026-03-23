@@ -375,11 +375,19 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     try {
       const submitRes = await submitQuiz(payload);
 
-      const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
-      if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
+      let submission = submitRes?.submission;
+      let maxAttemptVal = submitRes?.maxAttempt;
 
-      const submission = resultRes?.submission;
-      const maxAttemptVal = resultRes?.maxAttempt ?? 1;
+      // Backward-compatible fallback for older backend responses.
+      if (!submission || maxAttemptVal == null) {
+        const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
+        submission = submission || resultRes?.submission;
+        maxAttemptVal = maxAttemptVal ?? resultRes?.maxAttempt;
+      }
+
+      maxAttemptVal = maxAttemptVal ?? 1;
+      if (maxAttemptVal !== undefined) setMaxAttempt(maxAttemptVal);
+
       const attemptNum = submission?.attempt_number;
       const currentEqualsMax = attemptNum != null && maxAttemptVal != null && attemptNum >= maxAttemptVal;
       const userPassed = submission?.passed === true;
@@ -393,16 +401,24 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         setIsPassed(false);
         setScore(submission?.score ?? 0);
         if (attemptNum != null) setAttemptNumber(attemptNum);
-        const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
-        if (reattemptStatus?.hasPending) setReattemptSent(true);
+        if (typeof submitRes?.has_pending_reattempt === 'boolean') {
+          setReattemptSent(submitRes.has_pending_reattempt);
+        } else {
+          const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+          if (reattemptStatus?.hasPending) setReattemptSent(true);
+        }
       } else {
         setScore(submission?.score ?? 0);
         setIsPassed(submission?.passed ?? false);
         if (attemptNum != null) setAttemptNumber(attemptNum);
         if (!submission?.passed && currentEqualsMax) {
           setReattemptRequired(true);
-          const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
-          if (reattemptStatus?.hasPending) setReattemptSent(true);
+          if (typeof submitRes?.has_pending_reattempt === 'boolean') {
+            setReattemptSent(submitRes.has_pending_reattempt);
+          } else {
+            const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+            if (reattemptStatus?.hasPending) setReattemptSent(true);
+          }
         }
       }
 
