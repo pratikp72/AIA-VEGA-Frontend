@@ -493,10 +493,18 @@ export const markModuleVideoProgress = async ({
   timeWatchedMin = 0,
   videoCompletionType = 'full_watch',
 }) => {
+  const normalizedUserId = Number(userId);
+  const normalizedCourseId = Number(courseId);
+
+  if (!Number.isFinite(normalizedUserId) || !Number.isFinite(normalizedCourseId)) {
+    throw new Error('markModuleVideoProgress requires numeric userId and courseId');
+  }
+
   return api.post(API_ENDPOINTS.MODULE_VIDEO_PROGRESS.MARK_AS_READ, {
-    userId: Number(userId),
-    courseId: Number(courseId),
-    course: Number(courseId),   // explicit relation field for backend controller
+    userId: normalizedUserId,
+    courseId: normalizedCourseId,
+    course_id: normalizedCourseId,
+    course: normalizedCourseId,
     moduleIndex: Number(moduleIndex),
     moduleTitle: moduleTitle ?? null,
     videoDurationMin: Number(videoDurationMin) || 0,
