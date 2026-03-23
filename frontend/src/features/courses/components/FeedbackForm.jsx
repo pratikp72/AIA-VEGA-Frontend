@@ -303,7 +303,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
               >
                 {isSubmitting ? (
                   <>
-                    <Loader size="sm" className="shrink-0" />
+                    <Loader size="sm" className="shrink-0" spinnerClassName="border-white border-t-white/30" />
                     Submitting...
                   </>
                 ) : (
