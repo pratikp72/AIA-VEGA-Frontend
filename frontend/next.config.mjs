@@ -1,9 +1,3 @@
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const appNodeModules = path.join(__dirname, "node_modules");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -21,14 +15,6 @@ const nextConfig = {
       // Production backend
       { protocol: 'http', hostname: '192.168.2.82', port: '1337', pathname: '/uploads/**' },
     ],
-  },
-  turbopack: {},
-  webpack: (config) => {
-    config.resolve.modules = [
-      appNodeModules,
-      ...(config.resolve.modules || []),
-    ];
-    return config;
   },
 };
 
