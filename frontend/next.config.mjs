@@ -22,6 +22,7 @@ const nextConfig = {
       { protocol: 'http', hostname: '192.168.2.82', port: '1337', pathname: '/uploads/**' },
     ],
   },
+  turbopack: {},
   webpack: (config) => {
     config.resolve.modules = [
       appNodeModules,
