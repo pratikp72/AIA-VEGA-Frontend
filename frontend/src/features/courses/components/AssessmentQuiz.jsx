@@ -301,7 +301,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         const ansArray = Array.isArray(currentAns) ? currentAns : [currentAns];
         
         if (ansArray.includes(optionIndex)) {
-            // Remove
             const newAns = ansArray.filter(idx => idx !== optionIndex);
             if (newAns.length === 0) {
               const { [currentQuestion.id]: _, ...rest } = prev;
@@ -309,7 +308,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
             }
             return { ...prev, [currentQuestion.id]: newAns };
         } else {
-            // Add
             return { ...prev, [currentQuestion.id]: [...ansArray, optionIndex] };
         }
       } else {
@@ -377,11 +375,19 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     try {
       const submitRes = await submitQuiz(payload);
 
-      const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
-      if (resultRes?.maxAttempt !== undefined) setMaxAttempt(resultRes.maxAttempt);
+      let submission = submitRes?.submission;
+      let maxAttemptVal = submitRes?.maxAttempt;
 
-      const submission = resultRes?.submission;
-      const maxAttemptVal = resultRes?.maxAttempt ?? 1;
+      // Backward-compatible fallback for older backend responses.
+      if (!submission || maxAttemptVal == null) {
+        const resultRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
+        submission = submission || resultRes?.submission;
+        maxAttemptVal = maxAttemptVal ?? resultRes?.maxAttempt;
+      }
+
+      maxAttemptVal = maxAttemptVal ?? 1;
+      if (maxAttemptVal !== undefined) setMaxAttempt(maxAttemptVal);
+
       const attemptNum = submission?.attempt_number;
       const currentEqualsMax = attemptNum != null && maxAttemptVal != null && attemptNum >= maxAttemptVal;
       const userPassed = submission?.passed === true;
@@ -395,16 +401,24 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         setIsPassed(false);
         setScore(submission?.score ?? 0);
         if (attemptNum != null) setAttemptNumber(attemptNum);
-        const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
-        if (reattemptStatus?.hasPending) setReattemptSent(true);
+        if (typeof submitRes?.has_pending_reattempt === 'boolean') {
+          setReattemptSent(submitRes.has_pending_reattempt);
+        } else {
+          const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+          if (reattemptStatus?.hasPending) setReattemptSent(true);
+        }
       } else {
         setScore(submission?.score ?? 0);
         setIsPassed(submission?.passed ?? false);
         if (attemptNum != null) setAttemptNumber(attemptNum);
         if (!submission?.passed && currentEqualsMax) {
           setReattemptRequired(true);
-          const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
-          if (reattemptStatus?.hasPending) setReattemptSent(true);
+          if (typeof submitRes?.has_pending_reattempt === 'boolean') {
+            setReattemptSent(submitRes.has_pending_reattempt);
+          } else {
+            const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+            if (reattemptStatus?.hasPending) setReattemptSent(true);
+          }
         }
       }
 
@@ -488,33 +502,87 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [handleAutoSubmit]);
 
-  // Intercept reload keyboard shortcuts (F5, Ctrl+R, Cmd+R) to silently prevent
-  // the reload and auto-submit the quiz — same behavior as switching tabs.
   useEffect(() => {
-    const onKeyDown = (e) => {
+    if (!quizStartedRef.current || submittedRef.current) return;
+
+    let submissionInProgress = false;
+
+    const ALLOWED_KEYS = new Set([
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'Enter',
+      ' ',
+    ]);
+
+    const handleKeyDown = (e) => {
       if (submittedRef.current || !quizStartedRef.current) return;
-      const isReload =
-        e.key === 'F5' ||
-        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r');
+
+      const isReload = e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'r');
       if (isReload) {
         e.preventDefault();
         e.stopPropagation();
-        handleAutoSubmit();
+        if (!submissionInProgress) {
+          submissionInProgress = true;
+          handleAutoSubmit();
+        }
+        return;
+      }
+
+      if (!ALLOWED_KEYS.has(e.key)) {
+        const isSystemKey = ['Control', 'Shift', 'Alt', 'Meta', 'Tab'].includes(e.key);
+        if (!isSystemKey) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
       }
     };
-    window.addEventListener('keydown', onKeyDown, true);
-    return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [handleAutoSubmit]);
 
-  // Fallback: if reload is triggered another way (e.g. dev tools), auto-submit before unload
-  useEffect(() => {
-    const onBeforeUnload = () => {
+    const handleBeforeUnload = (e) => {
       if (submittedRef.current || !quizStartedRef.current) return;
-      handleAutoSubmit();
+      if (!submissionInProgress) {
+        submissionInProgress = true;
+        handleAutoSubmit();
+      }
+      e.preventDefault();
+      e.returnValue = '';
     };
-    window.addEventListener('beforeunload', onBeforeUnload);
-    return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [handleAutoSubmit]);
+
+    const handleContextMenu = (e) => {
+      if (quizStartedRef.current && !submittedRef.current) {
+        e.preventDefault();
+      }
+    };
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('contextmenu', handleContextMenu, true);
+
+    const handlePopState = () => {
+      if (quizStartedRef.current && !submittedRef.current && !submissionInProgress) {
+        submissionInProgress = true;
+        handleAutoSubmit();
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('contextmenu', handleContextMenu, true);
+      window.removeEventListener('popstate', handlePopState);
+
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, [quizStartedRef.current, handleAutoSubmit]);
 
   const handleStartAssessment = () => {
     quizStartedRef.current = true;

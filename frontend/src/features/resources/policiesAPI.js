@@ -2,16 +2,23 @@
 import api from '@/services/api';
 
 // Fetch company policies from backend (filtered by user's company via JWT)
-export async function fetchPolicies() {
+export async function fetchPolicies({ page = 1, limit = 10, search = '', date = '' } = {}) {
   const res = await api.get('/company-policies', {
-    params: { sort: 'createdAt:desc' },
+    params: {
+      sort: 'createdAt:desc',
+      page,
+      pageSize: limit,
+      ...(search ? { search } : {}),
+      ...(date ? { date } : {}),
+    },
   });
   const data = Array.isArray(res?.data) ? res.data : [];
+  const pagination = res?.meta?.pagination || {};
   return {
     policies: data,
-    totalPages: 1,
-    totalItems: data.length,
-    currentPage: 1,
+    totalPages: pagination.pageCount || 1,
+    totalItems: pagination.total || data.length,
+    currentPage: pagination.page || page,
   };
 }
 

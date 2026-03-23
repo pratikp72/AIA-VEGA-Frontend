@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
@@ -26,30 +26,15 @@ export default function FormTemplatesPage() {
   const formTemplatesLoading = useAppSelector(selectFormTemplatesLoading);
   const formTemplatesError = useAppSelector(selectFormTemplatesError);
 
+  const RES_PER_PAGE = 20;
+
   useEffect(() => {
-    dispatch(loadFormTemplates());
-  }, [dispatch]);
+    const timeoutId = setTimeout(() => {
+      dispatch(loadFormTemplates({ page: 1, limit: RES_PER_PAGE, search, date }));
+    }, search ? 300 : 0);
 
-  const filteredFormTemplates = useMemo(() => {
-    return (formTemplates || []).filter((template) => {
-      if (search) {
-        const query = search.trim().toLowerCase();
-        if (!String(template?.title || '').toLowerCase().includes(query)) return false;
-      }
-
-      if (date) {
-        try {
-          const selectedDate = new Date(date).toDateString();
-          const createdDate = template?.createdAt || template?.created_at || template?.date;
-          if (!createdDate || new Date(createdDate).toDateString() !== selectedDate) return false;
-        } catch (e) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [formTemplates, search, date]);
+    return () => clearTimeout(timeoutId);
+  }, [dispatch, search, date]);
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',
@@ -88,14 +73,14 @@ export default function FormTemplatesPage() {
             <div className="text-center py-20">
               <p className="text-body text-muted-foreground">{formTemplatesError}</p>
             </div>
-          ) : filteredFormTemplates.length === 0 ? (
+          ) : formTemplates.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-body text-muted-foreground">
-                {date ? 'No data for that date' : 'No form templates found'}
+                {search || date ? 'No form templates found for the selected filters' : 'No form templates found'}
               </p>
             </div>
           ) : (
-            <FormTemplatesGrid resources={filteredFormTemplates} />
+            <FormTemplatesGrid resources={formTemplates} />
           )}
         </PageSection>
       </main>

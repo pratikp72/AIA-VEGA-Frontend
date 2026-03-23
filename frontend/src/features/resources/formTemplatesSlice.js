@@ -3,9 +3,9 @@ import { fetchFormTemplates, fetchFormTemplateById } from './formTemplatesAPI';
 
 export const loadFormTemplates = createAsyncThunk(
   'formTemplates/loadFormTemplates',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, search = '', date = '' } = {}, { rejectWithValue }) => {
     try {
-      const result = await fetchFormTemplates();
+      const result = await fetchFormTemplates({ page, limit, search, date });
       return result;
     } catch (err) {
       return rejectWithValue(err.message);

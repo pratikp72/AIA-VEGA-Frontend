@@ -10,8 +10,6 @@ export default function PolicyFilters({
   date,
   onDateChange,
 }) {
-  const isForms = tab === 'forms-templates';
-
   return (
     <Filters
       tab={tab}
@@ -21,8 +19,8 @@ export default function PolicyFilters({
       onSearchChange={onSearchChange}
       date={date}
       onDateChange={onDateChange}
-      showDate={!isForms}
-      showSearch={!isForms}
+      showDate
+      showSearch
     />
   );
 }

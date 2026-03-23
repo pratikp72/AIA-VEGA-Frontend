@@ -3,9 +3,9 @@ import { fetchPolicies } from './policiesAPI';
 
 export const loadPolicies = createAsyncThunk(
   'policies/loadPolicies',
-  async ({ page = 1, limit = 10, append = false } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, search = '', date = '', append = false } = {}, { rejectWithValue }) => {
     try {
-      const result = await fetchPolicies(page, limit);
+      const result = await fetchPolicies({ page, limit, search, date });
       return { ...result, __append: append };
     } catch (err) {
       return rejectWithValue(err.message);
