@@ -15,18 +15,18 @@ function resolveImageUrl(media) {
 
 /**
  * Flatten Strapi unit to { id, name, image, map_link, site_manager, hr_manager, contact, address }
- * Schema: unit_name, address, contact, site_manager, hr_manager, map_link, unit_img
+ * Supports both legacy unit_* and renamed route_* schemas.
  */
 function normalizeUnit(u) {
   if (!u) return { id: null, name: '', address: '', image: null, map_link: '', site_manager: '', hr_manager: '', contact: '' };
   const attrs = u?.attributes ?? u;
-  const image = attrs?.unit_img ?? attrs?.image ?? u?.unit_img ?? u?.image;
+  const image = attrs?.route_img ?? attrs?.unit_img ?? attrs?.image ?? u?.route_img ?? u?.unit_img ?? u?.image;
   return {
     id: u?.id ?? u?.documentId ?? null,
-    name: attrs?.unit_name ?? attrs?.name ?? u?.unit_name ?? u?.name ?? '',
+    name: attrs?.route_name ?? attrs?.unit_name ?? attrs?.name ?? u?.route_name ?? u?.unit_name ?? u?.name ?? '',
     address: attrs?.address ?? u?.address ?? '',
     image: resolveImageUrl(image),
-    map_link: attrs?.map_link ?? attrs?.mapLink ?? u?.map_link ?? u?.mapLink ?? '',
+    map_link: attrs?.route_map_link ?? attrs?.map_link ?? attrs?.mapLink ?? u?.route_map_link ?? u?.map_link ?? u?.mapLink ?? '',
     site_manager: attrs?.site_manager ?? attrs?.siteManager ?? u?.site_manager ?? u?.siteManager ?? '',
     hr_manager: attrs?.hr_manager ?? attrs?.hrManager ?? u?.hr_manager ?? u?.hrManager ?? '',
     contact: attrs?.contact ?? u?.contact ?? '',
@@ -62,7 +62,7 @@ export const fetchLocationsList = async () => {
  */
 function locationToUnits(location) {
   if (!location) return [];
-  const unitsRaw = location?.units ?? location?.attributes?.units ?? [];
+  const unitsRaw = location?.routes ?? location?.attributes?.routes ?? location?.units ?? location?.attributes?.units ?? [];
   const arr = Array.isArray(unitsRaw) ? unitsRaw : unitsRaw?.data ?? [];
   return arr.map(normalizeUnit);
 }
@@ -76,7 +76,7 @@ export const fetchUnitsByLocation = async (locationId) => {
   try {
     const loc = await apiService.get(API_ENDPOINTS.LOCATION.UNIT_LOCATION_BY_ID(locationId), {
       params: { 
-        'populate[units][populate]': 'unit_img',
+        'populate[routes][populate][route_img]': true,
         sort: 'name:asc',
       },
     });

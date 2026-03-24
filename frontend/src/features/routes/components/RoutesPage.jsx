@@ -74,6 +74,7 @@ export default function RoutesPage() {
         out.push({
           name: route.name,
           time: match.time,
+          locationLink: route.locationLink ?? '',
         });
       }
     });
@@ -169,6 +170,10 @@ export default function RoutesPage() {
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   };
+
+  const routeImageSrc =
+    activeUnit?.image ||
+    'https://placehold.co/340x120/e2e8f0/94a3b8?text=No+Image';
 
   return (
     <div className="min-h-screen" style={routesBgStyle}>
@@ -279,23 +284,27 @@ export default function RoutesPage() {
         ) : (
           <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] gap-6 items-start">
             {/* Map image card */}
-            <div className="rounded-2xl bg-white shadow-md border border-gray-100 overflow-hidden">
+            <div className="rounded-2xl bg-white shadow-md border border-gray-100 overflow-hidden h-[600px]">
               <img
-                src={"/routes-map.jpg"}
+                src={routeImageSrc}
                 alt={activeUnit.unitName || "Bus routes map"}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src =
+                    "https://placehold.co/340x120/e2e8f0/94a3b8?text=No+Image";
+                }}
               />
             </div>
 
             {/* Route & time list */}
-            <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-4">
+            <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-4  max-h-[600px] flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-gray-400">
                     {selectedLocation?.name || ""}
                   </div>
                   <h2 className="text-base md:text-lg font-semibold text-[#111827]">
-                    {(activeUnit.unitName || "").toUpperCase()} ROUTE &amp; TIME
+                    {(activeUnit.unitName || "").toUpperCase()} STOP &amp; TIME
                   </h2>
                 </div>
               </div>
@@ -304,15 +313,30 @@ export default function RoutesPage() {
                   No stops found for this shift. Please choose another shift.
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100 max-h-[340px] overflow-y-auto text-sm">
+                <ul className="divide-y divide-gray-100 flex-1 overflow-y-auto text-sm">
                   {stops.map((stop) => (
                     <li
                       key={`${stop.name}-${stop.time}`}
                       className="flex items-center justify-between py-2 px-1"
                     >
                       <span className="text-[#111827]">{stop.name}</span>
-                      <span className="text-xs text-[#6B7280]">
+                      <span className="text-xs text-[#6B7280] flex items-center gap-3">
                         {stop.time ? stop.time.slice(0, 5) : ""}
+                        {stop.locationLink && (
+                          <a
+                            href={stop.locationLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View location"
+                            className="text-primary hover:text-primary/80 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          </a>
+                        )}
                       </span>
                     </li>
                   ))}
