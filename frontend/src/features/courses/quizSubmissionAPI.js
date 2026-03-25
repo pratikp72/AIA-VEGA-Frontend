@@ -14,13 +14,24 @@ export const getQuizSubmission = async (documentId) => {
 };
 
 // Send re-attempt request when max attempts reached (custom endpoint - bypasses REST validation)
-export const sendReattemptRequest = async (userId, courseId) => {
+export const sendReattemptRequest = async (userId, courseId, requestedForAttempt) => {
   const uid = Number(userId);
   const cid = Number(courseId);
   if (!Number.isFinite(uid) || !Number.isFinite(cid)) {
     throw new Error('Valid userId and courseId are required to send reattempt request.');
   }
-  const payload = { userId: uid, courseId: cid };
+  const normalizedRequestedAttempt = Number(requestedForAttempt);
+  const payload = {
+    userId: uid,
+    courseId: cid,
+    ...(Number.isFinite(normalizedRequestedAttempt) && normalizedRequestedAttempt > 0
+      ? {
+          // Send both naming styles for backend compatibility.
+          requested_for_attempt: normalizedRequestedAttempt,
+          requestedForAttempt: normalizedRequestedAttempt,
+        }
+      : {}),
+  };
   return api.post('/quiz-reattempt-request/send', payload, {
     headers: { 'Content-Type': 'application/json' },
     timeout: 60000,
