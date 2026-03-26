@@ -83,7 +83,7 @@ export default function LocationsPage() {
       </PageHeader>
       <PageContainer className="py-4">
         <div className="mb-8">
-          <div className="font-semibold text-[18px] text-[#363A4D] mb-2">Select Plant</div>
+          <div className="font-semibold text-[18px] text-[#363A4D] mb-2">Select Location</div>
           <div className="rounded-xl py-2" style={{ maxWidth: 340 }}>
             <div className="w-full">
               <Select
