@@ -3,8 +3,8 @@ import React from 'react';
 export default function LocationCard({ unit }) {
   const siteManager = unit?.site_manager ?? unit?.siteManager ?? '';
   const hrManager = unit?.hr_manager ?? unit?.hrManager ?? '';
-  const mapLink = unit?.map_link ?? unit?.mapLink ?? '';
-  const imageSrc = unit?.image || 'https://placehold.co/340x120/e2e8f0/94a3b8?text=No+Image';
+  const mapLink = unit?.unit_map_link ?? unit?.map_link ?? unit?.mapLink ?? '';
+  const imageSrc = unit?.image || unit?.unit_img || 'https://placehold.co/340x120/e2e8f0/94a3b8?text=No+Image';
 
   return (
     <div className="rounded-2xl shadow-md bg-white p-4 max-w-[340px] w-full">
