@@ -108,14 +108,14 @@ function ResultScreen({
     <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-147.75 p-10 text-center">
         <div className="flex justify-center mb-4">
-          <XCircle className="w-12 h-12 text-destructive" />
+          <XCircle className="w-12 h-12 text-error" />
         </div>
-        <h2 className="text-xl font-bold text-destructive mb-4">
+        <h2 className="text-xl font-bold text-error mb-4">
           {reattemptRequired
-            ? `Maximum attempts reached — Score ${score}%`
-            : `Not Passed ${score}%`}
+            ? `Maximum attempts reached — Your Score ${score}%`
+            : `Your Score ${score}%`}
         </h2>
-        <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
+        <p className="text-sm font-medium text-error leading-relaxed mb-4">
           {reattemptRequired
             ? `You have used all ${normalizedMaxAttempt ?? maxAttempt} attempt(s). Please request a reattempt from your administrator.`
             : resultData.fail.message}
@@ -153,7 +153,7 @@ function ResultScreen({
                 type="button"
                 onClick={onSendReattemptRequest}
                 disabled={reattemptLoading || reattemptSent}
-                className="flex-1 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-xl bg-error/10 border border-error text-error font-semibold hover:bg-error/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {reattemptSent
                   ? "Request sent"
@@ -164,7 +164,7 @@ function ResultScreen({
             ) : (
               <button
                 onClick={onTryAgain}
-                className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
+                className="flex-1 py-3 rounded-xl bg-error/10 border border-error text-error font-semibold hover:bg-error/20 transition cursor-pointer"
               >
                 {resultData.fail.primaryButtonText}
               </button>

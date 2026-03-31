@@ -96,7 +96,7 @@ const getImageUrl = (news) => {
       )}
 
       {/* Dark semi-transparent overlay */}
-      <div className="absolute inset-0 bg-[#1f2937]/20" aria-hidden />
+      <div className="absolute inset-0 bg-[#1a0a2e]/60" aria-hidden />
 
       {/* Content layer */}
       <div className="relative flex flex-col min-h-[360px] pt-8 px-8 pb-8">
