@@ -560,7 +560,10 @@ export default function CalendarPage() {
                   {(allDayEvents.length > 0 || currentDayHoliday) && (
                     <div className="flex border-b border-gray-100 shrink-0 min-h-[44px]">
                       <div className="w-16 shrink-0 flex items-center justify-end pr-3 text-[11px] font-medium text-gray-400">All day</div>
-                      <div className="flex-1 flex gap-1.5 flex-wrap px-2 py-2 content-start border-l border-gray-100">
+                      <div
+                        className="flex-1 flex gap-1.5 flex-wrap px-2 py-2 content-start border-l border-gray-100"
+                        style={{ maxHeight: 88, overflowY: 'auto' }}
+                      >
                         {currentDayHoliday && (
                           <span className="rounded px-2 py-1 text-xs font-medium text-red-700 bg-red-50 truncate max-w-[200px]">
                             {currentDayHoliday}
