@@ -179,6 +179,13 @@ export default function NewsDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Article */}
           <article className="lg:col-span-2 space-y-6">
+            {article.news_category?.name && (
+              <div className="mb-2">
+                <span className="inline-block px-3 py-1 rounded-[4px] bg-primary/10 text-primary text-xs font-semibold">
+                  {article.news_category.name}
+                </span>
+              </div>
+            )}
             <h1 className="text-h1 text-gray-900">
               {article.title}
             </h1>
@@ -243,6 +250,13 @@ export default function NewsDetailPage() {
                           ) : null}
                         </div>
                         <div className="min-w-0 flex-1 space-y-2">
+                          {item.news_category?.name && (
+                            <div className="mb-1">
+                              <span className="inline-block px-2 py-0.5 rounded-[4px] bg-primary/10 text-primary text-xs font-semibold">
+                                {item.news_category.name}
+                              </span>
+                            </div>
+                          )}
                           <h3 className="text-h3 text-gray-900 line-clamp-2">
                             {item.title}
                           </h3>
