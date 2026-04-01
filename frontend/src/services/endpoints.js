@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
     ME: '/users/me',
     CHECK_ADMIN_ACCESS: '/auth/check-admin-access',
     ADMIN_TOKEN: '/auth/admin-token',
+    CHECK_USER: '/auth/check-user', 
   },
 
 

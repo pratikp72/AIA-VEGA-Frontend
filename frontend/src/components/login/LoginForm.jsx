@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { apiService } from '../../services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
+import { STORAGE_KEYS } from '@/lib/constants';
+import { useRef } from 'react';
 
 const LOGIN_API = API_ENDPOINTS.AUTH.LOGIN;
 
@@ -11,10 +13,39 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userFirstLogin, setUserFirstLogin] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   const clearError = () => setError('');
+  
+  const typingTimeoutRef = useRef(null);
 
-  const handleIdentifierChange = (e) => { setIdentifier(e.target.value); clearError(); };
+  const handleIdentifierChange = (e) => {
+      const value = e.target.value.trim();
+      setIdentifier(value);
+      clearError();
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        if (isCompleteId(value)) {
+          checkUserFirstLogin(value);
+        } else {
+          setUserFirstLogin(false); // reset if ID is incomplete
+        }
+      }, 400); // 400ms debounce
+  };
+
+    // Helper to check if ID is complete
+  const isCompleteId = (id) => {
+      if (!id) return false;
+      if (id.toUpperCase().startsWith('AIA')) {
+        return id.length >= 7; // AIA min length
+      } else {
+        return id.length >= 4; // Vega min length
+      }
+  };
+
   const handlePasswordChange   = (e) => { setPassword(e.target.value);   clearError(); };
 
   const handleSubmit = async (e) => {
@@ -24,9 +55,10 @@ const LoginForm = () => {
     try {
       const response = await apiService.post(LOGIN_API, { identifier, password });
       if (response?.jwt) {
-        localStorage.setItem('authToken', response.jwt);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        window.location.href = '/home';
+       localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.jwt);
+       localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
+        setUserFirstLogin(response.user?.is_first_login || false);
+       window.location.href = '/home';
       } else {
         setError('Unexpected response from server. Please try again.');
       }
@@ -39,6 +71,31 @@ const LoginForm = () => {
   };
 
   const hasError = Boolean(error);
+
+  const checkUserFirstLogin = async (empId) => {
+  if (!empId) return setUserFirstLogin(false);
+
+  try {
+    const res = await apiService.get(`${API_ENDPOINTS.AUTH.CHECK_USER}?identifier=${empId}`);
+
+    if (res.exists) {
+      setUserFirstLogin(res.is_first_login);
+      setError(''); // clear previous errors
+    } else {
+      setUserFirstLogin(false);
+      setError('No user found with this Employee ID'); // show error
+    }
+  } catch (err) {
+    if (err?.response?.status === 404) {
+      // User not found
+      setUserFirstLogin(false);
+      setError('No user found with this Employee ID');
+    } else {
+      setUserFirstLogin(false);
+      setError('Failed to check user. Please try again.');
+    }
+  }
+};
 
   return (
     <div className="glass-card">
@@ -158,7 +215,69 @@ const LoginForm = () => {
         <button type="submit" className="submit-button" disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
+        <p
+        style={{
+          marginTop: '16px',
+          textAlign: 'center',
+          fontSize: '14px',
+          fontWeight: 500,
+          color: '#257eec', // blue color
+          cursor: 'pointer',
+          textDecoration: 'underline',
+        }}
+        onClick={() => setShowForgotModal(true)}
+      >
+        Forgot Password?
+      </p>
+
       </form>
+
+        {showForgotModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+          onClick={() => setShowForgotModal(false)} // close when clicking outside
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '20px',
+              borderRadius: '8px',
+              maxWidth: '400px',
+              textAlign: 'center',
+            }}
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+          >
+            <h3 style={{ marginBottom: '12px' }}>Forgot Password ?</h3>
+            <p>Please contact your administrator to reset your password.</p>
+            <button
+              onClick={() => setShowForgotModal(false)}
+              style={{
+                marginTop: '12px',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                cursor: 'pointer',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
