@@ -4,8 +4,35 @@ function getCompanyTag(company) {
   return (company || '').toString().trim().toLowerCase();
 }
 
+const HONORIFIC_PREFIXES = new Set([
+  'mr',
+  'mrs',
+  'ms',
+  'miss',
+  'dr',
+  'prof',
+  'sir',
+  'madam',
+]);
+
+function getNameWithoutPrefix(name) {
+  const raw = (name || '').toString().trim();
+  if (!raw) return '';
+
+  const parts = raw.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+
+  const normalizedFirst = parts[0].replace(/[^a-zA-Z]/g, '').toLowerCase();
+  if (normalizedFirst && HONORIFIC_PREFIXES.has(normalizedFirst) && parts.length > 1) {
+    return parts.slice(1).join(' ');
+  }
+
+  return raw;
+}
+
 function getFirstLetter(name, fallback = '?') {
-  const first = (name || '').trim()[0] || fallback;
+  const cleanedName = getNameWithoutPrefix(name);
+  const first = cleanedName[0] || fallback;
   return first.toUpperCase();
 }
 

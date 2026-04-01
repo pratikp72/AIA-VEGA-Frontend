@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
     ME: '/users/me',
     CHECK_ADMIN_ACCESS: '/auth/check-admin-access',
     ADMIN_TOKEN: '/auth/admin-token',
+    CHECK_USER: '/auth/check-user', 
   },
 
 
@@ -70,9 +71,9 @@ export const API_ENDPOINTS = {
   // Location endpoints – Strapi unit_locations content-type
   LOCATION: {
     UNIT_LOCATIONS: '/unit-locations',
-    UNIT_LOCATIONS_WITH_UNITS: '/unit-locations?populate[units][populate]=unit_img',
+    UNIT_LOCATIONS_WITH_UNITS: '/unit-locations?populate[Units][populate][routes][populate][bus_stops][populate][bus_shifts]=true&populate[company]=true',
     UNIT_LOCATIONS_BY_LOCATION: '/unit-locations/by-location',
-    UNIT_LOCATION_BY_ID: (id) => `/unit-locations/${id}`,
+    UNIT_LOCATION_BY_ID: (id) => `/unit-locations/${id}?populate[company]=true&populate[Units][populate][unit_img]=true&populate[Units][populate][routes][populate][route_img]=true&populate[Units][populate][routes][populate][bus_stops][populate][bus_shifts]=true`,
   },
 
   // Calendar endpoints

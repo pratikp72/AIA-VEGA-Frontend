@@ -12,8 +12,8 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
       className={cn(
         'grid w-full gap-6',
         isCompact
-          ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-2'
-          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(410px,1fr))]'
+          ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(380px,1fr))]'
+          : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(410px,1fr))]'
       )}
     >
       {pagedPeople.map((person) => (
@@ -41,9 +41,9 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-h3 text-gray-dark truncate">{person.name}</h3>
+                <h3 className="text-h3 text-gray-name-title truncate">{person.name}</h3>
                 {person.isNew ? (
-                  <Badge className="bg-[#F4E2FF] px-2 py-0.5 text-[10px] text-primary-purple">New Joinee</Badge>
+                  <Badge className="bg-[#F4E2FF] px-2 py-0.5 text-[10px] text-primary-purple rounded-md">New Joinee</Badge>
                 ) : null}
               </div>
               <p className="mt-1 text-small text-primary-purple font-medium">{person.title}</p>
@@ -51,21 +51,22 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
           </div>
           <div className="space-y-3 text-body text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Briefcase className="h-3.5 w-3.5" />
-              <span className="truncate">{person.department}</span>
+              <Briefcase className="h-3.5 w-3.5 text-gray-text" />
+              <span className="truncate text-gray-text">{person.department}</span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="h-3.5 w-3.5" />
-              <span className="truncate">{person.location}</span>
+              <MapPin className="h-3.5 w-3.5 text-gray-text" />
+              <span className="truncate text-gray-text">{person.location}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="truncate">Joined {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <Calendar className="h-3.5 w-3.5 text-gray-text" />
+              <span className="truncate text-gray-text">Joined {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
           </div>
           <Button
             className="h-10 w-full rounded-full bg-primary text-white"
             size="default"
+            style={{ boxShadow: '0px 4px 10px #0000004D' }}
             onClick={() => handleSelect(person.id)}
           >
             View Details

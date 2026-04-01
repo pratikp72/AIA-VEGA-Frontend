@@ -40,6 +40,8 @@ function ResultScreen({
   const canGoBack = passed
     ? !feedbackMandatory || feedbackSubmitted || reattemptSent
     : (reattemptRequired ? reattemptSent : true);
+  const normalizedAttemptNumber = Number.isFinite(Number(attemptNumber)) ? Number(attemptNumber) : undefined;
+  const normalizedMaxAttempt = Number.isFinite(Number(maxAttempt)) ? Number(maxAttempt) : undefined;
   const backButtonClass = canGoBack
     ? "w-full py-3 rounded-xl bg-success text-white hover:bg-success/90 transition cursor-pointer"
     : "w-full py-3 rounded-xl bg-gray-300 text-gray-500 cursor-not-allowed";
@@ -58,9 +60,9 @@ function ResultScreen({
           <p className="font-semibold text-foreground/60 leading-relaxed mb-4">
             {resultData.pass.message}
           </p>
-          {attemptNumber !== undefined && maxAttempt !== undefined && (
+          {normalizedAttemptNumber !== undefined && normalizedMaxAttempt !== undefined && (
             <p className="text-sm font-semibold text-foreground/60 mb-2">
-              Attempt {Math.min(attemptNumber, maxAttempt)} of {maxAttempt}
+              Current Attempt {normalizedAttemptNumber} / Max Attempt {normalizedMaxAttempt}
             </p>
           )}
           <p className="text-xs font-semibold text-foreground/60 leading-relaxed mb-8">
@@ -106,21 +108,21 @@ function ResultScreen({
     <div className="fixed inset-0 z-50 bg-gray-100 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg w-full max-w-147.75 p-10 text-center">
         <div className="flex justify-center mb-4">
-          <XCircle className="w-12 h-12 text-destructive" />
+          <XCircle className="w-12 h-12 text-error" />
         </div>
-        <h2 className="text-xl font-bold text-destructive mb-4">
+        <h2 className="text-xl font-bold text-error mb-4">
           {reattemptRequired
-            ? `Maximum attempts reached — Score ${score}%`
-            : `Not Passed ${score}%`}
+            ? `Maximum attempts reached — Your Score ${score}%`
+            : `Your Score ${score}%`}
         </h2>
-        <p className="text-sm font-medium text-destructive leading-relaxed mb-4">
+        <p className="text-sm font-medium text-error leading-relaxed mb-4">
           {reattemptRequired
-            ? `You have used all ${maxAttempt} attempt(s). Please request a reattempt from your administrator.`
+            ? `You have used all ${normalizedMaxAttempt ?? maxAttempt} attempt(s). Please request a reattempt from your administrator.`
             : resultData.fail.message}
         </p>
-        {attemptNumber !== undefined && maxAttempt !== undefined ? (
+        {normalizedAttemptNumber !== undefined && normalizedMaxAttempt !== undefined ? (
           <p className="text-gray-600 mb-3 font-semibold">
-            Attempt {Math.min(attemptNumber, maxAttempt)} of {maxAttempt}
+            Current Attempt {normalizedAttemptNumber} / Max Attempt {normalizedMaxAttempt}
           </p>
         ) : (
           <p className="text-gray-600 mb-3 font-semibold">
@@ -146,12 +148,12 @@ function ResultScreen({
             >
               {resultData.fail.secondaryButtonText}
             </button>
-            {reattemptRequired && attemptNumber != null && maxAttempt != null && attemptNumber === maxAttempt ? (
+            {reattemptRequired && normalizedAttemptNumber != null && normalizedMaxAttempt != null && normalizedAttemptNumber >= normalizedMaxAttempt ? (
               <button
                 type="button"
                 onClick={onSendReattemptRequest}
                 disabled={reattemptLoading || reattemptSent}
-                className="flex-1 py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 py-3 rounded-xl bg-error/10 border border-error text-error font-semibold hover:bg-error/20 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {reattemptSent
                   ? "Request sent"
@@ -162,7 +164,7 @@ function ResultScreen({
             ) : (
               <button
                 onClick={onTryAgain}
-                className="flex-1 py-3 rounded-xl bg-destructive/10 border border-destructive text-destructive font-semibold hover:bg-destructive/20 transition cursor-pointer"
+                className="flex-1 py-3 rounded-xl bg-error/10 border border-error text-error font-semibold hover:bg-error/20 transition cursor-pointer"
               >
                 {resultData.fail.primaryButtonText}
               </button>
@@ -612,7 +614,14 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     setReattemptLoading(true);
     setReattemptError(null);
     try {
-      await sendReattemptRequest(Number(userId), Number(courseNumericId));
+      const numericAttempt = Number(attemptNumber);
+      const numericMaxAttempt = Number(maxAttempt);
+      const requestedForAttempt = Number.isFinite(numericAttempt) && numericAttempt > 0
+        ? numericAttempt + 1
+        : Number.isFinite(numericMaxAttempt) && numericMaxAttempt > 0
+          ? numericMaxAttempt + 1
+          : undefined;
+      await sendReattemptRequest(Number(userId), Number(courseNumericId), requestedForAttempt);
       setReattemptSent(true);
       telemetryService.trackLearningEvent('quiz_reattempt_requested', {
         routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',
@@ -622,6 +631,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
         metadata: {
           course_id: Number(courseNumericId),
           user_id: Number(userId),
+          requested_for_attempt: requestedForAttempt ?? null,
         },
       });
     } catch (err) {

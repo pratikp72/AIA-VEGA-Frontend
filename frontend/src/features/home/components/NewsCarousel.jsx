@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MarkdownIt from 'markdown-it';
 
-
 const md = new MarkdownIt({ html: true });
 
 const isPublishedNewsItem = (item) => {
@@ -62,15 +61,34 @@ export default function NewsCarousel({ news = [] }) {
   if (visibleNews.length === 0) return null;
 
   const currentNews = visibleNews[currentIndex];
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '');
+
+const getImageUrl = (news) => {
+  const img = news.cover_image;
+
+  if (!img) return '';
+
+  const url =
+    img?.formats?.large?.url ||
+    img?.formats?.medium?.url ||
+    img?.formats?.small?.url ||
+    img?.url;
+
+  if (!url) return '';
+
+  return url.startsWith('http')
+    ? url
+    : `${BASE_URL}${url}`;
+};
 
   return (
     <div className="relative rounded-2xl overflow-hidden min-h-[360px] w-full">
       {/* Full-bleed background image (blurred) or fallback gradient */}
       {(currentNews.imageUrl || currentNews.image) ? (
         <img
-          src={currentNews.imageUrl || currentNews.image}
+          src={getImageUrl(currentNews)}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover blur-[2px] scale-105"
+          className="absolute inset-0 w-full h-full object-cover scale-100"
           aria-hidden
         />
       ) : (
@@ -78,7 +96,7 @@ export default function NewsCarousel({ news = [] }) {
       )}
 
       {/* Dark semi-transparent overlay */}
-      <div className="absolute inset-0 bg-[#1a0a2e]/85" aria-hidden />
+      <div className="absolute inset-0 bg-[#1a0a2e]/60" aria-hidden />
 
       {/* Content layer */}
       <div className="relative flex flex-col min-h-[360px] pt-8 px-8 pb-8">
@@ -105,12 +123,12 @@ export default function NewsCarousel({ news = [] }) {
         </div>
 
         {/* Headline */}
-        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight max-w-3xl mb-[30px]">
+        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-[30px]">
           {currentNews.title}
         </h2>
 
         <p
-          className="text-white text-body leading-relaxed mb-8"
+          className="text-white text-body leading-relaxed mb-10"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 3,

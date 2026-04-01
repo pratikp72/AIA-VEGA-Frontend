@@ -14,6 +14,7 @@ export default function RoutesPage() {
   const [selectedLocationId, setSelectedLocationId] = React.useState("");
   const [locationDetail, setLocationDetail] = React.useState(null);
   const [selectedUnitId, setSelectedUnitId] = React.useState("");
+  const [selectedRouteId, setSelectedRouteId] = React.useState("");
   const [availableShifts, setAvailableShifts] = React.useState([]);
   const [selectedShift, setSelectedShift] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -22,23 +23,6 @@ export default function RoutesPage() {
   const breadcrumbs = [{ label: "Routes" }];
 
   const md = React.useMemo(() => new MarkdownIt({ html: true, breaks: true }), []);
-
-  // Show notes from backend location `note` field as markdown.
-  const noteHtml = React.useMemo(() => {
-    const note = locationDetail?.note;
-    if (typeof note !== "string" || !note.trim()) return "";
-    const normalizedNote = note
-      .replace(/\r\n/g, "\n")
-      // Convert malformed bullet prefixes like ".-text" or "-text" into valid markdown "- text".
-      .replace(/^\s*[.।]??\s*[-*+]\s*(\S.*)$/gm, "- $1")
-      // Convert malformed ordered prefixes like "1.text" into valid markdown "1. text".
-      .replace(/^\s*(\d+)[.)]\s*(\S.*)$/gm, "$1. $2")
-      // Ensure numbered/bulleted lists start as a markdown block after plain text lines.
-      .replace(/([^\n])\n((?:\d+[.)]|[-*+])\s+)/g, "$1\n\n$2");
-    return md.render(normalizedNote);
-  }, [locationDetail, md]);
-
-  
 
   const selectedLocation = React.useMemo(
     () =>
@@ -64,21 +48,46 @@ export default function RoutesPage() {
     return match || null;
   }, [locationDetail, selectedUnitId]);
 
-  const stops = React.useMemo(() => {
-    if (!activeUnit || !selectedShift) return [];
-    const out = [];
-    (activeUnit.routes || []).forEach((route) => {
-      const match =
-        (route.shifts || []).find((s) => s.name === selectedShift) || null;
-      if (match) {
-        out.push({
-          name: route.name,
-          time: match.time,
-        });
-      }
-    });
-    return out;
-  }, [activeUnit, selectedShift]);
+    const noteHtml = React.useMemo(() => {
+    const note = activeUnit?.note;
+    if (typeof note !== "string" || !note.trim()) return "";
+    const normalizedNote = note
+      .replace(/\r\n/g, "\n")
+      // Convert malformed bullet prefixes like ".-text" or "-text" into valid markdown "- text".
+      .replace(/^\s*[.।]??\s*[-*+]\s*(\S.*)$/gm, "- $1")
+      // Convert malformed ordered prefixes like "1.text" into valid markdown "1. text".
+      .replace(/^\s*(\d+)[.)]\s*(\S.*)$/gm, "$1. $2")
+      // Ensure numbered/bulleted lists start as a markdown block after plain text lines.
+      .replace(/([^\n])\n((?:\d+[.)]|[-*+])\s+)/g, "$1\n\n$2");
+    return md.render(normalizedNote);
+  }, [activeUnit, md]);
+
+
+  // Route selector: find the selected route in the active unit
+  const activeRoute = React.useMemo(() => {
+    if (!activeUnit || !Array.isArray(activeUnit.routes) || !selectedRouteId) return null;
+    return activeUnit.routes.find(
+      (r) => String(r.routeId ?? r.id) === String(selectedRouteId)
+    ) || null;
+  }, [activeUnit, selectedRouteId]);
+
+  // Stops for the selected route and shift
+ const stops = React.useMemo(() => {
+  if (!activeRoute || !selectedShift) return [];
+
+  return activeRoute.stops
+    .map((stop) => {
+      const shift = stop.shifts.find((s) => s.name === selectedShift);
+      if (!shift) return null;
+
+      return {
+        name: stop.name,
+        time: shift.time,
+        locationLink: stop.locationLink,
+      };
+    })
+    .filter(Boolean);
+}, [activeRoute, selectedShift]);
 
   const handleLocationChange = (name) => {
     const loc = locations.find((l) => l.name === name);
@@ -92,7 +101,15 @@ export default function RoutesPage() {
     if (!locationDetail || !Array.isArray(locationDetail.units)) return;
     const unit = locationDetail.units.find((u) => u.unitName === unitName);
     setSelectedUnitId(unit ? String(unit.unitId ?? unit.id ?? "") : "");
-    // When unit changes, reset shift so it re-derives from new unit
+    // When unit changes, reset route and shift
+    setSelectedRouteId("");
+    setSelectedShift("");
+  };
+
+  const handleRouteChange = (routeName) => {
+    if (!activeUnit || !Array.isArray(activeUnit.routes)) return;
+    const route = activeUnit.routes.find((r) => r.name === routeName);
+    setSelectedRouteId(route ? String(route.routeId ?? route.id ?? "") : "");
     setSelectedShift("");
   };
 
@@ -143,25 +160,29 @@ export default function RoutesPage() {
       .finally(() => setLoading(false));
   }, [selectedLocationId]);
 
-  // Derive available shifts from active unit's routes
+  // Derive available shifts from active route's shifts
   React.useEffect(() => {
-    if (!activeUnit) {
-      setAvailableShifts([]);
-      setSelectedShift("");
-      return;
-    }
-    const shiftSet = new Set();
-    (activeUnit.routes || []).forEach((route) => {
-      (route.shifts || []).forEach((s) => {
-        if (s.name) shiftSet.add(s.name);
-      });
+  if (!activeRoute) {
+    setAvailableShifts([]);
+    setSelectedShift("");
+    return;
+  }
+
+  const shiftSet = new Set();
+
+  activeRoute.stops.forEach((stop) => {
+    stop.shifts.forEach((s) => {
+      if (s.name) shiftSet.add(s.name);
     });
-    const list = Array.from(shiftSet);
-    setAvailableShifts(list);
-    if (list.length && !list.includes(selectedShift)) {
-      setSelectedShift(list[0]);
-    }
-  }, [activeUnit, selectedShift]);
+  });
+
+  const list = Array.from(shiftSet);
+  setAvailableShifts(list);
+
+  if (list.length && !list.includes(selectedShift)) {
+    setSelectedShift(list[0]);
+  }
+}, [activeRoute]);
 
   const routesBgStyle = {
     backgroundImage: 'url(/location-page-bg.png)',
@@ -170,6 +191,11 @@ export default function RoutesPage() {
     backgroundRepeat: 'no-repeat',
   };
 
+  // Use route image if available, else unit image, else fallback
+ const routeImageSrc =
+  selectedRouteId && activeRoute?.image
+    ? activeRoute.image
+    : null;
   return (
     <div className="min-h-screen" style={routesBgStyle}>
       <PageHeader title="Routes" breadcrumbs={breadcrumbs}>
@@ -198,12 +224,12 @@ export default function RoutesPage() {
           </div>
         </div>
 
-        {/* Top controls: unit + shift (horizontal, identical styling) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-4">
+        {/* Top controls: unit + route + shift (horizontal, identical styling) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 items-start gap-4">
           {/* Unit / Plant dropdown */}
           <div className="w-full min-w-0">
             <div className="font-semibold text-[18px] text-[#363A4D] mb-2">
-              Select Unit / Plant
+              Select Unit 
             </div>
             <div className="rounded-xl py-2">
               <div className="w-full">
@@ -211,13 +237,46 @@ export default function RoutesPage() {
                   value={activeUnit?.unitName ?? ""}
                   onChange={handleUnitChange}
                   options={
-                    locationDetail?.units
+                    locationDetail?.units && locationDetail.units.length > 0 && selectedLocationId
                       ? locationDetail.units.map((u) => u.unitName)
                       : []
                   }
-                  placeholder="Select Unit / Plant"
+                  placeholder={
+                    selectedLocationId
+                      ? (locationDetail?.units && locationDetail.units.length > 0 ? "Select Unit" : "No units available")
+                      : "Select location first"
+                  }
                   textSize="text-base"
                   wrapValue
+                  disabled={!selectedLocationId || !(locationDetail?.units && locationDetail.units.length > 0)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Route dropdown */}
+          <div className="w-full min-w-0">
+            <div className="font-semibold text-[18px] text-[#363A4D] mb-2">
+              Select Route
+            </div>
+            <div className="rounded-xl py-2">
+              <div className="w-full">
+                <Select
+                  value={activeRoute?.name ?? ""}
+                  onChange={handleRouteChange}
+                  options={
+                    selectedUnitId && activeUnit?.routes && Array.isArray(activeUnit.routes)
+                      ? activeUnit.routes.map((r) => r.name)
+                      : []
+                  }
+                  placeholder={
+                    selectedUnitId
+                      ? (activeUnit?.routes && activeUnit.routes.length > 0 ? "Select Route" : "No routes available")
+                      : "Select unit first"
+                  }
+                  textSize="text-base"
+                  wrapValue
+                  disabled={!selectedUnitId || !(activeUnit?.routes && activeUnit.routes.length > 0)}
                 />
               </div>
             </div>
@@ -231,22 +290,18 @@ export default function RoutesPage() {
             <div className="py-2">
               <div className="relative justify-center rounded-[12px] bg-white border border-[#F3D4FF] py-2 px-4 flex flex-wrap gap-2 items-center min-h-[48px]">
                 <div className="relative flex flex-wrap gap-2 w-full">
-                  {availableShifts.length === 0 ? (
-                    <span className="text-gray-400">
-                      No shifts available
-                    </span>
-                  ) : (
+                  {availableShifts.length > 0 ? (
                     availableShifts.map((shift) => {
                       const active = selectedShift === shift;
                       return (
                         <button
                           key={shift}
                           type="button"
-                          onClick={() =>
-                            setSelectedShift((prev) =>
-                              prev === shift ? "" : shift,
-                            )
-                          }
+                          onClick={() => {
+                            if (selectedShift !== shift) {
+                              setSelectedShift(shift);
+                            }
+                          }}
                           className={[
                             "px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ",
                             active
@@ -258,6 +313,10 @@ export default function RoutesPage() {
                         </button>
                       );
                     })
+                  ) : (
+                    <span className="text-gray-400">
+                      No shifts available
+                    </span>
                   )}
                 </div>
               </div>
@@ -279,23 +338,26 @@ export default function RoutesPage() {
         ) : (
           <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] gap-6 items-start">
             {/* Map image card */}
-            <div className="rounded-2xl bg-white shadow-md border border-gray-100 overflow-hidden">
-              <img
-                src={"/routes-map.jpg"}
-                alt={activeUnit.unitName || "Bus routes map"}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            {selectedRouteId && (
+              <div className="rounded-2xl bg-white shadow-md border border-gray-100 overflow-hidden h-[600px]">
+                <img
+                  src={routeImageSrc}
+                  alt={activeUnit?.unitName || "Route map"}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
 
             {/* Route & time list */}
-            <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-4">
+            {selectedRouteId && selectedShift && (
+            <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-4  max-h-[600px] flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-gray-400">
                     {selectedLocation?.name || ""}
                   </div>
                   <h2 className="text-base md:text-lg font-semibold text-[#111827]">
-                    {(activeUnit.unitName || "").toUpperCase()} ROUTE &amp; TIME
+                    {(activeRoute?.name || "").toUpperCase()}  STOP &amp; TIME
                   </h2>
                 </div>
               </div>
@@ -304,28 +366,45 @@ export default function RoutesPage() {
                   No stops found for this shift. Please choose another shift.
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-100 max-h-[340px] overflow-y-auto text-sm">
+                <ul className="divide-y divide-gray-100 flex-1 overflow-y-auto text-sm">
                   {stops.map((stop) => (
                     <li
                       key={`${stop.name}-${stop.time}`}
                       className="flex items-center justify-between py-2 px-1"
                     >
                       <span className="text-[#111827]">{stop.name}</span>
-                      <span className="text-xs text-[#6B7280]">
+                      <span className="text-xs text-[#6B7280] flex items-center gap-3">
                         {stop.time ? stop.time.slice(0, 5) : ""}
+                        {stop.locationLink && (
+                          <a
+                            href={stop.locationLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View location"
+                            className="text-primary hover:text-primary/80 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                          </a>
+                        )}
                       </span>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
+            )}
           </div>
         )}
 
         {/* Bottom panel – route description from backend note field */}
-        {noteHtml ? (
+        { selectedUnitId && noteHtml ? (
           <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-6">
             <div className="text-sm text-[#4B5563] leading-relaxed space-y-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-1">
+              <div className="font-semibold text-base text-[#111827] mb-3">Route Notes</div>
               <div dangerouslySetInnerHTML={{ __html: noteHtml }} />
             </div>
           </div>

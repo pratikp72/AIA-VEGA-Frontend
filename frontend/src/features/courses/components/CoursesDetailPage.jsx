@@ -102,6 +102,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     return sum + (Number.isFinite(d) && d > 0 ? d : 0);
   }, 0);
   const allModulesCompleted = contents.length > 0 && contents.every((m) => m.mark_as_read);
+  const isLanguageSelectionLocked = allModulesCompleted;
   const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
 
   const displayedProgressPercentage = useMemo(() => {
@@ -344,7 +345,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     if (!userId) return;
     dispatch(markModuleAsRead({ moduleId: modId }));
 
-    const courseIdNumeric = course.id != null ? Number(course.id) : null;
+    const parsedCourseId = course.id != null ? Number(course.id) : NaN;
+    const courseIdNumeric = Number.isFinite(parsedCourseId) ? parsedCourseId : null;
     const courseIdForApi = course.id ?? course.documentId;
     const module_ = contents.find((m) => String(m.moduleId || m.id) === String(modId));
     // Use the index in the FULL module list (all languages) so it aligns with
@@ -658,9 +660,9 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 id="course-language-select"
                 value={selectedLanguage}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                disabled={courseProgress.quizAlreadyTaken}
-                title={courseProgress.quizAlreadyTaken ? "Language cannot be changed after attempting the quiz" : undefined}
-                className={`w-[170px] max-w-[170px] border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${courseProgress.quizAlreadyTaken ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                disabled={isLanguageSelectionLocked}
+                title={isLanguageSelectionLocked ? "Language cannot be changed after completing all modules in this language" : undefined}
+                className={`w-[170px] max-w-[170px] border border-gray-300 rounded-md px-3 py-1.5 text-sm font-medium text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary ${isLanguageSelectionLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
                 {languageOptions.map((lang) => (
                   <option key={lang} value={lang}>{lang}</option>

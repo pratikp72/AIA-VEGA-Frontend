@@ -56,6 +56,8 @@
   --color-teal: #5DC983;
   --color-white: #FFFFFF;
   --color-gray: #2E2E2E99;
+  --color-gray-text: #78909E;
+  --color-gray-name-title:#3C435F;
   
   /* Background & Foreground */
   --color-background: var(--background);
