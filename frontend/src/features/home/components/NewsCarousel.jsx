@@ -123,12 +123,12 @@ const getImageUrl = (news) => {
         </div>
 
         {/* Headline */}
-        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight max-w-3xl mb-[30px]">
+        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-[30px]">
           {currentNews.title}
         </h2>
 
         <p
-          className="text-white text-body leading-relaxed mb-8"
+          className="text-white text-body leading-relaxed mb-10"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 3,

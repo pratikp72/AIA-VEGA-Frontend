@@ -1,4 +1,5 @@
 import React from 'react';
+import { MapPin } from 'lucide-react';
 
 export default function LocationCard({ unit }) {
   const siteManager = unit?.site_manager ?? unit?.siteManager ?? '';
@@ -16,7 +17,7 @@ export default function LocationCard({ unit }) {
       />
       <div className="py-3">
         <div className="font-semibold text-lg text-[#6C2EB7] flex items-center mb-2">
-          <span className="mr-2">📍</span> {unit?.name ?? ''}
+          <span className="mr-2"><MapPin className='w-4 h-4'/></span> {unit?.name ?? ''}
         </div>
         <div className="text-gray-600 text-sm mb-2">{unit?.address || '—'}</div>
         <div className="text-xs mb-1">Site Manager : <b>{siteManager || '—'}</b></div>

@@ -112,11 +112,7 @@ export default function UpcomingEvents({ events = [] }) {
                     </div>
                   )}
                   <div className="flex items-center gap-2">
-                    {isVirtual(event.location) ? (
-                      <Monitor className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
-                    ) : (
                       <MapPin className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
-                    )}
                     <span>{event.location}</span>
                   </div>
                 </div>
