@@ -193,6 +193,7 @@ function normalizeUserForJoinee(user) {
     position: user.designation || '',
     department: user.department || '',
     joinDate: user.joining_date || null,
+    company: user.company || '',
     avatar: avatar.src,
     avatarInitial: avatar.initials,
   };

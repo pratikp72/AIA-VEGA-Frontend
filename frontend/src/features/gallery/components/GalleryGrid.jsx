@@ -56,8 +56,8 @@ export default function GalleryGrid({ items = [] }) {
                     src={(selectedItem.video?.url && (selectedItem.video?.url.startsWith('http') ? selectedItem.video?.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${selectedItem.video?.url}`)) || selectedItem.url}
                     controls
                     controlsList="nodownload"
-                    className="w-full h-auto"
-                    style={{ maxHeight: '350px' }}
+                    className="w-auto h-90 object-contain"
+                    // style={{ maxHeight: '400px',}}
                     autoPlay
                     playsInline
                     preload="metadata"

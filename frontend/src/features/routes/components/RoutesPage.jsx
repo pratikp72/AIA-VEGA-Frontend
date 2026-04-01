@@ -288,7 +288,7 @@ export default function RoutesPage() {
               Select Shift
             </div>
             <div className="py-2">
-              <div className="relative justify-center rounded-[12px] bg-white border border-[#F3D4FF] py-2 px-4 flex flex-wrap gap-2 items-center min-h-[48px]">
+              <div className="relative justify-center rounded-[12px] bg-white border border-gray-100 shadow-sm py-2 px-4 flex flex-wrap gap-2 items-center min-h-[48px]">
                 <div className="relative flex flex-wrap gap-2 w-full">
                   {availableShifts.length > 0 ? (
                     availableShifts.map((shift) => {
@@ -401,10 +401,10 @@ export default function RoutesPage() {
         )}
 
         {/* Bottom panel – route description from backend note field */}
-        { selectedUnitId && noteHtml ? (
+        { selectedRouteId && noteHtml ? (
           <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-6">
             <div className="text-sm text-[#4B5563] leading-relaxed space-y-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-1">
-              <div className="font-semibold text-base text-[#111827] mb-3">Route Notes</div>
+              <div className="font-semibold text-base text-[#111827] mb-3">નોંધ</div>
               <div dangerouslySetInnerHTML={{ __html: noteHtml }} />
             </div>
           </div>

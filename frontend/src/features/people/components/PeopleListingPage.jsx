@@ -38,6 +38,11 @@ export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') ?? '';
+  const targetPersonId = searchParams.get('personId') ?? '';
+  const targetPersonEmpId = searchParams.get('personEmpId') ?? '';
+  const targetPersonName = searchParams.get('personName') ?? '';
+  const targetPersonCompany = searchParams.get('personCompany') ?? '';
+  const hasTargetFromHome = Boolean(targetPersonId || targetPersonEmpId || targetPersonName);
 
   const people = useAppSelector(selectPeopleList);
   const isLoading = useAppSelector(selectPeopleLoading);
@@ -155,20 +160,20 @@ export default function PeopleListingPage() {
   const selectedEmployee = people.find((p) => p.id === selectedEmployeeId) || null;
   const isCompact = Boolean(selectedEmployee);
 
+  const matchesTargetPerson = (person) => {
+    if (!person) return false;
+    if (targetPersonId && String(person.id) === String(targetPersonId)) return true;
+    if (targetPersonEmpId && String(person.emp_id) === String(targetPersonEmpId)) return true;
+    if (targetPersonName && String(person.name || '').trim().toLowerCase() === String(targetPersonName).trim().toLowerCase()) return true;
+    return false;
+  };
+
   const employeesBgStyle = {
     backgroundImage: 'url(/feedback-form-bg.png)',
     backgroundSize: 'cover',
     backgroundPosition: 'right center',
     backgroundRepeat: 'no-repeat',
   };
-
-  if (isLoading && people.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]" style={employeesBgStyle}>
-        <Loader size="lg" />
-      </div>
-    );
-  }
 
   const hasActiveFilters = sortBy || departmentFilter || locationFilter || searchTerm;
 
@@ -180,6 +185,54 @@ export default function PeopleListingPage() {
     setDebouncedSearch('');
     dispatch(setPage(1));
   };
+
+  useEffect(() => {
+    if (!hasTargetFromHome) return;
+    setSortBy('');
+    setDepartmentFilter('');
+    setLocationFilter('');
+    setSearchTerm('');
+    setDebouncedSearch('');
+    if (targetPersonCompany) {
+      const normalised = targetPersonCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA';
+      dispatch(setCompanyFilter(normalised));
+    }
+    setPerPage(AUTO_PER_PAGE);
+    dispatch(setPage(1));
+  }, [hasTargetFromHome, targetPersonName, targetPersonCompany, dispatch]);
+
+  useEffect(() => {
+    if (!hasTargetFromHome) return;
+    if (people.length === 0) return;
+
+    const match = people.find(matchesTargetPerson);
+    if (!match) return;
+
+    setSelectedEmployeeId(match.id);
+    const element = document.getElementById(`person-card-${match.id}`);
+    if (element) {
+      requestAnimationFrame(() => {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  }, [hasTargetFromHome, people, targetPersonId, targetPersonEmpId, targetPersonName]);
+
+  useEffect(() => {
+    if (!hasTargetFromHome) return;
+    if (isLoading) return;
+    if (people.some(matchesTargetPerson)) return;
+    if (isAutoMode && currentPage < totalPages) {
+      dispatch(setPage(currentPage + 1));
+    }
+  }, [hasTargetFromHome, isLoading, people, isAutoMode, currentPage, totalPages, dispatch, targetPersonId, targetPersonEmpId, targetPersonName]);
+
+  if (isLoading && people.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]" style={employeesBgStyle}>
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={employeesBgStyle}>
