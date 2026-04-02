@@ -484,79 +484,78 @@ export default function CalendarPage() {
                 <Loader size="lg" />
               </div>
             ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden calendar-card lg:h-full flex flex-col">
-              <div className="calendar-custom-header flex items-center justify-between px-4 py-4 border-b border-gray-200">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={goPrev}
-                    className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-                    aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'year' ? 'Previous year' : 'Previous month'}
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <span className="text-xl font-bold text-gray-900 min-w-[140px] sm:min-w-[200px] text-center">
-                    {headerLabel}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-                    aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'year' ? 'Next year' : 'Next month'}
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const today = new Date();
-                      setActiveDate(today);
-                      setActiveStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
-                      setViewMode('day');
-                      setCalendarView('month');
-                    }}
-                    className="h-9 px-3 text-sm rounded-lg rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
-                  >
-                    Today
-                  </button>
-                  <div className="relative">
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden calendar-card lg:h-full flex flex-col">
+                <div className="calendar-custom-header flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setViewDropdownOpen((o) => !o)}
-                      className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
+                      onClick={goPrev}
+                      className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                      aria-label={viewMode === 'day' ? 'Previous day' : viewMode === 'year' ? 'Previous year' : 'Previous month'}
                     >
-                      {VIEW_MODES.find((m) => m.key === viewMode)?.label ?? 'Month'}
-                      <ChevronDown className={`w-4 h-4 text-gray-600 transition ${viewDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
-                    {viewDropdownOpen && (
-                      <>
-                        <div className="fixed inset-0 z-10" aria-hidden onClick={() => setViewDropdownOpen(false)} />
-                        <div className="absolute right-0 top-full mt-1 z-20 min-w-[100px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                          {VIEW_MODES.map((m) => (
-                            <button
-                              key={m.key}
-                              type="button"
-                              onClick={() => {
-                                handleViewModeChange(m.key);
-                                setViewDropdownOpen(false);
-                              }}
-                              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${viewMode === m.key ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
-                            >
-                              {m.label}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
+                    <span className="text-xl font-bold text-gray-900 min-w-[140px] sm:min-w-[200px] text-center">
+                      {headerLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={goNext}
+                      className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
+                      aria-label={viewMode === 'day' ? 'Next day' : viewMode === 'year' ? 'Next year' : 'Next month'}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
                   </div>
-                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date();
+                        setActiveDate(today);
+                        setActiveStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                        setViewMode('day');
+                        setCalendarView('month');
+                      }}
+                      className="h-9 px-3 text-sm rounded-lg rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
+                    >
+                      Today
+                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setViewDropdownOpen((o) => !o)}
+                        className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
+                      >
+                        {VIEW_MODES.find((m) => m.key === viewMode)?.label ?? 'Month'}
+                        <ChevronDown className={`w-4 h-4 text-gray-600 transition ${viewDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      {viewDropdownOpen && (
+                        <>
+                          <div className="fixed inset-0 z-10" aria-hidden onClick={() => setViewDropdownOpen(false)} />
+                          <div className="absolute right-0 top-full mt-1 z-20 min-w-[100px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                            {VIEW_MODES.map((m) => (
+                              <button
+                                key={m.key}
+                                type="button"
+                                onClick={() => {
+                                  handleViewModeChange(m.key);
+                                  setViewDropdownOpen(false);
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${viewMode === m.key ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {viewMode === 'day' ? (
-                <div className="day-view-grid">
+                {viewMode === 'day' ? (
+                  <div className="day-view-grid">
                   {/* Day date circle header */}
                   <div className="flex items-center border-b border-gray-100 shrink-0 bg-white">
                     <div className="w-16 shrink-0" />
@@ -682,7 +681,7 @@ export default function CalendarPage() {
                                 )}
                                 {ev.location && heightPct > 6 && (
                                   <span style={{ fontSize: 10, color: bg, opacity: 0.75, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '1.3' }}>
-                                    📍 {ev.location}
+                                    <MapPin className='w-4 h-4' /> {ev.location}
                                   </span>
                                 )}
                               </div>
@@ -692,110 +691,110 @@ export default function CalendarPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-              <Calendar
-                value={viewMode === 'year' ? null : activeDate}
-                view={calendarView}
-                onViewChange={({ view: nextView }) => nextView && setCalendarView(nextView)}
-                onClickMonth={viewMode === 'year' ? handleYearViewMonthClick : undefined}
-                onChange={viewMode === 'year' ? undefined : setActiveDate}
-                activeStartDate={activeStartDate}
-                onActiveStartDateChange={({ activeStartDate: next }) => {
-                  if (!next) return;
-                  setActiveStartDate(next);
-                  if (viewMode === 'month') {
-                    setActiveDate(new Date(next.getFullYear(), next.getMonth(), 1));
-                  } else if (viewMode === 'year') {
-                    setActiveDate(new Date(next.getFullYear(), 0, 1));
-                  }
-                }}
-                calendarType="gregory"
-                formatShortWeekday={(_, date) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()]}
-                prevLabel={null}
-                nextLabel={null}
-                prev2Label={null}
-                next2Label={null}
-                tileContent={({ date, view }) => {
-                  if (view === 'year') {
-                    const monthKey = toMonthKey(date);
-                    const eventCount = eventsByMonth[monthKey] || 0;
-                    const holidayCount = holidaysByMonth[monthKey] || 0;
-                    const total = eventCount + holidayCount;
-                    if (total === 0) return null;
-                    return (
-                      <div className="calendar-tile-inner year-tile">
-                        <span className="text-[14px] mb-3 text-gray-600 ">{total} event{total !== 1 ? 's' : ''}</span>
-                      </div>
-                    );
-                  }
-                  if (view !== 'month') return null;
-                  const key = toDateKey(date);
-                  const dayEvents = eventsByDate[key] || [];
-                  const isHoliday = holidayDates.has(key);
-                  const holidayName = holidayDates.get(key);
-                  return (
-                    <div className="calendar-tile-inner">
-                      {dayEvents.length > 0 && (
-                        <div className="mt-1 space-y-0.5">
-                          {dayEvents.slice(0, 3).map((ev) => (
+                  </div>
+                ) : (
+                  <Calendar
+                    value={viewMode === 'year' ? null : activeDate}
+                    view={calendarView}
+                    onViewChange={({ view: nextView }) => nextView && setCalendarView(nextView)}
+                    onClickMonth={viewMode === 'year' ? handleYearViewMonthClick : undefined}
+                    onChange={viewMode === 'year' ? undefined : setActiveDate}
+                    activeStartDate={activeStartDate}
+                    onActiveStartDateChange={({ activeStartDate: next }) => {
+                      if (!next) return;
+                      setActiveStartDate(next);
+                      if (viewMode === 'month') {
+                        setActiveDate(new Date(next.getFullYear(), next.getMonth(), 1));
+                      } else if (viewMode === 'year') {
+                        setActiveDate(new Date(next.getFullYear(), 0, 1));
+                      }
+                    }}
+                    calendarType="gregory"
+                    formatShortWeekday={(_, date) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][date.getDay()]}
+                    prevLabel={null}
+                    nextLabel={null}
+                    prev2Label={null}
+                    next2Label={null}
+                    tileContent={({ date, view }) => {
+                      if (view === 'year') {
+                        const monthKey = toMonthKey(date);
+                        const eventCount = eventsByMonth[monthKey] || 0;
+                        const holidayCount = holidaysByMonth[monthKey] || 0;
+                        const total = eventCount + holidayCount;
+                        if (total === 0) return null;
+                        return (
+                          <div className="calendar-tile-inner year-tile">
+                            <span className="text-[14px] mb-3 text-gray-600 ">{total} event{total !== 1 ? 's' : ''}</span>
+                          </div>
+                        );
+                      }
+                      if (view !== 'month') return null;
+                      const key = toDateKey(date);
+                      const dayEvents = eventsByDate[key] || [];
+                      const isHoliday = holidayDates.has(key);
+                      const holidayName = holidayDates.get(key);
+                      return (
+                        <div className="calendar-tile-inner">
+                          {dayEvents.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {dayEvents.slice(0, 3).map((ev) => (
+                                <div
+                                  key={ev.id}
+                                  className="w-full flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium truncate text-left"
+                                  style={{
+                                    backgroundColor: `${ev.color ?? '#2563EB'}22`,
+                                    color: ev.color ?? '#2563EB',
+                                    borderLeft: `3px solid ${ev.color ?? '#2563EB'}`,
+                                  }}
+                                >
+                                  <span
+                                    className="shrink-0 w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: ev.color ?? '#2563EB' }}
+                                  />
+                                  <span className="truncate">{ev.title}</span>
+                                </div>
+                              ))}
+                              {dayEvents.length > 3 && (
+                                <span className="text-[9px] text-gray-500">+{dayEvents.length - 3}</span>
+                              )}
+                            </div>
+                          )}
+                          {isHoliday && dayEvents.every((e) => e.category !== 'holidays') && (
                             <div
-                              key={ev.id}
-                              className="w-full flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium truncate text-left"
+                              className="mt-1 rounded px-1.5 py-0.5 text-[10px] font-medium flex items-center gap-1"
                               style={{
-                                backgroundColor: `${ev.color ?? '#2563EB'}22`,
-                                color: ev.color ?? '#2563EB',
-                                borderLeft: `3px solid ${ev.color ?? '#2563EB'}`,
+                                backgroundColor: '#FEE2E2',
+                                color: '#EF4444',
+                                borderLeft: '3px solid #EF4444',
                               }}
                             >
-                              <span
-                                className="shrink-0 w-1.5 h-1.5 rounded-full"
-                                style={{ backgroundColor: ev.color ?? '#2563EB' }}
-                              />
-                              <span className="truncate">{ev.title}</span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shrink-0" />
+                              <span className="truncate">{holidayName}</span>
                             </div>
-                          ))}
-                          {dayEvents.length > 3 && (
-                            <span className="text-[9px] text-gray-500">+{dayEvents.length - 3}</span>
                           )}
                         </div>
-                      )}
-                      {isHoliday && dayEvents.every((e) => e.category !== 'holidays') && (
-                        <div
-                          className="mt-1 rounded px-1.5 py-0.5 text-[10px] font-medium flex items-center gap-1"
-                          style={{
-                            backgroundColor: '#FEE2E2',
-                            color: '#EF4444',
-                            borderLeft: '3px solid #EF4444',
-                          }}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shrink-0" />
-                          <span className="truncate">{holidayName}</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                }}
-                tileClassName={({ date, view }) => {
-                  if (view === 'year') {
-                    return 'rounded-lg';
-                  }
-                  if (view !== 'month') return '';
-                  const key = toDateKey(date);
-                  const isHoliday = holidayDates.has(key);
-                  const isSelected =
-                    date.getDate() === activeDate.getDate() &&
-                    date.getMonth() === activeDate.getMonth() &&
-                    date.getFullYear() === activeDate.getFullYear();
-                  const classes = ['rounded-lg'];
-                  if (isSelected) classes.push('!bg-primary/10 !border-2 !border-primary');
-                  if (isHoliday) classes.push('text-[#EF4444] font-semibold');
-                  return classes.join(' ');
-                }}
-                className="calendar-widget border-0 w-full lg:flex-1"
-              />
-              )}
-            </div>
+                      );
+                    }}
+                    tileClassName={({ date, view }) => {
+                      if (view === 'year') {
+                        return 'rounded-lg';
+                      }
+                      if (view !== 'month') return '';
+                      const key = toDateKey(date);
+                      const isHoliday = holidayDates.has(key);
+                      const isSelected =
+                        date.getDate() === activeDate.getDate() &&
+                        date.getMonth() === activeDate.getMonth() &&
+                        date.getFullYear() === activeDate.getFullYear();
+                      const classes = ['rounded-lg'];
+                      if (isSelected) classes.push('!bg-primary/10 !border-2 !border-primary');
+                      if (isHoliday) classes.push('text-[#EF4444] font-semibold');
+                      return classes.join(' ');
+                    }}
+                    className="calendar-widget border-0 w-full lg:flex-1"
+                  />
+                )}
+              </div>
             )}
           </div>
 
@@ -815,140 +814,142 @@ export default function CalendarPage() {
                   <p className="text-sm text-gray-500">No Current Events</p>
                 </div>
               ) : (
-                <>
+                <div className="flex flex-col flex-1 min-h-0">
                   <p className="text-sm text-gray-500 mb-3 px-4">
                     {activeDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
                   </p>
-                  <div className="flex flex-col flex-1 min-h-0 overflow-y-auto scrollbar-default px-4 pb-4 pr-2">
+                  <div className="flex flex-col flex-1 min-h-0 overflow-y-auto scrollbar-default px-4 pr-2">
                     <ul className="space-y-3">
-                    {currentEvents.map((ev) => {
-                      let EventIcon = CalendarDays;
-                      if (ev.type === 'birthday') {
-                        EventIcon = Gift;
-                      } else if (ev.type === 'anniversary') {
-                        EventIcon = GraduationCap;
-                      } else if (ev.icon === 'gift') {
-                        EventIcon = Gift;
-                      } else if (ev.icon === 'graduation-cap') {
-                        EventIcon = GraduationCap;
-                      }
-                      
-                      const id = ev.documentId ?? ev.id;
-                      const isExpanded = String(expandedEventId) === String(id);
-                      const detail = isExpanded ? (expandedEvent || ev) : null;
-                      return (
-                        <li key={ev.id}>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleEvent(ev)}
-                            className="w-full text-left bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition"
-                          >
-                            <div className="flex gap-3 items-start">
-                              <div
-                                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-gray-100"
-                                style={!ev.event_image ? { backgroundColor: ev.color ?? '#2563EB' } : undefined}
-                              >
-                                {ev.event_image ? (
-                                  <img src={ev.event_image} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <EventIcon className="w-5 h-5 text-white" />
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-gray-900 text-base leading-tight">
-                                  {ev.fullTitle || ev.title}
-                                </p>
-                                {ev.description ? (
-                                  <div className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
-                                    <div className="rich-content">
-                                      <div dangerouslySetInnerHTML={{ __html: renderDescription(ev.description || '') }} />
+                      {currentEvents.map((ev) => {
+                        let EventIcon = CalendarDays;
+                        if (ev.type === 'birthday') {
+                          EventIcon = Gift;
+                        } else if (ev.type === 'anniversary') {
+                          EventIcon = GraduationCap;
+                        } else if (ev.icon === 'gift') {
+                          EventIcon = Gift;
+                        } else if (ev.icon === 'graduation-cap') {
+                          EventIcon = GraduationCap;
+                        }
+
+                        const id = ev.documentId ?? ev.id;
+                        const isExpanded = String(expandedEventId) === String(id);
+                        const detail = isExpanded ? (expandedEvent || ev) : null;
+
+                        return (
+                          <li key={ev.id}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleEvent(ev)}
+                              className="w-full text-left bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition"
+                            >
+                              <div className="flex gap-3 items-start">
+                                <div
+                                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-gray-100"
+                                  style={!ev.event_image ? { backgroundColor: ev.color ?? '#2563EB' } : undefined}
+                                >
+                                  {ev.event_image ? (
+                                    <img src={ev.event_image} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <EventIcon className="w-5 h-5 text-white" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-gray-900 text-base leading-tight">
+                                    {ev.fullTitle || ev.title}
+                                  </p>
+                                  {ev.description ? (
+                                    <div className="text-sm text-gray-500 mt-1.5 leading-snug line-clamp-3">
+                                      <div className="rich-content">
+                                        <div dangerouslySetInnerHTML={{ __html: renderDescription(ev.description || '') }} />
+                                      </div>
                                     </div>
-                                  </div>
-                                ) : null}
-                                {(ev.time || ev.location) ? (
-                                  <div className="mt-2 space-y-0.5 text-sm text-gray-500">
-                                    {ev.time ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <Clock className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{ev.time}</span>
-                                      </div>
-                                    ) : null}
-                                    {ev.location ? (
-                                      <div className="flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{ev.location}</span>
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                ) : null}
+                                  ) : null}
+                                  {ev.time || ev.location ? (
+                                    <div className="mt-2 space-y-0.5 text-sm text-gray-500">
+                                      {ev.time ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <Clock className="w-3.5 h-3.5 shrink-0" />
+                                          <span>{ev.time}</span>
+                                        </div>
+                                      ) : null}
+                                      {ev.location ? (
+                                        <div className="flex items-center gap-1.5">
+                                          <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                          <span>{ev.location}</span>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                <ChevronDown
+                                  className={`w-5 h-5 text-gray-400 transition-transform shrink-0 mt-1 ${
+                                    isExpanded ? 'rotate-180' : ''
+                                  }`}
+                                />
                               </div>
-                              <ChevronDown 
-                                className={`w-5 h-5 text-gray-400 transition-transform shrink-0 mt-1 ${
-                                  isExpanded ? 'rotate-180' : ''
-                                }`}
-                              />
-                            </div>
-                            {isExpanded ? (
-                              <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
-                                {detailLoading ? (
-                                  <div className="flex justify-center py-2">
-                                    <Loader />
-                                  </div>
-                                ) : detail ? (
-                                  <div className="space-y-2">
-                                    {detail.event_image && detail.type !== 'birthday' && detail.type !== 'anniversary' ? (
-                                      <div className="mb-2 rounded-lg overflow-hidden">
-                                        <img src={detail.event_image} alt={detail.title} className="w-full h-32 object-cover" />
-                                      </div>
-                                    ) : null}
-                                    {detail.type === 'birthday' && detail.employee ? (
-                                      <div>
-                                        <p className="text-gray-500">Birthday Celebration</p>
-                                        <p className="leading-relaxed">
-                                          Join us in celebrating {detail.employee.name}'s special day!
-                                        </p>
-                                        {detail.employee.location && (
-                                          <p className="text-gray-500">Location: {detail.employee.location}</p>
-                                        )}
-                                        {detail.employee.position && (
-                                          <p className="text-gray-500">Position: {detail.employee.position}</p>
-                                        )}
-                                      </div>
-                                    ) : detail.type === 'anniversary' && detail.employee ? (
-                                      <div>
-                                        <p className="text-gray-500">Work Anniversary</p>
-                                        <p className="leading-relaxed">
-                                          Congratulations to {detail.employee.name} on {detail.yearsOfService} year{detail.yearsOfService > 1 ? 's' : ''} of service!
-                                        </p>
-                                        {detail.employee.location && (
-                                          <p className="text-gray-500">Location: {detail.employee.location}</p>
-                                        )}
-                                        {detail.employee.position && (
-                                          <p className="text-gray-500">Position: {detail.employee.position}</p>
-                                        )}
-                                      </div>
-                                    ) : (
-                                      <div>
-                                        {detail.description ? (
-                                          <div className="rich-content">
-                                            <div dangerouslySetInnerHTML={{ __html: renderDescription(detail.description || '') }} />
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <p className="text-gray-500">No details available.</p>
-                                )}
-                              </div>
-                            ) : null}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                              {isExpanded ? (
+                                <div className="mt-4 pt-4 border-t border-gray-200 text-sm text-gray-600">
+                                  {detailLoading ? (
+                                    <div className="flex justify-center py-2">
+                                      <Loader />
+                                    </div>
+                                  ) : detail ? (
+                                    <div className="space-y-2">
+                                      {detail.event_image && detail.type !== 'birthday' && detail.type !== 'anniversary' ? (
+                                        <div className="mb-2 rounded-lg overflow-hidden">
+                                          <img src={detail.event_image} alt={detail.title} className="w-full h-32 object-cover" />
+                                        </div>
+                                      ) : null}
+                                      {detail.type === 'birthday' && detail.employee ? (
+                                        <div>
+                                          <p className="text-gray-500">Birthday Celebration</p>
+                                          <p className="leading-relaxed">
+                                            Join us in celebrating {detail.employee.name}'s special day!
+                                          </p>
+                                          {detail.employee.location && (
+                                            <p className="text-gray-500">Location: {detail.employee.location}</p>
+                                          )}
+                                          {detail.employee.position && (
+                                            <p className="text-gray-500">Position: {detail.employee.position}</p>
+                                          )}
+                                        </div>
+                                      ) : detail.type === 'anniversary' && detail.employee ? (
+                                        <div>
+                                          <p className="text-gray-500">Work Anniversary</p>
+                                          <p className="leading-relaxed">
+                                            Congratulations to {detail.employee.name} on {detail.yearsOfService} year{detail.yearsOfService > 1 ? 's' : ''} of service!
+                                          </p>
+                                          {detail.employee.location && (
+                                            <p className="text-gray-500">Location: {detail.employee.location}</p>
+                                          )}
+                                          {detail.employee.position && (
+                                            <p className="text-gray-500">Position: {detail.employee.position}</p>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          {detail.description ? (
+                                            <div className="rich-content">
+                                              <div dangerouslySetInnerHTML={{ __html: renderDescription(detail.description || '') }} />
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <p className="text-gray-500">No details available.</p>
+                                  )}
+                                </div>
+                              ) : null}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <div aria-hidden="true" className="sticky bottom-0 h-4 shrink-0 pointer-events-none bg-white" />
                   </div>
-                </>
+                </div>
               )}
             </div>
             {/* Holidays card */}
@@ -961,19 +962,26 @@ export default function CalendarPage() {
               ) : currentHolidays.length === 0 ? (
                 <p className="text-sm text-gray-500 px-4 pb-4 flex-1">No holidays this month</p>
               ) : (
-                <ul className="space-y-2 flex-1 min-h-0 overflow-y-auto scrollbar-default px-4 pb-4 pr-2">
-                  {currentHolidays.map((h) => (
-                    <li key={h.id} className="flex items-center gap-2 text-sm bg-gray-50 p-4 rounded-2xl">
-                      <span className="w-6 h-6 rounded flex items-center justify-center bg-[#EF4444] text-white shrink-0">
-                        <CalendarDays className="w-3.5 h-3.5" />
-                      </span>
-                      <span>
-                        {h.title}
-                        – {new Date(h.date).toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex flex-col flex-1 min-h-0 overflow-y-auto scrollbar-default px-4 pr-2">
+                  <ul className="space-y-2">
+                    {currentHolidays.map((h) => {
+                      const holidayDateLabel = new Date(h.date).toLocaleDateString('en-US', {
+                        day: 'numeric',
+                        month: 'long',
+                      });
+
+                      return (
+                        <li key={h.id} className="flex items-center gap-2 text-sm bg-gray-50 p-4 rounded-2xl">
+                          <span className="w-6 h-6 rounded flex items-center justify-center bg-[#EF4444] text-white shrink-0">
+                            <CalendarDays className="w-3.5 h-3.5" />
+                          </span>
+                          <span>{h.title} - {holidayDateLabel}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <div aria-hidden="true" className="sticky bottom-0 h-4 shrink-0 pointer-events-none bg-white" ></div>
+                </div>
               )}
             </div>
           </aside>

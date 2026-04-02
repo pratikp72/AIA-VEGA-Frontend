@@ -19,10 +19,10 @@ export default function LocationCard({ unit }) {
         <div className="font-semibold text-lg text-[#6C2EB7] flex items-center mb-2 ">
           <span className="mr-2"><MapPin className='w-6 h-6 bg-primary-opacity-10 rounded-lg p-1'/></span> {unit?.name ?? ''}
         </div>
-        <div className="text-gray-600 text-sm mb-2">{unit?.address || '—'}</div>
-        <div className="text-xs mb-1">Site Manager : <b>{siteManager || '—'}</b></div>
-        <div className="text-xs mb-1">HR Manager : <b>{hrManager || '—'}</b></div>
-        <div className="text-xs mb-2">Contact No. : <b>{unit?.contact || '—'}</b></div>
+        <div className="text-gray-text text-sm mb-2">{unit?.address || '—'}</div>
+        <div className="text-xs mb-1">Site Manager : <b className="text-gray-text">{siteManager || '—'}</b></div>
+        <div className="text-xs mb-1">HR Manager : <b className="text-gray-text">{hrManager || '—'}</b></div>
+        <div className="text-xs mb-2">Contact No. : <b className="text-gray-text">{unit?.contact || '—'}</b></div>
         {mapLink ? (
           <a
             href={mapLink}

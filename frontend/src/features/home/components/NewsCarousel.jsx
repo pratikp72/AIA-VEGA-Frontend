@@ -143,7 +143,7 @@ const getImageUrl = (news) => {
           <Button
             asChild
             size="default"
-            className="rounded-lg bg-primary hover:bg-primary/90 text-white font-bold gap-1.5 h-10 px-5"
+            className="rounded-lg bg-primary hover:bg-primary/90 text-white font-medium gap-1.5 h-10 px-5"
           >
             <Link href={`/news/${currentNews.documentId ?? currentNews.id}`}>
               Read More
