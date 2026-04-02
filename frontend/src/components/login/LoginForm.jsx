@@ -17,34 +17,12 @@ const LoginForm = () => {
   const [showForgotModal, setShowForgotModal] = useState(false);
 
   const clearError = () => setError('');
-  
-  const typingTimeoutRef = useRef(null);
 
   const handleIdentifierChange = (e) => {
-      const value = e.target.value.trim();
-      setIdentifier(value);
-      clearError();
-
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-      typingTimeoutRef.current = setTimeout(() => {
-        if (isCompleteId(value)) {
-          checkUserFirstLogin(value);
-        } else {
-          setUserFirstLogin(false); // reset if ID is incomplete
-        }
-      }, 400); // 400ms debounce
+    setIdentifier(e.target.value.trim());
+    clearError();
   };
 
-    // Helper to check if ID is complete
-  const isCompleteId = (id) => {
-      if (!id) return false;
-      if (id.toUpperCase().startsWith('AIA')) {
-        return id.length >= 7; // AIA min length
-      } else {
-        return id.length >= 4; // Vega min length
-      }
-  };
 
   const handlePasswordChange   = (e) => { setPassword(e.target.value);   clearError(); };
 
@@ -72,30 +50,6 @@ const LoginForm = () => {
 
   const hasError = Boolean(error);
 
-  const checkUserFirstLogin = async (empId) => {
-  if (!empId) return setUserFirstLogin(false);
-
-  try {
-    const res = await apiService.get(`${API_ENDPOINTS.AUTH.CHECK_USER}?identifier=${empId}`);
-
-    if (res.exists) {
-      setUserFirstLogin(res.is_first_login);
-      setError(''); // clear previous errors
-    } else {
-      setUserFirstLogin(false);
-      setError('No user found with this Employee ID'); // show error
-    }
-  } catch (err) {
-    if (err?.response?.status === 404) {
-      // User not found
-      setUserFirstLogin(false);
-      setError('No user found with this Employee ID');
-    } else {
-      setUserFirstLogin(false);
-      setError('Failed to check user. Please try again.');
-    }
-  }
-};
 
   return (
     <div className="glass-card">
