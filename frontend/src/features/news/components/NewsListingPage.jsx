@@ -81,7 +81,7 @@ export default function NewsListingPage() {
               <p className="text-body text-gray-medium">No news found</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(500px,1fr))] gap-6">
               {newsList.map((news) => (
                 <NewsCard key={news.id} news={news} />
               ))}
