@@ -26,9 +26,9 @@ export default function Breadcrumbs({ items = [], showTrailingSeparator = false,
             ) : (
               <span className={labelClass}>{item.label}</span>
             )}
-            {(index < items.length - 1 || showTrailingSeparator) && (
+            {(index < items.length - 1) || (showTrailingSeparator && index === items.length - 1) ? (
               <ChevronRight className="w-4 h-4" />
-            )}
+            ) : null}
           </span>
         );
       })}

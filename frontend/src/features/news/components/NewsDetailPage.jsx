@@ -189,12 +189,12 @@ export default function NewsDetailPage() {
             <h1 className="text-h1 text-gray-900">
               {article.title}
             </h1>
-            <div className="relative w-full overflow-hidden rounded-xl bg-gray-100">
+            <div className="relative w-full max-h-[480px] overflow-hidden rounded-xl bg-gray-100">
               {article.imageUrl && (
                 <img
                   src={article.imageUrl}
                   alt={article.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full max-h-[480px] object-contain object-center"
                 />
               )}
             </div>
@@ -231,16 +231,17 @@ export default function NewsDetailPage() {
 
           {/* Latest News Sidebar */}
           <aside className="lg:col-span-1 lg:mt-14">
-            <SurfaceCard className="overflow-hidden">
+            <SurfaceCard className="overflow-hidden gap-4">
               <div className="px-4 pt-0 pb-0">
                 <h2 className="text-h2 text-gray-900">Latest News</h2>
               </div>
               <ul className="divide-y divide-gray-300 px-4">
+              <div className="border-b border-gray-200 mb-2" />
                 {latestNews.map((item) => (
                   <li key={item.id}>
                     <Link href={`/news/${item.documentId ?? item.id}`} className="block">
                       <div className="flex gap-3 py-3">
-                        <div className="w-20 h-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                        <div className="w-40 h-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
                           {item.imageUrl ? (
                             <img
                               src={item.imageUrl}
@@ -261,7 +262,10 @@ export default function NewsDetailPage() {
                             {item.title}
                           </h3>
                           <p className="text-body text-gray-500 line-clamp-2" dangerouslySetInnerHTML={{ __html: renderSidebarDescription(item.description || '') }} />
-                          <p className="text-small text-gray-400">
+                          
+                          <div className="flex justify-between mt-6">
+                            <div className="text-[12px] text-gray-400">{item.author_name || item.author || ''}</div>
+                            <div className="text-[12px] text-gray-400">
                             {(() => {
                               const date = item.createdAt || item.date;
                               if (!date) return '';
@@ -272,7 +276,8 @@ export default function NewsDetailPage() {
                                 year: 'numeric',
                               });
                             })()}
-                          </p>
+                          </div>
+                          </div>
                         </div>
                       </div>
                     </Link>
