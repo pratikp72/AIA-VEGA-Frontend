@@ -507,35 +507,51 @@ export default function CalendarPage() {
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
-                <div className="relative">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setViewDropdownOpen((o) => !o)}
-                    className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
+                    onClick={() => {
+                      const today = new Date();
+                      setActiveDate(today);
+                      setActiveStartDate(new Date(today.getFullYear(), today.getMonth(), 1));
+                      setViewMode('day');
+                      setCalendarView('month');
+                    }}
+                    className="h-9 px-3 text-sm rounded-lg rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
                   >
-                    {VIEW_MODES.find((m) => m.key === viewMode)?.label ?? 'Month'}
-                    <ChevronDown className={`w-4 h-4 text-gray-600 transition ${viewDropdownOpen ? 'rotate-180' : ''}`} />
+                    Today
                   </button>
-                  {viewDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-10" aria-hidden onClick={() => setViewDropdownOpen(false)} />
-                      <div className="absolute right-0 top-full mt-1 z-20 min-w-[100px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                        {VIEW_MODES.map((m) => (
-                          <button
-                            key={m.key}
-                            type="button"
-                            onClick={() => {
-                              handleViewModeChange(m.key);
-                              setViewDropdownOpen(false);
-                            }}
-                            className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${viewMode === m.key ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
-                          >
-                            {m.label}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setViewDropdownOpen((o) => !o)}
+                      className="flex items-center gap-1.5 h-9 px-3 text-sm rounded-lg bg-gray-100 text-gray-800 hover:bg-gray-200 border border-gray-200 transition"
+                    >
+                      {VIEW_MODES.find((m) => m.key === viewMode)?.label ?? 'Month'}
+                      <ChevronDown className={`w-4 h-4 text-gray-600 transition ${viewDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {viewDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" aria-hidden onClick={() => setViewDropdownOpen(false)} />
+                        <div className="absolute right-0 top-full mt-1 z-20 min-w-[100px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+                          {VIEW_MODES.map((m) => (
+                            <button
+                              key={m.key}
+                              type="button"
+                              onClick={() => {
+                                handleViewModeChange(m.key);
+                                setViewDropdownOpen(false);
+                              }}
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-100 ${viewMode === m.key ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'}`}
+                            >
+                              {m.label}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
                 </div>
               </div>
 
@@ -709,7 +725,7 @@ export default function CalendarPage() {
                     if (total === 0) return null;
                     return (
                       <div className="calendar-tile-inner year-tile">
-                        <span className="text-[10px] font-medium text-gray-600">{total} event{total !== 1 ? 's' : ''}</span>
+                        <span className="text-[14px] mb-3 text-gray-600 ">{total} event{total !== 1 ? 's' : ''}</span>
                       </div>
                     );
                   }
@@ -1072,9 +1088,29 @@ export default function CalendarPage() {
           text-align: left;
           width: 100%;
         }
+        .calendar-card .react-calendar__viewContainer,
+        .calendar-card .react-calendar__year-view {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        .calendar-card .react-calendar__year-view__months {
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr);
+          grid-template-rows: repeat(4, 1fr);
+          flex: 1;
+          min-height: 0;
+        }
         .calendar-card .react-calendar__year-view__months__month {
-          min-height: 60px;
+          flex: 1;
+          min-height: 0;
+          height: 100%;
+          min-height: 150px;
           padding: 8px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
         .calendar-card .react-calendar__year-view .calendar-tile-inner.year-tile {
           display: flex;

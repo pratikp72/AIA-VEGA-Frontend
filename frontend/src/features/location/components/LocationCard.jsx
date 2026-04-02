@@ -16,8 +16,8 @@ export default function LocationCard({ unit }) {
         onError={(e) => { e.target.src = 'https://placehold.co/340x120/e2e8f0/94a3b8?text=No+Image'; }}
       />
       <div className="py-3">
-        <div className="font-semibold text-lg text-[#6C2EB7] flex items-center mb-2">
-          <span className="mr-2"><MapPin className='w-4 h-4'/></span> {unit?.name ?? ''}
+        <div className="font-semibold text-lg text-[#6C2EB7] flex items-center mb-2 ">
+          <span className="mr-2"><MapPin className='w-6 h-6 bg-primary-opacity-10 rounded-lg p-1'/></span> {unit?.name ?? ''}
         </div>
         <div className="text-gray-600 text-sm mb-2">{unit?.address || '—'}</div>
         <div className="text-xs mb-1">Site Manager : <b>{siteManager || '—'}</b></div>

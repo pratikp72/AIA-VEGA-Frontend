@@ -277,6 +277,10 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
                 iconElement = (
                   <IconComp className="w-4 h-4 text-primary-purple" />
                 );
+              } else {
+                // Fallback to HelpCircle if no icon is provided
+                const IconComp = ICON_MAP["HelpCircle"];
+                iconElement = <IconComp className="w-4 h-4 text-primary-purple" />;
               }
               return (
                 <div
@@ -300,24 +304,24 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
           </div>
 
           {/* Pre-Assessment Checklist */}
-          <div className="mb-10">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              Pre-Assessment Checklist
-            </h2>
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              {checklist.subtitle && (
-                <p className="mb-4">{checklist.subtitle}</p>
-              )}
-              <ul className="flex flex-col gap-3">
-                {checklist.items.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-2.5">
-                    <ArrowRight className="w-4 h-4 shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+          {checklist && checklist.subtitle && (
+            <div className="mb-10">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">
+                Pre-Assessment Checklist
+              </h2>
+              <div className="bg-white border border-gray-200 rounded-xl p-6">
+                  <p className="mb-4">{checklist.subtitle}</p>
+                  <ul className="flex flex-col gap-3">
+                    {Array.isArray(checklist.items) && checklist.items.map((item, idx) => (
+                      <li key={idx} className="flex items-center gap-2.5">
+                        <ArrowRight className="w-4 h-4 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Start Assessment Button / Pending or Rejected Reattempt Block */}
           <div className="flex flex-col items-center gap-4">

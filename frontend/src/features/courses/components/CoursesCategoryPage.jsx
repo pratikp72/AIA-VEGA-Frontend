@@ -529,7 +529,7 @@ export default function CoursesCategoryPage({ category }) {
               <Loader size="lg" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid w-full gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(350px,1fr))]">
               {courses.map((course) => {
                 const isNotStarted = !course.completed && (!course.progressStatus || course.progressStatus === 'Not_started');
                 const isInProgress = !course.completed && (course.progressStatus === 'In_progress' || course.progressStatus === 'Failed');
@@ -550,7 +550,7 @@ export default function CoursesCategoryPage({ category }) {
                       <img
                         src={course.image}
                         alt={course.title}
-                        className="w-full h-full object-cover rounded-3xl"
+                        className="w-full h-full object-contain rounded-3xl"
                         style={{ borderRadius: '18px' }}
                       />
                       <div className="absolute top-6 left-6 flex items-center gap-2 w-full pr-4">
@@ -634,13 +634,16 @@ export default function CoursesCategoryPage({ category }) {
                           </div>
                         )}
                       </div>
-                      <div className="font-medium text-gray-900 text-lg line-clamp-2">
+                      <div
+                        className="font-medium text-gray-900 text-lg line-clamp-1"
+                        title={course.title}
+                      >
                         {course.title}
                       </div>
                       {isInProgress && (
                         <Button
                           onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className={`rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
+                          className={`rounded-md font-normal px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
                             isLockedByDeadline
                               ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
                               : 'bg-primary text-white'
@@ -652,7 +655,7 @@ export default function CoursesCategoryPage({ category }) {
                       {isNotStarted && (
                         <Button
                           onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className={`rounded-md px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
+                          className={`rounded-md font-normal px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
                             isLockedByDeadline
                               ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
                               : 'bg-primary text-white'
@@ -662,8 +665,8 @@ export default function CoursesCategoryPage({ category }) {
                         </Button>
                       )}
                       {isCompleted && (
-                        <div className="mt-6 flex">
-                          <Button className="bg-primary text-white rounded-md px-6 py-2 w-full flex items-center gap-2 justify-center text-lg font-semibold">
+                        <div className="flex">
+                          <Button className="bg-primary text-white mt-4 font-normal rounded-md px-6 py-2 w-full flex items-center gap-2 justify-center">
                             Review <ChevronRight className="w-5 h-5" />
                           </Button>
                         </div>
