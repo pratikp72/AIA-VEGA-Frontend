@@ -550,7 +550,7 @@ export default function CoursesCategoryPage({ category }) {
                       <img
                         src={course.image}
                         alt={course.title}
-                        className="w-full h-full object-contain rounded-3xl"
+                        className="w-full h-full object-cover rounded-3xl"
                         style={{ borderRadius: '18px' }}
                       />
                       <div className="absolute top-6 left-6 flex items-center gap-2 w-full pr-4">
