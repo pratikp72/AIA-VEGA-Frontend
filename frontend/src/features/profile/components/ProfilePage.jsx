@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/common/PageHeader';
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
-import { Building2, Edit2, Hash } from 'lucide-react';
+import { Building2, Camera, Edit2, Hash } from 'lucide-react';
 
 function formatDate(value) {
   if (!value) return '';
@@ -41,6 +41,15 @@ function getInitialForm(user) {
     date_of_birth: toInputDate(user?.date_of_birth),
     joining_date: toInputDate(user?.joining_date),
   };
+}
+
+function getPhotographId(user) {
+  const photo = user?.photograph;
+  if (!photo) return null;
+  if (typeof photo === 'number') return photo;
+  if (typeof photo?.id === 'number') return photo.id;
+  if (typeof photo?.data?.id === 'number') return photo.data.id;
+  return null;
 }
 
 function Field({ label, value, editing, name, onChange, type = 'text', disabled = false, selectOptions = [] }) {
@@ -86,9 +95,13 @@ function Field({ label, value, editing, name, onChange, type = 'text', disabled 
 
 export default function ProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef(null);
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
+  const [uploadedPhotoId, setUploadedPhotoId] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -136,6 +149,8 @@ export default function ProfilePage() {
         if (mergedUser && isMounted) {
           setUser(mergedUser);
           setFormData(getInitialForm(mergedUser));
+          setAvatarPreviewUrl('');
+          setUploadedPhotoId(null);
           localStorage.setItem('user', JSON.stringify(mergedUser));
         }
       } catch {
@@ -159,6 +174,7 @@ export default function ProfilePage() {
   }
 
   const { src: avatarSrc, initials } = getAvatarPropsForUser(user);
+  const displayAvatarSrc = isEditing && avatarPreviewUrl ? avatarPreviewUrl : avatarSrc;
   const isAIA = String(user?.company || '').toLowerCase().includes('aia');
   const userCode = isAIA ? user?.emp_code : user?.emp_id;
 
@@ -178,7 +194,60 @@ export default function ProfilePage() {
     setErrorMessage('');
     setSuccessMessage('');
     setFormData(getInitialForm(user));
+    setAvatarPreviewUrl('');
+    setUploadedPhotoId(null);
     setIsEditing(false);
+  };
+
+  const handleAvatarIconClick = () => {
+    if (!isEditing || uploadingPhoto) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please select a valid image file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('Image size should be under 5MB.');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreviewUrl(objectUrl);
+
+    try {
+      setUploadingPhoto(true);
+      const formDataForUpload = new FormData();
+      formDataForUpload.append('files', file);
+
+      const uploaded = await api.post('/upload', formDataForUpload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const mediaId = Array.isArray(uploaded) ? uploaded[0]?.id : uploaded?.id;
+      if (!mediaId) {
+        throw new Error('Image upload failed. Please try again.');
+      }
+      setUploadedPhotoId(mediaId);
+    } catch (err) {
+      setErrorMessage(err?.error?.message || err?.message || 'Failed to upload profile image.');
+      setAvatarPreviewUrl('');
+      setUploadedPhotoId(null);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSave = async () => {
@@ -207,6 +276,10 @@ export default function ProfilePage() {
     if ((formData.joining_date || '') !== toInputDate(user.joining_date)) {
       changes.joining_date = formData.joining_date || null;
     }
+    const currentPhotographId = getPhotographId(user);
+    if (uploadedPhotoId && uploadedPhotoId !== currentPhotographId) {
+      changes.photograph = uploadedPhotoId;
+    }
 
     if (Object.keys(changes).length === 0) {
       setErrorMessage('No changes detected.');
@@ -233,6 +306,8 @@ export default function ProfilePage() {
       setIsEditing(false);
       // Keep UI on approved profile values until admin approves the request.
       setFormData(getInitialForm(user));
+      setAvatarPreviewUrl('');
+      setUploadedPhotoId(null);
       setSuccessMessage('Profile update request sent to admin for approval.');
     } catch (err) {
       setErrorMessage(err?.error?.message || err?.message || 'Failed to submit request.');
@@ -264,10 +339,33 @@ export default function ProfilePage() {
           <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-8">
               <div className="flex items-center gap-3">
-                <Avatar className="h-18 w-18 border border-gray-300">
-                  <AvatarImage src={avatarSrc} />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="h-18 w-18 border border-gray-300">
+                    <AvatarImage src={displayAvatarSrc} />
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={handleAvatarIconClick}
+                      disabled={uploadingPhoto}
+                      className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
+                      title="Change profile picture"
+                      aria-label="Change profile picture"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
+                  />
+                </div>
 
                 <div>
                   <p className="text-xl font-semibold text-gray-900">{formData.employee_name || '—'}</p>
@@ -296,10 +394,10 @@ export default function ProfilePage() {
                     <button
                       type="button"
                       onClick={handleSave}
-                      disabled={saving}
+                      disabled={saving || uploadingPhoto}
                       className="rounded-md h-10 bg-primary px-3 py-1.5 text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
                     >
-                      {saving ? 'Saving...' : 'Save'}
+                      {uploadingPhoto ? 'Uploading...' : saving ? 'Saving...' : 'Save'}
                     </button>
                   </>
                 ) : (
