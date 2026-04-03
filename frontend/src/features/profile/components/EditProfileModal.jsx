@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import styles from './EditProfileModal.module.css';
 
 const EditProfileModal = ({ open, onClose, user, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -106,12 +107,12 @@ const EditProfileModal = ({ open, onClose, user, onSuccess }) => {
       }
 
       setSuccessMessage(
-        '✓ Your profile edit request has been submitted successfully! It will be reviewed by the HR admin.'
+        'Your profile edit request has been submitted successfully! It will be reviewed by the HR admin.'
       );
       setTimeout(() => {
         onClose();
         if (onSuccess) onSuccess();
-      }, 2000);
+      }, 3000);
     } catch (err) {
       setError(err?.message || 'Failed to submit request. Please try again.');
       console.error('Error submitting profile edit request:', err);
@@ -123,14 +124,20 @@ const EditProfileModal = ({ open, onClose, user, onSuccess }) => {
   if (!open) return null;
 
   return createPortal(
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.overlay}
+      onClick={onClose}
+    >
+      <div
+        className={styles.modal}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={titleStyle}>Edit Profile</h2>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Edit Profile</h2>
           <button
             onClick={onClose}
-            style={closeButtonStyle}
+            className={styles.closeButton}
             type="button"
             aria-label="Close modal"
           >
@@ -138,128 +145,134 @@ const EditProfileModal = ({ open, onClose, user, onSuccess }) => {
           </button>
         </div>
 
-        <div style={dividerStyle} />
+        <div className={styles.divider} />
 
         {/* Form */}
-        <form onSubmit={handleSubmit} style={formStyle}>
+        <form onSubmit={handleSubmit} className={styles.form}>
           {/* Name */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Name</label>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Name</label>
             <input
               type="text"
               name="employee_name"
               value={formData.employee_name}
               onChange={handleChange}
               placeholder="Enter your full name"
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           {/* Contact */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Contact Number</label>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Contact Number</label>
             <input
               type="tel"
               name="contact_no"
               value={formData.contact_no}
               onChange={handleChange}
               placeholder="Enter your contact number"
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           {/* Designation */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Designation</label>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Designation</label>
             <input
               type="text"
               name="designation"
               value={formData.designation}
               onChange={handleChange}
               placeholder="Enter your designation"
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           {/* Department */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Department</label>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Department</label>
             <input
               type="text"
               name="department"
               value={formData.department}
               onChange={handleChange}
               placeholder="Enter your department"
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
           {/* Working Location (VEGA) */}
           {(user?.company || '').toLowerCase().includes('vega') && (
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>Working Location</label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Working Location</label>
               <input
                 type="text"
                 name="working_location"
                 value={formData.working_location}
                 onChange={handleChange}
                 placeholder="Enter your working location"
-                style={inputStyle}
+                className={styles.input}
               />
             </div>
           )}
 
           {/* Branch (AIA) */}
           {(user?.company || '').toLowerCase().includes('aia') && (
-            <div style={formGroupStyle}>
-              <label style={labelStyle}>Branch</label>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Branch</label>
               <input
                 type="text"
                 name="branch"
                 value={formData.branch}
                 onChange={handleChange}
                 placeholder="Enter your branch"
-                style={inputStyle}
+                className={styles.input}
               />
             </div>
           )}
 
           {/* Date of Birth */}
-          <div style={formGroupStyle}>
-            <label style={labelStyle}>Date of Birth</label>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Date of Birth</label>
             <input
               type="date"
               name="date_of_birth"
               value={formData.date_of_birth}
               onChange={handleChange}
-              style={inputStyle}
+              className={styles.input}
             />
           </div>
 
-          <div style={dividerStyle} />
+          <div className={styles.divider} />
 
           {/* Error Message */}
-          {error && <div style={errorBoxStyle}>{error}</div>}
+          {error && (
+            <div className={styles.errorBox}>
+              {error}
+            </div>
+          )}
 
           {/* Success Message */}
           {successMessage && (
-            <div style={successBoxStyle}>{successMessage}</div>
+            <div className={styles.successBox}>
+              {successMessage}
+            </div>
           )}
 
           {/* Buttons */}
-          <div style={buttonGroupStyle}>
+          <div className={styles.buttonGroup}>
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              style={cancelButtonStyle}
+              className={styles.cancelButton}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              style={submitButtonStyle}
+              className={styles.submitButton}
             >
               {loading ? 'Submitting...' : 'Submit for Review'}
             </button>
@@ -269,147 +282,6 @@ const EditProfileModal = ({ open, onClose, user, onSuccess }) => {
     </div>,
     document.body
   );
-};
-
-// Styles
-const overlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const modalStyle = {
-  backgroundColor: '#ffffff',
-  borderRadius: '12px',
-  boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-  maxWidth: '600px',
-  width: '90vw',
-  maxHeight: '90vh',
-  overflow: 'auto',
-  padding: '28px',
-};
-
-const headerStyle = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '16px',
-};
-
-const titleStyle = {
-  fontSize: '22px',
-  fontWeight: '600',
-  margin: 0,
-  color: '#000000',
-};
-
-const closeButtonStyle = {
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  padding: '4px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#666666',
-  transition: 'color 0.2s',
-};
-
-const dividerStyle = {
-  height: '1px',
-  backgroundColor: '#e0e0e0',
-  margin: '16px 0',
-};
-
-const formStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '12px',
-};
-
-const formGroupStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '6px',
-};
-
-const labelStyle = {
-  fontSize: '14px',
-  fontWeight: '500',
-  color: '#333333',
-};
-
-const inputStyle = {
-  padding: '10px 12px',
-  border: '1px solid #d0d0d0',
-  borderRadius: '6px',
-  fontSize: '14px',
-  fontFamily: 'inherit',
-  transition: 'border-color 0.2s',
-  outline: 'none',
-};
-
-const helperTextStyle = {
-  fontSize: '12px',
-  color: '#999999',
-  margin: '4px 0 0 0',
-};
-
-const errorBoxStyle = {
-  padding: '12px',
-  backgroundColor: '#fee',
-  border: '1px solid #fcc',
-  borderRadius: '6px',
-  color: '#c33',
-  fontSize: '14px',
-  marginTop: '8px',
-};
-
-const successBoxStyle = {
-  padding: '12px',
-  backgroundColor: '#efe',
-  border: '1px solid #cfc',
-  borderRadius: '6px',
-  color: '#3c3',
-  fontSize: '14px',
-  marginTop: '8px',
-};
-
-const buttonGroupStyle = {
-  display: 'flex',
-  gap: '12px',
-  justifyContent: 'flex-end',
-  marginTop: '20px',
-};
-
-const cancelButtonStyle = {
-  padding: '10px 20px',
-  backgroundColor: '#f0f0f0',
-  border: '1px solid #d0d0d0',
-  borderRadius: '6px',
-  fontSize: '14px',
-  fontWeight: '500',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
-};
-
-const submitButtonStyle = {
-  padding: '10px 24px',
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  borderRadius: '6px',
-  fontSize: '14px',
-  fontWeight: '500',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
 };
 
 export default EditProfileModal;

@@ -1,0 +1,146 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.modal {
+  width: 90vw;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 28px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.header {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: #000000;
+}
+
+.closeButton {
+  border: 0;
+  background: transparent;
+  color: #666666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.divider {
+  margin: 16px 0;
+  height: 1px;
+  background: #e0e0e0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333333;
+}
+
+.input {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.errorBox {
+  margin-top: 8px;
+  border: 1px solid #ffcccc;
+  border-radius: 6px;
+  background: #ffeeee;
+  padding: 12px;
+  color: #cc3333;
+  font-size: 14px;
+}
+
+.successBox {
+  margin-top: 8px;
+  border: 1px solid #ccffcc;
+  border-radius: 6px;
+  background: #eeffee;
+  padding: 12px;
+  color: #338833;
+  font-size: 14px;
+}
+
+.buttonGroup {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelButton {
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  background: #f0f0f0;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+  background: #e8e8e8;
+}
+
+.submitButton {
+  border: 0;
+  border-radius: 6px;
+  background: #007bff;
+  color: #ffffff;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.submitButton:hover {
+  background: #0069d9;
+}
+
+.cancelButton:disabled,
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

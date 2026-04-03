@@ -165,6 +165,16 @@ export default function ProfilePage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!successMessage) return;
+
+    const timer = setTimeout(() => {
+      setSuccessMessage('');
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
   if (!user || !formData) {
     return (
       <PageContainer className="flex min-h-[50vh] items-center justify-center">
