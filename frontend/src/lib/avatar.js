@@ -1,9 +1,5 @@
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api').replace(/\/api\/?$/, '');
 
-function getCompanyTag(company) {
-  return (company || '').toString().trim().toLowerCase();
-}
-
 const HONORIFIC_PREFIXES = new Set([
   'mr',
   'mrs',
@@ -91,24 +87,14 @@ function getUserPhotoSrc(user) {
 
 /**
  * Avatar rule:
- * - AIA users: use backend photograph when available.
- * - Vega users: always show first-letter fallback (no image).
+ * - Company users (AIA/VEGA): use backend photograph when available.
  * - Others: use photograph if present, else first-letter fallback.
  */
 export function getAvatarPropsForEmployee(user) {
   const name = user?.employee_name || user?.username || user?.name || 'Unknown';
-  const companyTag = getCompanyTag(user?.company);
   const firstLetter = getFirstLetter(name, user?.email?.[0] || '?');
 
-  if (companyTag.includes('vega')) {
-    return { src: '', initials: firstLetter };
-  }
-
   const photoSrc = getUserPhotoSrc(user);
-
-  if (companyTag.includes('aia')) {
-    return { src: photoSrc, initials: firstLetter };
-  }
 
   return { src: photoSrc, initials: firstLetter };
 }
