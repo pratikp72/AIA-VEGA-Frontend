@@ -34,7 +34,7 @@ function toInputDate(value) {
 
 function getInitialForm(user) {
   return {
-    employee_name: user?.employee_name || user?.username || user?.name || '',
+    username: user?.username || user?.employee_name || user?.name || '',
     email: user?.email || '',
     contact_no: user?.contact_no || '',
     designation: user?.designation || '',
@@ -256,9 +256,8 @@ export default function ProfilePage() {
 
     const changes = {};
 
-    const updatedFullName = (formData.employee_name || '').trim();
-    if (updatedFullName !== (user.employee_name || user.username || user.name || '').trim()) {
-      changes.employee_name = updatedFullName;
+    const updatedFullName = (formData.username || '').trim();
+    if (updatedFullName !== (user.username || user.employee_name || user.name || '').trim()) {
       changes.username = updatedFullName;
     }
     if ((formData.contact_no || '').trim() !== (user.contact_no || '').trim()) {
@@ -368,7 +367,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <p className="text-xl font-semibold text-gray-900">{formData.employee_name || '—'}</p>
+                  <p className="text-xl font-semibold text-gray-900">{formData.username || '—'}</p>
                   <div className="mt-1 flex items-center gap-2 text-gray-500">
                     <Building2 className="h-3.5 w-3.5 text-primary" />
                     <span>{user?.company || '—'}</span>
@@ -418,8 +417,8 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
               <Field
                 label="Full Name"
-                name="employee_name"
-                value={formData.employee_name}
+                name="username"
+                value={formData.username}
                 editing={isEditing}
                 onChange={handleChange}
               />
