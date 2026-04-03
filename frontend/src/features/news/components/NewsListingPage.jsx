@@ -44,7 +44,10 @@ export default function NewsListingPage() {
     setSelectedCategory(value === '' ? 'All Categories' : value);
   }, []);
 
-  const categoryOptions = [...categories.map((c) => c.name)];
+  const categoryOptions = [
+    { label: 'All Categories', value: 'All Categories' },
+    ...categories.map((c) => ({ label: c.name, value: c.name })),
+  ];
 
   const newsBgStyle = {
     backgroundImage: 'url(/feedback-form-bg.png)',
@@ -59,12 +62,13 @@ export default function NewsListingPage() {
         title="News"
         breadcrumbs={[{ label: 'Home', href: '/home' }, { label: 'News' }]}
         right={
-          <div className="w-[200px]">
+          <div className="w-50">
             <Select
               value={selectedCategory}
               onChange={handleCategoryChange}
               options={categoryOptions}
               placeholder="All Categories"
+              variant="filter"
             />
           </div>
         }

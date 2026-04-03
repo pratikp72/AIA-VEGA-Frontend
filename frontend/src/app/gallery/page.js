@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
+import { Button } from '@/components/ui/button';
 import GalleryGrid from '@/features/gallery/components/GalleryGrid';
 import Filters from '@/components/common/Filters';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -16,12 +17,17 @@ import {
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-// Sort By: display label -> API value
-const SORT_BY_MAP = { 'Newest': 'newest', 'Oldest': 'oldest', 'Title A–Z': 'title-asc', 'Title Z–A': 'title-desc' };
-const SORT_BY_OPTIONS = ['', 'Newest', 'Oldest', 'Title A–Z', 'Title Z–A'];
+const SORT_BY_OPTIONS = [
+  { label: 'Latest', value: 'Newest' },
+  { label: 'Oldest', value: 'Oldest' },
+  { label: 'Title A-Z', value: 'Title A-Z' },
+  { label: 'Title Z-A', value: 'Title Z-A' },
+];
 
-// Type: display -> API value (image | video)
-const TYPE_OPTIONS = ['', 'Image', 'Video'];
+const TYPE_OPTIONS = [
+  { label: 'Images', value: 'image' },
+  { label: 'Videos', value: 'video' },
+];
 
 function formatDateForApi(value) {
   if (!value) return '';
@@ -59,10 +65,8 @@ export default function GalleryPage() {
   useEffect(() => {
     const params = {};
     if (companyFilter) params.company = companyFilter;
-    if (type) params.type = type.toLowerCase();
-    if (sortBy) {
-      params.sortBy = SORT_BY_MAP[sortBy] ?? sortBy;
-    }
+    if (type) params.type = type;
+    if (sortBy) params.sortBy = sortBy;
     if (searchDebounced?.trim()) params.search = searchDebounced.trim();
     if (date) params.date = formatDateForApi(date);
     dispatch(loadGalleryByFilters(params));
@@ -82,13 +86,13 @@ export default function GalleryPage() {
         breadcrumbs={[{ label: 'Gallery' }]}
         containerClassName="pt-xl pb-0 px-xl bg-transparent"
         right={
-          <div className="flex items-center rounded-[8px] border border-primary">
+          <div className="flex items-center rounded-xl border border-primary">
             <button
               type="button"
               onClick={() => setCompanyFilter('AIA')}
               className={companyFilter === 'AIA'
-                ? 'h-[34px] px-4 text-small font-medium rounded-r-none rounded-l-[8px] bg-primary text-white'
-                : 'h-[34px] px-4 text-small font-medium rounded-r-none rounded-l-[8px] bg-white text-primary'}
+                ? 'h-8.5 px-4 text-small font-medium rounded-r-none rounded-l-xl bg-primary text-white'
+                : 'h-8.5 px-4 text-small font-medium rounded-r-none rounded-l-xl bg-white text-primary'}
             >
               AIA
             </button>
@@ -96,8 +100,8 @@ export default function GalleryPage() {
               type="button"
               onClick={() => setCompanyFilter('VEGA')}
               className={companyFilter === 'VEGA'
-                ? 'h-[34px] px-4 text-small font-medium rounded-l-none rounded-r-[8px] bg-primary text-white'
-                : 'h-[34px] px-4 text-small font-medium rounded-l-none rounded-r-[8px] bg-white text-primary'}
+                ? 'h-8.5 px-4 text-small font-medium rounded-l-none rounded-r-xl bg-primary text-white'
+                : 'h-8.5 px-4 text-small font-medium rounded-l-none rounded-r-xl bg-white text-primary'}
             >
               VEGA
             </button>
@@ -112,8 +116,8 @@ export default function GalleryPage() {
             date={date}
             onDateChange={(v) => setDate(v)}
             selects={[
-              { value: sortBy, onChange: (v) => setSortBy(v), options: SORT_BY_OPTIONS, placeholder: 'Sort By' },
-              { value: type, onChange: (v) => setType(v), options: TYPE_OPTIONS, placeholder: 'Type' },
+              { value: sortBy, onChange: (v) => setSortBy(v), options: SORT_BY_OPTIONS, placeholder: 'Sort By', variant: 'filter' },
+              { value: type, onChange: (v) => setType(v), options: TYPE_OPTIONS, placeholder: 'Type', variant: 'filter' },
             ]}
           >
             {(
@@ -122,9 +126,9 @@ export default function GalleryPage() {
               sortBy ||
               type
             ) && (
-              <button
+              <Button
                 type="button"
-                className="ml-2 px-4 py-2 rounded-lg bg-white text-primary font-medium text-base hover:bg-gray-100"
+                className="h-12 px-4 rounded-[12px] border border-gray-100 bg-white text-primary font-medium text-base shadow-none hover:bg-gray-100"
                 onClick={() => {
                   setSearch('');
                   setDate('');
@@ -133,7 +137,7 @@ export default function GalleryPage() {
                 }}
               >
                 Reset filters
-              </button>
+              </Button>
             )}
           </Filters>
         </div>
@@ -152,8 +156,8 @@ export default function GalleryPage() {
                 type="button"
                 onClick={() => dispatch(loadGalleryByFilters({
                   company: companyFilter,
-                  type: type ? type.toLowerCase() : undefined,
-                  sortBy: SORT_BY_MAP[sortBy] ?? sortBy ?? 'newest',
+                  type: type || undefined,
+                  sortBy: sortBy || 'newest',
                   search: searchDebounced?.trim(),
                   date: date ? formatDateForApi(date) : undefined,
                 }))}

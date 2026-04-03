@@ -180,7 +180,6 @@ export default function MediaCard({ item, onClick }) {
             src={imageUrl}
             alt={item.title || 'Gallery image'}
             className="w-full h-full object-cover"
-            style={{ objectFit: 'cover' }}
           />
         )}
       </div>

@@ -33,6 +33,12 @@ import {
 const PER_PAGE = 10;
 const AUTO_PER_PAGE = 'auto';
 const PER_PAGE_OPTIONS = [10, 25, 50, 100, { value: AUTO_PER_PAGE, label: 'All Users' }];
+const SORT_OPTIONS = [
+  { label: 'Name (A-Z)', value: 'name-asc' },
+  { label: 'Name (Z-A)', value: 'name-desc' },
+  { label: 'Join Date (Newest)', value: 'join-newest' },
+  { label: 'Join Date (Oldest)', value: 'join-oldest' },
+];
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
@@ -278,20 +284,23 @@ export default function PeopleListingPage() {
             {
               value: sortBy,
               onChange: handleFilterChange(setSortBy),
-              options: ['', 'name-asc', 'name-desc', 'join-newest', 'join-oldest'],
+              options: SORT_OPTIONS,
               placeholder: 'Sort By',
+              variant: 'filter',
             },
             {
               value: departmentFilter,
               onChange: handleFilterChange(setDepartmentFilter),
               options: departmentOptions,
               placeholder: 'Department',
+              variant: 'filter',
             },
             {
               value: locationFilter,
               onChange: handleFilterChange(setLocationFilter),
               options: locationOptions,
               placeholder: 'Location',
+              variant: 'filter',
             },
           ]}
         >
@@ -299,7 +308,7 @@ export default function PeopleListingPage() {
             <Button
               type="button"
               onClick={handleResetFilters}
-              className="h-12 px-4 text-small font-medium rounded-[12px] shadow-none border border-gray-100 bg-white text-primary hover:bg-gray-50"
+              className="h-12 px-4 rounded-[12px] border border-gray-100 bg-white text-primary font-medium text-base shadow-none hover:bg-gray-100"
             >
               Reset filters
             </Button>
@@ -320,7 +329,7 @@ export default function PeopleListingPage() {
           <>
             <div className="relative">
               {isLoading && people.length > 0 && !isAutoMode && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl min-h-[200px]">
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl min-h-50">
                   <Loader size="lg" />
                 </div>
               )}

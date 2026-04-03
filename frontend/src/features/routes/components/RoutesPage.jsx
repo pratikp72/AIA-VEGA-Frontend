@@ -219,6 +219,7 @@ export default function RoutesPage() {
                 options={locations.map((loc) => loc.name)}
                 placeholder="Select Location"
                 textSize="text-base"
+                variant="filter"
               />
             </div>
           </div>
@@ -248,6 +249,7 @@ export default function RoutesPage() {
                   }
                   textSize="text-base"
                   wrapValue
+                  variant="filter"
                   disabled={!selectedLocationId || !(locationDetail?.units && locationDetail.units.length > 0)}
                 />
               </div>
@@ -276,6 +278,7 @@ export default function RoutesPage() {
                   }
                   textSize="text-base"
                   wrapValue
+                  variant="filter"
                   disabled={!selectedUnitId || !(activeUnit?.routes && activeUnit.routes.length > 0)}
                 />
               </div>
@@ -288,7 +291,7 @@ export default function RoutesPage() {
               Select Shift
             </div>
             <div className="py-2">
-              <div className="relative justify-center rounded-[12px] bg-white border border-gray-100 shadow-sm py-2 px-4 flex flex-wrap gap-2 items-center min-h-[48px]">
+              <div className="relative justify-center rounded-2xl bg-white border border-gray-100 shadow-sm py-2 px-4 flex flex-wrap gap-2 items-center min-h-12">
                 <div className="relative flex flex-wrap gap-2 w-full">
                   {availableShifts.length > 0 ? (
                     availableShifts.map((shift) => {
@@ -339,7 +342,7 @@ export default function RoutesPage() {
           <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] gap-6 items-start">
             {/* Map image card */}
             {selectedRouteId && (
-              <div className="rounded-2xl bg-white shadow-md border border-gray-100 overflow-hidden h-[600px]">
+              <div className="rounded-2xl bg-white shadow-md border border-gray-100 overflow-hidden h-150">
                 <img
                   src={routeImageSrc}
                   alt={activeUnit?.unitName || "Route map"}
@@ -350,7 +353,7 @@ export default function RoutesPage() {
 
             {/* Route & time list */}
             {selectedRouteId && selectedShift && (
-            <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-4  max-h-[600px] flex flex-col">
+            <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-4  max-h-150 flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-xs uppercase tracking-wide text-gray-400">
@@ -373,7 +376,7 @@ export default function RoutesPage() {
                       className="flex items-center justify-between py-2 px-1"
                     >
                       <span className="text-[#111827]">{stop.name}</span>
-                      <span className="text-xs text-[#6B7280] flex items-center gap-3">
+                      <span className="text-xs text-gray-500 flex items-center gap-3">
                         {stop.time ? stop.time.slice(0, 5) : ""}
                         {stop.locationLink && (
                           <a

@@ -56,8 +56,8 @@ export default function GalleryGrid({ items = [] }) {
                     src={(selectedItem.video?.url && (selectedItem.video?.url.startsWith('http') ? selectedItem.video?.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${selectedItem.video?.url}`)) || selectedItem.url}
                     controls
                     controlsList="nodownload"
-                    className="w-auto h-90 object-contain"
-                    // style={{ maxHeight: '400px',}}
+                    className="w-full h-auto object-cover"
+                    style={{ maxHeight: '315px',}}
                     autoPlay
                     playsInline
                     preload="metadata"
@@ -74,7 +74,7 @@ export default function GalleryGrid({ items = [] }) {
                     })()}
                     alt={selectedItem.title || 'Gallery item'}
                     className="w-full h-auto object-cover"
-                    style={{ maxHeight: '350px' }}
+                    style={{ maxHeight: '315px' }}
                   />
                 )}
               </div>
