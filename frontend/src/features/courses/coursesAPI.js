@@ -130,7 +130,7 @@ function normalizeCourse(course) {
       : course.prerequisite_courses
         ? [course.prerequisite_courses]
         : [],
-    active: course.active !== false,
+    active: course.active !== 'unpublished',
   };
 }
 
@@ -157,7 +157,7 @@ async function fetchCourseDueDateMap() {
         'populate[departments]': true,
         'populate[individual_user]': true,
         'populate[work_locations]': true,
-        'filters[active][$eq]': true,
+        'filters[active][$eq]': 'published',
         'pagination[pageSize]': 1000,
         'pagination[page]': 1,
       },
@@ -357,7 +357,7 @@ export const fetchAllCourses = async () => {
   } while (page <= pageCount);
   const dueDateMap = await fetchCourseDueDateMap();
   return all
-    .filter(c => c.active !== false)
+    .filter(c => c.active !== 'unpublished')
     .map((course) => {
       const normalizedCourse = normalizeCourse(course);
       const assignedDueDate = dueDateMap[course?.id] || null;
