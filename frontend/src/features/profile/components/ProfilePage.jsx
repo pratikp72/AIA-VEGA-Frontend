@@ -105,6 +105,37 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [hasPendingEditRequest, setHasPendingEditRequest] = useState(false);
+
+  const loadPendingEditRequestStatus = async (targetUserId) => {
+    if (!targetUserId) {
+      setHasPendingEditRequest(false);
+      return;
+    }
+
+    try {
+      const response = await api.get(API_ENDPOINTS.PROFILE_EDIT_REQUESTS.LIST, {
+        params: {
+          'filters[users_permissions_user][id][$eq]': targetUserId,
+          'filters[request_status][$eq]': 'Pending',
+          'pagination[page]': 1,
+          'pagination[pageSize]': 1,
+          sort: 'createdAt:desc',
+        },
+      });
+
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+          ? response
+          : [];
+
+      setHasPendingEditRequest(rows.length > 0);
+    } catch {
+      // Do not block profile UI if pending-state lookup fails.
+      setHasPendingEditRequest(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -152,9 +183,13 @@ export default function ProfilePage() {
           setAvatarPreviewUrl('');
           setUploadedPhotoId(null);
           localStorage.setItem('user', JSON.stringify(mergedUser));
+          const targetUserId = mergedUser?.id ?? mergedUser?.documentId;
+          await loadPendingEditRequestStatus(targetUserId);
         }
       } catch {
         // Keep local user as fallback when profile fetch fails.
+        const fallbackUserId = data?.id ?? data?.documentId;
+        await loadPendingEditRequestStatus(fallbackUserId);
       }
     };
 
@@ -164,6 +199,18 @@ export default function ProfilePage() {
       isMounted = false;
     };
   }, [router]);
+
+  useEffect(() => {
+    if (!user?.id && !user?.documentId) return;
+
+    const handleFocus = () => {
+      const targetUserId = user?.id ?? user?.documentId;
+      loadPendingEditRequestStatus(targetUserId);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, user?.documentId]);
 
   useEffect(() => {
     if (!successMessage) return;
@@ -194,6 +241,10 @@ export default function ProfilePage() {
   };
 
   const handleEdit = () => {
+    if (hasPendingEditRequest) {
+      setErrorMessage('You have already requested profile changes. Please wait for admin review.');
+      return;
+    }
     setErrorMessage('');
     setSuccessMessage('');
     setFormData(getInitialForm(user));
@@ -318,6 +369,7 @@ export default function ProfilePage() {
       setAvatarPreviewUrl('');
       setUploadedPhotoId(null);
       setSuccessMessage('Profile update request sent to admin for approval.');
+      setHasPendingEditRequest(true);
     } catch (err) {
       setErrorMessage(err?.error?.message || err?.message || 'Failed to submit request.');
     } finally {
@@ -342,6 +394,12 @@ export default function ProfilePage() {
           {successMessage && (
             <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
               {successMessage}
+            </div>
+          )}
+
+          {hasPendingEditRequest && !isEditing && (
+            <div className="rounded-xl border border-primary-opacity-20 bg-primary-light px-4 py-3 text-sm text-primary">
+              You have requested profile changes. Your request has been submitted to the admin for approval.
             </div>
           )}
 
@@ -413,10 +471,15 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={handleEdit}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary p-4 text-white transition-colors hover:bg-primary/90"
+                    disabled={hasPendingEditRequest}
+                    className={`inline-flex h-10 items-center gap-1.5 rounded-md p-4 text-white transition-colors ${
+                      hasPendingEditRequest
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-primary hover:bg-primary/90'
+                    }`}
                   >
                     <Edit2 className="h-3.5 w-3.5" />
-                    Edit Profile
+                    {hasPendingEditRequest ? 'Requested' : 'Edit Profile'}
                   </button>
                 )}
               </div>
