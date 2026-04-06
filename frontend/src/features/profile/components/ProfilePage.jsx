@@ -107,6 +107,13 @@ export default function ProfilePage() {
   const [successMessage, setSuccessMessage] = useState('');
   const [hasPendingEditRequest, setHasPendingEditRequest] = useState(false);
 
+  const profileBgStyle = {
+    backgroundImage: 'url(/profile-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
   const loadPendingEditRequestStatus = async (targetUserId) => {
     if (!targetUserId) {
       setHasPendingEditRequest(false);
@@ -378,7 +385,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-[#fafafa]" style={profileBgStyle}>
       <PageHeader
         title="My Profile"
         breadcrumbs={[
@@ -389,8 +396,8 @@ export default function ProfilePage() {
         containerClassName="pt-xl pb-0 px-xl bg-transparent"
       />
 
-      <PageContainer className="px-xl py-lg pb-xl">
-        <div className="mx-auto max-w-6xl space-y-4">
+      <PageContainer className="px-xl pb-xl">
+        <div className="mx-auto space-y-4">
           {successMessage && (
             <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
               {successMessage}
@@ -540,6 +547,6 @@ export default function ProfilePage() {
           </section>
         </div>
       </PageContainer>
-    </>
+    </div>
   );
 }
