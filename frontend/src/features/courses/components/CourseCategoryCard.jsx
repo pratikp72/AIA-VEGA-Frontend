@@ -32,7 +32,7 @@ export default function CourseCategoryCard({
             {modules} modules
           </Badge>
           <Badge className="rounded-md px-2 bg-primary/50 text-white border border-transparent">
-            {hours} hours
+            {hours}
           </Badge>
         </div>
 

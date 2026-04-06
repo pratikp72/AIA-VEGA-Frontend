@@ -24,6 +24,11 @@ const CATEGORY_LABELS = {
   all: 'Courses',
 };
 
+const COURSE_CARD_META_ROW_CLASS = 'flex items-center gap-6 text-small text-muted-foreground h-8';
+const COURSE_CARD_TITLE_CLASS = 'font-medium text-gray-900 text-lg leading-7 h-7 truncate';
+const COURSE_CARD_ACTION_CLASS = 'mt-auto pt-2 min-h-[52px]';
+const COURSE_CARD_ACTION_BUTTON_BASE = 'rounded-md font-normal px-6 py-2 flex items-center gap-2 w-full justify-center';
+
 export default function CoursesCategoryPage({ category }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -575,7 +580,7 @@ export default function CoursesCategoryPage({ category }) {
                       )}
                     </div>
                     <div className="flex flex-col flex-1 px-4 pb-4 gap-2" style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 16 }}>
-                      <div className="flex items-center gap-6 text-small text-muted-foreground mb-4">
+                      <div className={COURSE_CARD_META_ROW_CLASS}>
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {(() => {
@@ -594,83 +599,87 @@ export default function CoursesCategoryPage({ category }) {
                           {course.modules} modules
                         </span>
                         <span className="flex-1" />
-                        {canShowCardMenu && (
-                          <div className="relative ml-auto">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setOpenMenuId((prev) => {
-                                  const next = prev === course.id ? null : course.id;
-                                  if (next === course.id) {
-                                    ensureFeedbackEligibility(course);
-                                  }
-                                  return next;
-                                });
-                              }}
-                              className="p-1 rounded-full hover:bg-gray-100 text-muted-foreground"
-                              title="More options"
-                            >
-                              <MoreVertical className="w-5 h-5" />
-                            </button>
-                            {openMenuId === course.id && (
-                              <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-20">
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleFeedbackClick(e, course)}
-                                  disabled={feedbackState.loading || !feedbackState.canSubmit}
-                                  title={feedbackState.reason || undefined}
-                                  className={`w-full text-left px-3 py-2 text-sm ${
-                                    feedbackState.loading || !feedbackState.canSubmit
-                                      ? 'text-gray-400 cursor-not-allowed bg-gray-50'
-                                      : 'text-gray-700 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  {feedbackState.loading ? 'Checking...' : 'Feedback'}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        <div className="relative ml-auto h-7 w-7 flex items-center justify-center">
+                          {canShowCardMenu ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setOpenMenuId((prev) => {
+                                    const next = prev === course.id ? null : course.id;
+                                    if (next === course.id) {
+                                      ensureFeedbackEligibility(course);
+                                    }
+                                    return next;
+                                  });
+                                }}
+                                className="p-1 rounded-full hover:bg-gray-100 text-muted-foreground"
+                                title="More options"
+                              >
+                                <MoreVertical className="w-5 h-5" />
+                              </button>
+                              {openMenuId === course.id && (
+                                <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-20">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleFeedbackClick(e, course)}
+                                    disabled={feedbackState.loading || !feedbackState.canSubmit}
+                                    title={feedbackState.reason || undefined}
+                                    className={`w-full text-left px-3 py-2 text-sm ${
+                                      feedbackState.loading || !feedbackState.canSubmit
+                                        ? 'text-gray-400 cursor-not-allowed bg-gray-50'
+                                        : 'text-gray-700 hover:bg-gray-50'
+                                    }`}
+                                  >
+                                    {feedbackState.loading ? 'Checking...' : 'Feedback'}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <span className="inline-block h-7 w-7" aria-hidden="true" />
+                          )}
+                        </div>
                       </div>
                       <div
-                        className="font-medium text-gray-900 text-lg line-clamp-1"
+                        className={COURSE_CARD_TITLE_CLASS}
                         title={course.title}
                       >
                         {course.title}
                       </div>
-                      {isInProgress && (
-                        <Button
-                          onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className={`rounded-md font-normal px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
-                            isLockedByDeadline
-                              ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
-                              : 'bg-primary text-white'
-                          }`}
-                        >
-                          {isLockedByDeadline ? 'Course Disabled' : 'Continue Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
-                        </Button>
-                      )}
-                      {isNotStarted && (
-                        <Button
-                          onClick={(event) => handleStartCourse(event, course, courseUrl)}
-                          className={`rounded-md font-normal px-6 py-2 mt-4 flex items-center gap-2 w-full justify-center ${
-                            isLockedByDeadline
-                              ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
-                              : 'bg-primary text-white'
-                          }`}
-                        >
-                          {isLockedByDeadline ? 'Course Disabled' : 'Start Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
-                        </Button>
-                      )}
-                      {isCompleted && (
-                        <div className="flex">
-                          <Button className="bg-primary text-white mt-4 font-normal rounded-md px-6 py-2 w-full flex items-center gap-2 justify-center">
+                      <div className={COURSE_CARD_ACTION_CLASS}>
+                        {isInProgress && (
+                          <Button
+                            onClick={(event) => handleStartCourse(event, course, courseUrl)}
+                            className={`${COURSE_CARD_ACTION_BUTTON_BASE} ${
+                              isLockedByDeadline
+                                ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                                : 'bg-primary text-white'
+                            }`}
+                          >
+                            {isLockedByDeadline ? 'Course Disabled' : 'Continue Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
+                          </Button>
+                        )}
+                        {isNotStarted && (
+                          <Button
+                            onClick={(event) => handleStartCourse(event, course, courseUrl)}
+                            className={`${COURSE_CARD_ACTION_BUTTON_BASE} ${
+                              isLockedByDeadline
+                                ? 'bg-gray-300 text-gray-700 hover:bg-gray-300 cursor-pointer'
+                                : 'bg-primary text-white'
+                            }`}
+                          >
+                            {isLockedByDeadline ? 'Course Disabled' : 'Start Course'} <ChevronRight className={`w-5 h-5 ${isLockedByDeadline ? 'opacity-60' : ''}`} />
+                          </Button>
+                        )}
+                        {isCompleted && (
+                          <Button className={`${COURSE_CARD_ACTION_BUTTON_BASE} bg-primary text-white`}>
                             Review <ChevronRight className="w-5 h-5" />
                           </Button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </SurfaceCard>
                 );
