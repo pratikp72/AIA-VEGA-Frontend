@@ -70,12 +70,16 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
             },
           ];
 
-  const apiChecklist = props.quiz?.quiz_instruction_checklist;
+  const apiChecklist = Array.isArray(props.quiz?.quiz_instruction)
+    ? props.quiz.quiz_instruction.flatMap((instr) =>
+        Array.isArray(instr.checklist) ? instr.checklist : []
+      )
+    : [];
   const checklist =
-    Array.isArray(apiChecklist) && apiChecklist.length > 0
+    apiChecklist.length > 0
       ? {
           subtitle: mockChecklist?.subtitle || "",
-          items: apiChecklist.map((item) => item.description), 
+          items: apiChecklist.map((item) => item.description),
         }
       : mockChecklist;
 

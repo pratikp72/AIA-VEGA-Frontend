@@ -419,7 +419,7 @@ export const fetchCourseById = async (documentId, opts = {}) => {
     'populate[prerequisite_courses]': true,
     'populate[quiz][populate][quiz_questions][populate][options]': true,
     'populate[quiz][populate][quiz_instruction]': true,
-    'populate[quiz][populate][quiz_instruction_checklist][populate]': '*',
+    'populate[quiz][populate][quiz_instruction][populate][checklist]': true,
   };
   if (opts.language) params.language = opts.language;
 
