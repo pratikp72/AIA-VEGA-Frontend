@@ -92,7 +92,7 @@ export const fetchQuickLinks = async () => {
 
   // Map to expected frontend format if needed
   return links
-    .filter((link) => link?.active !== false)
+    .filter((link) => link?.active !== 'unpublished')
     .map(link => ({
       id: link.id,
       documentId: link.documentId,
@@ -148,7 +148,7 @@ export const fetchUpcomingEvents = async () => {
     res = await api.get('/events');
   }
   const raw = Array.isArray(res?.data) ? res.data : [];
-  const active = raw.filter((e) => e.active !== false);
+  const active = raw.filter((e) => e.active !== 'unpublished');
   const forHome = active.filter((e) => [true, 1, '1', 'true'].includes(e.visible_on_homepage));
   const picked = (forHome.length > 0 ? forHome : active).sort((a, b) => {
     const aTime = new Date(a.start_date || 0).getTime();
@@ -297,7 +297,7 @@ async function fetchCourseDueDateMap() {
         'populate[departments]': true,
         'populate[individual_user]': true,
         'populate[work_locations]': true,
-        'filters[active][$eq]': true,
+        'filters[active][$eq]': 'published',
         'pagination[pageSize]': 1000,
         'pagination[page]': 1,
       },
@@ -370,7 +370,7 @@ export const fetchMyCourses = async () => {
   const raw = response.status === 'fulfilled'
     ? (Array.isArray(response.value?.data) ? response.value.data : (Array.isArray(response.value) ? response.value : []))
     : [];
-  const courses = raw.filter(c => c.active !== false).slice(0, 4);
+  const courses = raw.filter(c => c.active !== 'unpublished').slice(0, 4);
 
   // Build a map of courseId -> progress payload from the batch progress response.
   // Supports both shapes returned by backend:
