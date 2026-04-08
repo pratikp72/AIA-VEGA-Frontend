@@ -78,12 +78,15 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-                    <span className="text-small text-muted-foreground truncate">
-                      {person.email}
-                    </span>
-                  </div>
+                  {typeof person.email === 'string' &&
+                    !person.email.trim().toLowerCase().endsWith('@aia.internal') && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-small text-muted-foreground truncate">
+                          {person.email}
+                        </span>
+                      </div>
+                    )}
                 </div>
               </div>
             </Card>
