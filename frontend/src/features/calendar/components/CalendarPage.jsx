@@ -865,6 +865,24 @@ export default function CalendarPage() {
                                       </div>
                                     </div>
                                   ) : null}
+                                  {/* {ev.date ? (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      {new Date(ev.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                                    </p>
+                                  ) : null
+                                  } */}
+                                  {
+                                    ev.start_date && (
+                                      <p className="text-sm text-gray-500 mt-1">
+                                        {(() => {
+                                          const start = new Date(ev.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                          if (!ev.end_date) return start;
+                                          const end = new Date(ev.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                          return start === end ? start : `${start} – ${end}`;
+                                        })()}
+                                      </p>
+                                    )
+                                  }
                                   {ev.time || ev.location ? (
                                     <div className="mt-2 space-y-0.5 text-sm text-gray-500">
                                       {ev.time ? (
