@@ -96,10 +96,6 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
               {item.title && (
                 <h2 className="text-2xl font-bold mt-3 mb-2">{item.title}</h2>
               )}
-              <p className="text-sm text-[#475569] mt-1">
-                Standards and behaviours expected from all employees to maintain
-                a professional workplace.
-              </p>
               <p
                 className="text-sm text-[#65758B]"
                 dangerouslySetInnerHTML={{

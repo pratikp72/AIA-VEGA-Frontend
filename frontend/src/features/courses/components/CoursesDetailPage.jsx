@@ -684,7 +684,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
           { label: course.title && course.title.length > 50 ? course.title.slice(0, 50) + "…" : course.title },
         ]}
         showBreadcrumbSeparator={false}
-        containerClassName="pt-xl pb-0 bg-transparent [&>div:nth-child(2)]:flex-nowrap [&>div:nth-child(2)]:items-start [&>div:nth-child(2)>h1]:min-w-0 [&>div:nth-child(2)>h1]:flex-1 [&>div:nth-child(2)>h1]:break-words"
+        containerClassName="pt-xl !pb-0 bg-transparent [&>div:nth-child(2)]:flex-nowrap [&>div:nth-child(2)]:items-start [&>div:nth-child(2)>h1]:min-w-0 [&>div:nth-child(2)>h1]:flex-1 [&>div:nth-child(2)>h1]:break-words"
       />
       <main>
         <PageSection>
