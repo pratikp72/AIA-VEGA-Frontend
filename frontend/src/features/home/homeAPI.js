@@ -193,6 +193,7 @@ function normalizeUserForJoinee(user) {
     position: user.designation || '',
     department: user.department || '',
     joinDate: user.joining_date || null,
+    exitDate: user.exit_date || null,
     company: user.company || '',
     avatar: avatar.src,
     avatarInitial: avatar.initials,
@@ -238,6 +239,7 @@ export const fetchNewJoinees = async () => {
   const allItems = await fetchAllAnalyticsEmployees(api, API_ENDPOINTS.ANALYTICS.EMPLOYEES, baseParams);
 
   const newJoinees = allItems
+    .filter((emp) => emp?.exit_date == null)
     .filter((emp) => emp.joining_date && emp.blocked !== true && isNewJoinee(emp.joining_date, NEW_JOINEE_DAYS))
     .sort((a, b) => new Date(b.joining_date) - new Date(a.joining_date))
     .map(normalizeUserForJoinee);
@@ -467,6 +469,9 @@ export const fetchBirthdaysToday = async () => {
     params: {
       'populate[photograph]': true,
       sort: 'username:asc',
+      'filters[exit_date][$null]': true,
+      'filters[active][$ne]': false,
+      'filters[blocked][$ne]': true,
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -476,6 +481,7 @@ export const fetchBirthdaysToday = async () => {
   // Filter users whose date_of_birth matches today (ignore year)
   return users
     .filter(u => {
+      if (u.exit_date != null) return false;
       if (!u.date_of_birth) return false;
       const [year, month, day] = u.date_of_birth.split('-').map(Number);
       return month === todayMonth && day === todayDate;
@@ -501,6 +507,9 @@ export const fetchWorkAnniversaries = async () => {
     params: {
       'populate[photograph]': true,
       sort: 'username:asc',
+      'filters[exit_date][$null]': true,
+      'filters[active][$ne]': false,
+      'filters[blocked][$ne]': true,
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -510,6 +519,7 @@ export const fetchWorkAnniversaries = async () => {
   // Filter users whose joining_date matches today (ignore year)
   return users
     .filter(u => {
+      if (u.exit_date != null) return false;
       if (!u.joining_date) return false;
       const [year, month, day] = u.joining_date.split('-').map(Number);
       return month === todayMonth && day === todayDate;

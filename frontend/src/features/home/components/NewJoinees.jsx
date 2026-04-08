@@ -36,10 +36,8 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
             href={{
               pathname: '/people',
               query: {
-                personId: String(person.id),
-                personEmpId: person.emp_id ? String(person.emp_id) : '',
-                personName: person.name || '',
-                personCompany: person.company || '',
+                search: person.name || '',
+                company: person.company || '',
               },
             }}
             className="block w-full min-w-0"

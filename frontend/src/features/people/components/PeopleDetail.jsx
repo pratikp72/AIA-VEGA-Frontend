@@ -7,6 +7,35 @@ import { Briefcase, Building2, MapPin, Mail, Phone, X } from 'lucide-react';
 export default function PeopleDetail({ selectedEmployee, onClose }) {
   if (!selectedEmployee) return null;
 
+  function formatExperience(joinDate, fallbackYears) {
+  const parsed = joinDate ? new Date(joinDate) : null;
+  if (parsed && !Number.isNaN(parsed.getTime())) {
+    const now = new Date();
+    let years = now.getFullYear() - parsed.getFullYear();
+    let months = now.getMonth() - parsed.getMonth();
+
+    if (now.getDate() < parsed.getDate()) {
+      months -= 1;
+    }
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+
+    if (years >= 0) {
+      const parts = [];
+      if (years > 0) parts.push(`${years} year${years === 1 ? '' : 's'}`);
+      if (months > 0) parts.push(`${months} month${months === 1 ? '' : 's'}`);
+      return parts.join(' ') || '0 months';
+    }
+  }
+
+  const yearsNum = Math.max(0, Number(fallbackYears) || 0);
+  return yearsNum > 0 ? `${yearsNum} year${yearsNum === 1 ? '' : 's'}` : '0 months';
+}
+
+const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmployee.yearsAtCompany);
+
   const companyNorm = (selectedEmployee.company || '').trim().toLowerCase();
   const isAIA = companyNorm.includes('aia');
   const isVega = companyNorm.includes('vega');
@@ -57,8 +86,8 @@ export default function PeopleDetail({ selectedEmployee, onClose }) {
         </div>
         <div className="flex items-center gap-2 min-w-0">
           <Building2 className="h-4 w-4 shrink-0" />
-          <span className="break-words">{selectedEmployee.yearsAtCompany} Years</span>
-        </div>
+<span className="break-words">{experienceLabel}</span>       
+ </div>
         {isAIA ? (
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 shrink-0" />
@@ -70,10 +99,13 @@ export default function PeopleDetail({ selectedEmployee, onClose }) {
             <span className="break-words">{selectedEmployee.location}</span>
           </div>
         )}
-        <div className="flex items-center gap-2 min-w-0">
-          <Mail className="h-4 w-4 shrink-0" />
-          <span className="break-all text-primary-purple">{selectedEmployee.email}</span>
-        </div>
+        {typeof selectedEmployee.email === 'string' &&
+          !selectedEmployee.email.trim().toLowerCase().endsWith('@aia.internal') && (
+          <div className="flex items-center gap-2 min-w-0">
+            <Mail className="h-4 w-4 shrink-0" />
+            <span className="break-all text-primary-purple">{selectedEmployee.email}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2 min-w-0">
           <Phone className="h-4 w-4 shrink-0" />
           <span className="break-words text-primary-purple">{selectedEmployee.phone}</span>

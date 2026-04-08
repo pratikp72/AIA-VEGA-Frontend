@@ -44,6 +44,7 @@ export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') ?? '';
+  const urlCompany = searchParams.get('company') ?? '';
   const targetPersonId = searchParams.get('personId') ?? '';
   const targetPersonEmpId = searchParams.get('personEmpId') ?? '';
   const targetPersonName = searchParams.get('personName') ?? '';
@@ -78,6 +79,14 @@ export default function PeopleListingPage() {
   // fire /analytics/departments + /analytics/unit-locations simultaneously
   // with the employees request.
   const optionsCompanyRef = useRef(null);
+
+  const urlCompanyApplied = useRef(false);
+  useEffect(() => {
+    if (urlCompanyApplied.current || !urlCompany) return;
+    urlCompanyApplied.current = true;
+    const normalised = urlCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA';
+    dispatch(setCompanyFilter(normalised));
+  }, [urlCompany, dispatch]);
 
   // Debounce: update debouncedSearch 350ms after user stops typing
   useEffect(() => {
@@ -215,12 +224,6 @@ export default function PeopleListingPage() {
     if (!match) return;
 
     setSelectedEmployeeId(match.id);
-    const element = document.getElementById(`person-card-${match.id}`);
-    if (element) {
-      requestAnimationFrame(() => {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    }
   }, [hasTargetFromHome, people, targetPersonId, targetPersonEmpId, targetPersonName]);
 
   useEffect(() => {

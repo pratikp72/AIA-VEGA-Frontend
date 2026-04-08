@@ -48,6 +48,7 @@ function normalizeUser(user) {
     location: company === 'AIA' ? (user.branch || '') : (user.working_location || ''),
     branch: user.branch || '',
     joinDate,
+    exitDate: user.exit_date || null,
     dateOfBirth,
     company,
     emp_code: user.emp_code || '',
@@ -100,6 +101,7 @@ export const fetchPeople = async ({
   // /analytics/employees returns { items, total, page, pageSize, totalPages }
   const items = (response?.items || [])
     .filter((user) => user?.active !== false)
+    .filter((user) => user?.exit_date == null)
     .map(normalizeUser);
   return {
     items,
@@ -129,7 +131,7 @@ export const fetchEmployeeBirthdays = async () => {
     const currentYear = today.getFullYear();
     
     return employees
-      .filter(emp => emp.date_of_birth && emp.blocked !== true && emp.active !== false)
+      .filter(emp => emp.date_of_birth && emp.blocked !== true && emp.active !== false && emp.exit_date == null)
       .map(emp => {
         const birthday = new Date(emp.date_of_birth);
         // Use UTC to avoid timezone shift (e.g. "1990-03-06" is midnight UTC; getMonth/getDate would give March 5 in US timezones)
@@ -171,7 +173,7 @@ export const fetchEmployeeAnniversaries = async () => {
     const currentYear = today.getFullYear();
     
     return employees
-      .filter(emp => emp.joining_date && emp.active !== false)
+      .filter(emp => emp.joining_date && emp.active !== false && emp.exit_date == null)
       .map(emp => {
         const joinDate = new Date(emp.joining_date);
         // Use UTC to avoid timezone shift (e.g. "2020-03-06" is midnight UTC; getMonth/getDate would give March 5 in US timezones)
@@ -226,7 +228,7 @@ function generateMockBirthdaysAndAnniversaries() {
     
     return {
       id: `birthday-${emp.id}`,
-      title: `🎂 ${emp.name}'s Birthday`,
+      title: `${emp.name}'s Birthday`,
       date: dateKey,
       employee: { 
         id: emp.id, 
@@ -252,7 +254,7 @@ function generateMockBirthdaysAndAnniversaries() {
       
       return {
         id: `anniversary-${emp.id}`,
-        title: `🏢 ${emp.name} - ${yearsOfService} Year${yearsOfService > 1 ? 's' : ''}`,
+        title: `${emp.name} - ${yearsOfService} Year${yearsOfService > 1 ? 's' : ''} work anniversary`,
         date: dateKey,
         employee: { 
           id: emp.id, 

@@ -17,6 +17,7 @@ import Loader from '@/components/common/Loader';
 import PolicyDetail from '@/features/resources/components/PolicyDetail';
 import { fetchPolicyById } from '@/features/resources/policiesAPI';
 import { fetchFormTemplateById } from '@/features/resources/formTemplatesAPI';
+import openPdfInNewTab from '@/features/courses/utils/openPdfInNewTab';
 
 export default function ResourceDetailPage() {
   const params = useParams();
@@ -61,6 +62,22 @@ export default function ResourceDetailPage() {
       });
   }, [documentId]);
 
+  const handleOpenPdf = async (fileUrl, title) => {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : '';
+    try {
+      const res = await fetch(fileUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'same-origin',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      openPdfInNewTab(blobUrl, title || 'Document');
+    } catch {
+      window.open(fileUrl, '_blank', 'noopener');
+    }
+  };
+
   const policiesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',
     backgroundSize: 'cover',
@@ -96,14 +113,23 @@ export default function ResourceDetailPage() {
                 {item.form_url}
               </a>
             ) : getFormFileUrl(item) && (
-              <a
-                href={getFormFileUrl(item)}
-                download
-                rel="noopener noreferrer"
-                className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
-              >
-                Download
-              </a>
+              formType === 'pdf' ? (
+                <button
+                  onClick={() => handleOpenPdf(getFormFileUrl(item), item.title)}
+                  className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                >
+                  View
+                </button>
+              ) : (
+                <a
+                  href={getFormFileUrl(item)}
+                  download
+                  rel="noopener noreferrer"
+                  className="inline-block mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                >
+                  Download
+                </a>
+              )
             )}
           </div>
         ) : (
