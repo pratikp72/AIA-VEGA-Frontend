@@ -231,7 +231,7 @@ export const MOCK_ASSESSMENT_RESULTS = {
   pass: {
     title: "Your Score:",
     message: "Congratulations! You have met the required passing criteria. Well done on completing the assessment successfully. Your effort and dedication have paid off, and you've demonstrated a strong understanding of the course content.",
-    subMessage: "Your course has now been marked as completed, and your certificate is available for download. You can continue exploring more courses to keep building your skills.",
+    subMessage: "Your course has now been marked as completed. You can continue exploring more courses to keep building your skills.",
     buttonText: "Back to Courses",
   },
   fail: {
