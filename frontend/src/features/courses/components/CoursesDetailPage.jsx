@@ -681,10 +681,10 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
               : "",
             href: `/courses/${category}`,
           },
-          { label: course.title },
+          { label: course.title && course.title.length > 50 ? course.title.slice(0, 50) + "…" : course.title },
         ]}
-        showBreadcrumbSeparator
-        containerClassName="pt-xl pb-0 px-xl bg-transparent [&>div:nth-child(2)]:flex-nowrap [&>div:nth-child(2)]:items-start [&>div:nth-child(2)>h1]:min-w-0 [&>div:nth-child(2)>h1]:flex-1 [&>div:nth-child(2)>h1]:break-words"
+        showBreadcrumbSeparator={false}
+        containerClassName="pt-xl !pb-0 bg-transparent [&>div:nth-child(2)]:flex-nowrap [&>div:nth-child(2)]:items-start [&>div:nth-child(2)>h1]:min-w-0 [&>div:nth-child(2)>h1]:flex-1 [&>div:nth-child(2)>h1]:break-words"
       />
       <main>
         <PageSection>
@@ -701,7 +701,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 </div>
                 <div className="flex items-center gap-2 text-gray-700">
                   <Clock className="w-5 h-5 text-primary" />
-                  <span className="text-sm">{currentModule?.moduleDuration || "Duration"} mins</span>
+                  <span className="text-sm">{totalModuleTimeMin || "Duration"} mins</span>
                 </div>
               </div>
 

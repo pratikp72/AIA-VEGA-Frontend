@@ -92,7 +92,7 @@ export const fetchQuickLinks = async () => {
 
   // Map to expected frontend format if needed
   return links
-    .filter((link) => link?.active !== false)
+    .filter((link) => link?.active !== 'unpublished')
     .map(link => ({
       id: link.id,
       documentId: link.documentId,
@@ -148,7 +148,7 @@ export const fetchUpcomingEvents = async () => {
     res = await api.get('/events');
   }
   const raw = Array.isArray(res?.data) ? res.data : [];
-  const active = raw.filter((e) => e.active !== false);
+  const active = raw.filter((e) => e.active !== 'unpublished');
   const forHome = active.filter((e) => [true, 1, '1', 'true'].includes(e.visible_on_homepage));
   const picked = (forHome.length > 0 ? forHome : active).sort((a, b) => {
     const aTime = new Date(a.start_date || 0).getTime();
@@ -193,6 +193,8 @@ function normalizeUserForJoinee(user) {
     position: user.designation || '',
     department: user.department || '',
     joinDate: user.joining_date || null,
+    exitDate: user.exit_date || null,
+    company: user.company || '',
     avatar: avatar.src,
     avatarInitial: avatar.initials,
   };
@@ -237,6 +239,7 @@ export const fetchNewJoinees = async () => {
   const allItems = await fetchAllAnalyticsEmployees(api, API_ENDPOINTS.ANALYTICS.EMPLOYEES, baseParams);
 
   const newJoinees = allItems
+    .filter((emp) => emp?.exit_date == null)
     .filter((emp) => emp.joining_date && emp.blocked !== true && isNewJoinee(emp.joining_date, NEW_JOINEE_DAYS))
     .sort((a, b) => new Date(b.joining_date) - new Date(a.joining_date))
     .map(normalizeUserForJoinee);
@@ -296,7 +299,7 @@ async function fetchCourseDueDateMap() {
         'populate[departments]': true,
         'populate[individual_user]': true,
         'populate[work_locations]': true,
-        'filters[active][$eq]': true,
+        'filters[active][$eq]': 'published',
         'pagination[pageSize]': 1000,
         'pagination[page]': 1,
       },
@@ -369,7 +372,7 @@ export const fetchMyCourses = async () => {
   const raw = response.status === 'fulfilled'
     ? (Array.isArray(response.value?.data) ? response.value.data : (Array.isArray(response.value) ? response.value : []))
     : [];
-  const courses = raw.filter(c => c.active !== false).slice(0, 4);
+  const courses = raw.filter(c => c.active !== 'unpublished').slice(0, 4);
 
   // Build a map of courseId -> progress payload from the batch progress response.
   // Supports both shapes returned by backend:
@@ -466,6 +469,9 @@ export const fetchBirthdaysToday = async () => {
     params: {
       'populate[photograph]': true,
       sort: 'username:asc',
+      'filters[exit_date][$null]': true,
+      'filters[active][$ne]': false,
+      'filters[blocked][$ne]': true,
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -475,6 +481,7 @@ export const fetchBirthdaysToday = async () => {
   // Filter users whose date_of_birth matches today (ignore year)
   return users
     .filter(u => {
+      if (u.exit_date != null) return false;
       if (!u.date_of_birth) return false;
       const [year, month, day] = u.date_of_birth.split('-').map(Number);
       return month === todayMonth && day === todayDate;
@@ -500,6 +507,9 @@ export const fetchWorkAnniversaries = async () => {
     params: {
       'populate[photograph]': true,
       sort: 'username:asc',
+      'filters[exit_date][$null]': true,
+      'filters[active][$ne]': false,
+      'filters[blocked][$ne]': true,
     },
   });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
@@ -509,6 +519,7 @@ export const fetchWorkAnniversaries = async () => {
   // Filter users whose joining_date matches today (ignore year)
   return users
     .filter(u => {
+      if (u.exit_date != null) return false;
       if (!u.joining_date) return false;
       const [year, month, day] = u.joining_date.split('-').map(Number);
       return month === todayMonth && day === todayDate;

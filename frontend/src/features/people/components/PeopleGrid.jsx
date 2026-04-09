@@ -19,6 +19,9 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
       {pagedPeople.map((person) => (
         <SurfaceCard
           key={person.id}
+          id={`person-card-${person.id}`}
+          data-person-id={String(person.id)}
+          data-person-emp-id={String(person.emp_id || '')}
           className={cn(
             'w-full border border-gray-200 bg-white p-4 h-[236px] flex flex-col justify-between transition-all duration-200 hover:shadow-md',
             selectedEmployeeId === person.id ? 'ring-2 ring-primary' : ''

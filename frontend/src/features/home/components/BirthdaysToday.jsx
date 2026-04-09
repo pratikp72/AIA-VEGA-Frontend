@@ -23,33 +23,43 @@ export default function BirthdaysToday({ birthdays = [] }) {
             className={birthdays.length > 4 ? "max-h-[284px] overflow-y-auto w-full pr-2" : "w-full"}
           >
             {birthdays.map((person) => (
-              <div
+              <Link
                 key={person.id}
-                className="relative flex flex-row items-center gap-2 h-[59px] w-full mb-4"
+                href={{
+                  pathname: '/calendar',
+                  query: {
+                    type: 'birthday',
+                    personId: String(person.id),
+                    personName: person.name || '',
+                  },
+                }}
+                className="block"
               >
-                <div className="flex-shrink-0">
-                  {person.avatar ? (
-                    <img
-                      src={person.avatar}
-                      alt={person.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
-                      {(person.avatarInitial || person.name?.[0] || '?').toUpperCase()}
-                    </div>
-                  )}
+                <div className="relative flex flex-row items-center gap-2 h-[59px] w-full mb-4 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex-shrink-0">
+                    {person.avatar ? (
+                      <img
+                        src={person.avatar}
+                        alt={person.name}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-semibold">
+                        {(person.avatarInitial || person.name?.[0] || '?').toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center pr-24">
+                    <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>
+                    <p className="text-small text-gray-500 leading-tight mt-0.5">
+                      {new Date(person.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                    </p>
+                  </div>
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 bg-green-500 text-white text-small font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+                    Today
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-center pr-24">
-                  <h3 className="text-h3 text-gray-900 leading-tight font-semibold">{person.name}</h3>
-                  <p className="text-small text-gray-500 leading-tight mt-0.5">
-                    {new Date(person.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                  </p>
-                </div>
-                <span className="absolute right-5 top-1/2 -translate-y-1/2 bg-green-500 text-white text-small font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                  Today
-                </span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

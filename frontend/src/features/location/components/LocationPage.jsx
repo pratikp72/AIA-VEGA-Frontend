@@ -92,6 +92,7 @@ export default function LocationsPage() {
                 options={plantOptions}
                 placeholder="Select Plant"
                 textSize="text-base"
+                variant="filter"
               />
             </div>
           </div>

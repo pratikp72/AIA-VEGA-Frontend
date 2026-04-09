@@ -6,6 +6,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { Calendar } from "lucide-react";
 import MarkdownIt from "markdown-it";
 import Loader from "@/components/common/Loader";
+import openPdfInNewTab from "@/features/courses/utils/openPdfInNewTab";
 const md = new MarkdownIt({ html: true });
 
 const renderRichContent = (content) => {
@@ -80,6 +81,29 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
     return md.render(stripped);
   };
 
+  const handleContentClick = async (e) => {
+    const anchor = e.target.closest('a');
+    if (!anchor) return;
+    const href = anchor.href || '';
+    if (!href.toLowerCase().includes('.pdf')) return;
+    e.preventDefault();
+    const title = anchor.textContent?.trim() || policy?.title || 'Document';
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : '';
+    try {
+      const res = await fetch(href, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'same-origin',
+      });
+      if (!res.ok) throw new Error(`Failed to load PDF: ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      openPdfInNewTab(blobUrl, title);
+    } catch {
+      // fallback: let browser open it normally
+      window.open(href, '_blank', 'noopener');
+    }
+  };
+
   return (
     <>
       <PageContainer className="pt-0 px-4 sm:px-6 lg:px-0">
@@ -96,10 +120,6 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
               {item.title && (
                 <h2 className="text-2xl font-bold mt-3 mb-2">{item.title}</h2>
               )}
-              <p className="text-sm text-[#475569] mt-1">
-                Standards and behaviours expected from all employees to maintain
-                a professional workplace.
-              </p>
               <p
                 className="text-sm text-[#65758B]"
                 dangerouslySetInnerHTML={{
@@ -126,7 +146,7 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
               <div className="mb-3">
                 <h3 className="text-lg font-semibold">Policy Details</h3>
               </div>
-              <div className="rich-content">
+              <div className="rich-content" onClick={handleContentClick}>
                 <div
                   dangerouslySetInnerHTML={{
                     __html: html || item.description || "",

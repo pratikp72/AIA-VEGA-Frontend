@@ -19,7 +19,7 @@ export default function GalleryGrid({ items = [] }) {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-6">
         {items.map((it) => (
           <div key={it.id} className="w-full">
             <MediaCard item={it} onClick={handleCardClick} />
@@ -56,8 +56,8 @@ export default function GalleryGrid({ items = [] }) {
                     src={(selectedItem.video?.url && (selectedItem.video?.url.startsWith('http') ? selectedItem.video?.url : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337'}${selectedItem.video?.url}`)) || selectedItem.url}
                     controls
                     controlsList="nodownload"
-                    className="w-full h-auto"
-                    style={{ maxHeight: '350px' }}
+                    className="w-full h-auto object-cover"
+                    style={{ maxHeight: '315px',}}
                     autoPlay
                     playsInline
                     preload="metadata"
@@ -74,7 +74,7 @@ export default function GalleryGrid({ items = [] }) {
                     })()}
                     alt={selectedItem.title || 'Gallery item'}
                     className="w-full h-auto object-cover"
-                    style={{ maxHeight: '350px' }}
+                    style={{ maxHeight: '315px' }}
                   />
                 )}
               </div>

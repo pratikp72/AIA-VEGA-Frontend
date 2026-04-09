@@ -87,7 +87,11 @@ export default function CoursesPage() {
           ) : (
             <div className="flex flex-col gap-6">
               {Object.entries(categoryGroups).map(([category, group]) => {
-                const totalHours = Math.round(((group.totalDurationMinutes || 0) / 60) * 10) / 10;
+                const totalMinutes = Number(group.totalDurationMinutes) || 0;
+                const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+                const durationLabel = totalMinutes > 0
+                  ? (totalMinutes < 60 ? `${totalMinutes} mins` : `${totalHours} hours`)
+                  : '—';
                 const slug = category.toLowerCase();
                 return (
                   <CourseCategoryCard
@@ -95,7 +99,7 @@ export default function CoursesPage() {
                     title={category}
                     description={CATEGORY_DESCRIPTIONS[category] || 'Explore courses in this category.'}
                     modules={group.courses.length}
-                    hours={totalHours || '—'}
+                    hours={durationLabel}
                     image={CATEGORY_IMAGES[category] || '/course-page-bg.png'}
                     href={`/courses/${slug}`}
                   />

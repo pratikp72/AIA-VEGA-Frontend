@@ -867,7 +867,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       </div>
 
       {/* Question Area */}
-      <div className="flex-1 flex items-start justify-center pt-8 pb-6 px-6">
+      <div className="overflow-y-auto flex-1 flex items-start justify-center pt-8 pb-6 px-6">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 w-full max-w-3xl p-4">
           <div className="text-center mb-4">
             <span className="text-primary">
@@ -875,7 +875,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
             </span>
           </div>
 
-          <div className="h-82.5">
+          <div className="">
             <h2 className="text-base font-medium text-gray-900 mb-6">
               {currentQuestion.question_text || currentQuestion.question}
             </h2>

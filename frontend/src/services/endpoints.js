@@ -28,6 +28,13 @@ export const API_ENDPOINTS = {
     PROFILE: '/users/profile',
   },
 
+  // Profile Edit Request endpoints
+  PROFILE_EDIT_REQUESTS: {
+    CREATE: '/profile-edit-requests',
+    LIST: '/profile-edit-requests',
+    GET: (id) => `/profile-edit-requests/${id}`,
+  },
+
   // Add more endpoint groups as needed
   // PRODUCTS: {
   //   LIST: '/products',

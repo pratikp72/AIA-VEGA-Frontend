@@ -61,10 +61,10 @@ export default function Filters({
         </SurfaceCard>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[repeat(4,248px)] lg:justify-start">
+      <div className="grid grid-cols-1 gap-4 lg:flex lg:flex-wrap lg:items-center">
         {/* Search */}
         {showSearch && (
-          <div className="relative w-full lg:w-[248px]">
+          <div className="relative w-full lg:w-62">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#B3B3B3]" />
             <Input
               value={search}
@@ -77,21 +77,29 @@ export default function Filters({
 
         {/* Date */}
         {showDate && (
-          <div className="relative w-full lg:w-[248px]">
+          <div className="relative w-full lg:w-62">
             <DatePicker value={date} onChange={onDateChange} placeholder="Date" textSize="text-sm" />
           </div>
         )}
 
         {/* Dynamic selects */}
         {selects.map((s, idx) => (
-          <div key={idx} className="group relative w-full lg:w-[248px]">
-            <Select value={s.value} onChange={s.onChange} options={s.options || []} placeholder={s.placeholder} textSize="text-sm" />
+          <div key={idx} className="group relative w-full lg:w-62">
+            <Select
+              value={s.value}
+              onChange={s.onChange}
+              options={s.options || []}
+              placeholder={s.placeholder}
+              textSize="text-sm"
+              variant={s.variant}
+              wrapValue={s.wrapValue}
+            />
           </div>
         ))}
 
         {/* Extra actions (e.g. Reset filters button) */}
         {children && (
-          <div className="flex items-center w-full lg:w-auto">
+          <div className="flex items-center w-full lg:w-auto lg:shrink-0">
             {children}
           </div>
         )}

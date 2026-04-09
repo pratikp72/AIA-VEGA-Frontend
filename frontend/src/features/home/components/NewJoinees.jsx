@@ -31,10 +31,19 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
 
       <div className="flex flex-col items-start gap-6 w-full overflow-y-auto scrollbar-hide" style={{ maxHeight: '632px' }}>
         {joinees.map((person) => (
-          <div key={person.id} className="w-full min-w-0">
-            <Card className="w-full min-w-0 p-4 border border-gray-200 bg-white rounded-4xl h-35 flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
+          <Link
+            key={person.id}
+            href={{
+              pathname: '/people',
+              query: {
+                search: person.name || '',
+                company: person.company || '',
+              },
+            }}
+            className="block w-full min-w-0"
+          >
+            <Card className="w-full min-w-0 p-4 border border-gray-200 bg-white rounded-4xl h-35 flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch hover:shadow-md transition-shadow">
               <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">
-                {/* Profile Picture */}
                 <div className="shrink-0">
                   <div className="relative">
                     {person.avatar ? (
@@ -54,14 +63,12 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                   </div>
                 </div>
 
-                {/* Person Info */}
                 <div className="flex flex-col items-start gap-2 flex-[1_0_0] min-w-0 ">
                   <h3 className="text-h3">{person.name}</h3>
                   <p className="text-small text-muted-foreground mb-2">
                     {person.position}
                   </p>
 
-                  {/* Phone */}
                   <div className="flex items-center gap-2 mb-1">
                     <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
                     <span className="text-small text-muted-foreground truncate">
@@ -69,17 +76,19 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                     </span>
                   </div>
 
-                  {/* Email */}
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-                    <span className="text-small text-muted-foreground truncate">
-                      {person.email}
-                    </span>
-                  </div>
+                  {typeof person.email === 'string' &&
+                    !person.email.trim().toLowerCase().endsWith('@aia.internal') && (
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-small text-muted-foreground truncate">
+                          {person.email}
+                        </span>
+                      </div>
+                    )}
                 </div>
               </div>
             </Card>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

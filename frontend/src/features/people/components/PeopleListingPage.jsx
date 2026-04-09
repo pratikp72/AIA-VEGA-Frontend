@@ -33,11 +33,23 @@ import {
 const PER_PAGE = 10;
 const AUTO_PER_PAGE = 'auto';
 const PER_PAGE_OPTIONS = [10, 25, 50, 100, { value: AUTO_PER_PAGE, label: 'All Users' }];
+const SORT_OPTIONS = [
+  { label: 'Name (A-Z)', value: 'name-asc' },
+  { label: 'Name (Z-A)', value: 'name-desc' },
+  { label: 'Join Date (Newest)', value: 'join-newest' },
+  { label: 'Join Date (Oldest)', value: 'join-oldest' },
+];
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') ?? '';
+  const urlCompany = searchParams.get('company') ?? '';
+  const targetPersonId = searchParams.get('personId') ?? '';
+  const targetPersonEmpId = searchParams.get('personEmpId') ?? '';
+  const targetPersonName = searchParams.get('personName') ?? '';
+  const targetPersonCompany = searchParams.get('personCompany') ?? '';
+  const hasTargetFromHome = Boolean(targetPersonId || targetPersonEmpId || targetPersonName);
 
   const people = useAppSelector(selectPeopleList);
   const isLoading = useAppSelector(selectPeopleLoading);
@@ -67,6 +79,14 @@ export default function PeopleListingPage() {
   // fire /analytics/departments + /analytics/unit-locations simultaneously
   // with the employees request.
   const optionsCompanyRef = useRef(null);
+
+  const urlCompanyApplied = useRef(false);
+  useEffect(() => {
+    if (urlCompanyApplied.current || !urlCompany) return;
+    urlCompanyApplied.current = true;
+    const normalised = urlCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA';
+    dispatch(setCompanyFilter(normalised));
+  }, [urlCompany, dispatch]);
 
   // Debounce: update debouncedSearch 350ms after user stops typing
   useEffect(() => {
@@ -155,20 +175,20 @@ export default function PeopleListingPage() {
   const selectedEmployee = people.find((p) => p.id === selectedEmployeeId) || null;
   const isCompact = Boolean(selectedEmployee);
 
+  const matchesTargetPerson = (person) => {
+    if (!person) return false;
+    if (targetPersonId && String(person.id) === String(targetPersonId)) return true;
+    if (targetPersonEmpId && String(person.emp_id) === String(targetPersonEmpId)) return true;
+    if (targetPersonName && String(person.name || '').trim().toLowerCase() === String(targetPersonName).trim().toLowerCase()) return true;
+    return false;
+  };
+
   const employeesBgStyle = {
     backgroundImage: 'url(/feedback-form-bg.png)',
     backgroundSize: 'cover',
     backgroundPosition: 'right center',
     backgroundRepeat: 'no-repeat',
   };
-
-  if (isLoading && people.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]" style={employeesBgStyle}>
-        <Loader size="lg" />
-      </div>
-    );
-  }
 
   const hasActiveFilters = sortBy || departmentFilter || locationFilter || searchTerm;
 
@@ -180,6 +200,48 @@ export default function PeopleListingPage() {
     setDebouncedSearch('');
     dispatch(setPage(1));
   };
+
+  useEffect(() => {
+    if (!hasTargetFromHome) return;
+    setSortBy('');
+    setDepartmentFilter('');
+    setLocationFilter('');
+    setSearchTerm('');
+    setDebouncedSearch('');
+    if (targetPersonCompany) {
+      const normalised = targetPersonCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA';
+      dispatch(setCompanyFilter(normalised));
+    }
+    setPerPage(AUTO_PER_PAGE);
+    dispatch(setPage(1));
+  }, [hasTargetFromHome, targetPersonName, targetPersonCompany, dispatch]);
+
+  useEffect(() => {
+    if (!hasTargetFromHome) return;
+    if (people.length === 0) return;
+
+    const match = people.find(matchesTargetPerson);
+    if (!match) return;
+
+    setSelectedEmployeeId(match.id);
+  }, [hasTargetFromHome, people, targetPersonId, targetPersonEmpId, targetPersonName]);
+
+  useEffect(() => {
+    if (!hasTargetFromHome) return;
+    if (isLoading) return;
+    if (people.some(matchesTargetPerson)) return;
+    if (isAutoMode && currentPage < totalPages) {
+      dispatch(setPage(currentPage + 1));
+    }
+  }, [hasTargetFromHome, isLoading, people, isAutoMode, currentPage, totalPages, dispatch, targetPersonId, targetPersonEmpId, targetPersonName]);
+
+  if (isLoading && people.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]" style={employeesBgStyle}>
+        <Loader size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={employeesBgStyle}>
@@ -225,20 +287,23 @@ export default function PeopleListingPage() {
             {
               value: sortBy,
               onChange: handleFilterChange(setSortBy),
-              options: ['', 'name-asc', 'name-desc', 'join-newest', 'join-oldest'],
+              options: SORT_OPTIONS,
               placeholder: 'Sort By',
+              variant: 'filter',
             },
             {
               value: departmentFilter,
               onChange: handleFilterChange(setDepartmentFilter),
               options: departmentOptions,
               placeholder: 'Department',
+              variant: 'filter',
             },
             {
               value: locationFilter,
               onChange: handleFilterChange(setLocationFilter),
               options: locationOptions,
               placeholder: 'Location',
+              variant: 'filter',
             },
           ]}
         >
@@ -246,7 +311,7 @@ export default function PeopleListingPage() {
             <Button
               type="button"
               onClick={handleResetFilters}
-              className="h-12 px-4 text-small font-medium rounded-[12px] shadow-none border border-gray-100 bg-white text-primary hover:bg-gray-50"
+              className="h-12 px-4 rounded-[12px] border border-gray-100 bg-white text-primary font-medium text-base shadow-none hover:bg-gray-100"
             >
               Reset filters
             </Button>
@@ -267,7 +332,7 @@ export default function PeopleListingPage() {
           <>
             <div className="relative">
               {isLoading && people.length > 0 && !isAutoMode && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl min-h-[200px]">
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 rounded-xl min-h-50">
                   <Loader size="lg" />
                 </div>
               )}

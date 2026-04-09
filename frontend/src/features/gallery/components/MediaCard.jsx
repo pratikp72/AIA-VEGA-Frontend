@@ -171,7 +171,7 @@ export default function MediaCard({ item, onClick }) {
         {isVideo && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow">
-              <Play className="w-5 h-5 text-primary-purple" />
+              <Play className="fill-purple-500 stroke-none"  />
             </div>
           </div>
         )}
@@ -180,7 +180,6 @@ export default function MediaCard({ item, onClick }) {
             src={imageUrl}
             alt={item.title || 'Gallery image'}
             className="w-full h-full object-cover"
-            style={{ objectFit: 'cover' }}
           />
         )}
       </div>

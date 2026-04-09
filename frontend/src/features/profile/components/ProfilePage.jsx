@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import PageContainer from '@/components/layout/PageContainer';
 import PageHeader from '@/components/common/PageHeader';
@@ -10,59 +9,155 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
-
-import {
-  User,
-  Mail,
-  Building2,
-  Briefcase,
-  Calendar,
-  MapPin,
-  Phone,
-  Hash,
-  IdCard,
-} from 'lucide-react';
+import { Building2, Camera, Edit2, Hash } from 'lucide-react';
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return '';
   const d = new Date(value);
-  return Number.isNaN(d.getTime())
-    ? value
-    : d.toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
-function InfoItem({ icon: Icon, label, value }) {
+function toInputDate(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getInitialForm(user) {
+  return {
+    username: user?.username || user?.employee_name || user?.name || '',
+    email: user?.email || '',
+    contact_no: user?.contact_no || '',
+    designation: user?.designation || '',
+    date_of_birth: toInputDate(user?.date_of_birth),
+    joining_date: toInputDate(user?.joining_date),
+  };
+}
+
+function getPhotographId(user) {
+  const photo = user?.photograph;
+  if (!photo) return null;
+  if (typeof photo === 'number') return photo;
+  if (typeof photo?.id === 'number') return photo.id;
+  if (typeof photo?.data?.id === 'number') return photo.data.id;
+  return null;
+}
+
+function Field({ label, value, editing, name, onChange, type = 'text', disabled = false, selectOptions = [] }) {
+  const baseClass =
+    'h-11 w-full rounded-xl border border-gray-200 bg-white text-sm p-3 text-gray-text outline-none transition focus:border-primary';
+
   return (
-    <div className="flex gap-3 items-start">
-      <Icon className="w-4 h-4 text-primary mt-1" />
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="font-medium text-gray-dark">{value}</p>
-      </div>
+    <div>
+      <p className="mb-2">{label}</p>
+      {editing ? (
+        selectOptions.length > 0 ? (
+          <select
+            name={name}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            className={`${baseClass} disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500`}
+          >
+            {selectOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type}
+            name={name}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            className={`${baseClass} disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500`}
+          />
+        )
+      ) : (
+        <div className="flex h-11 items-center rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-text">
+          {value || '—'}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function ProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef(null);
   const [user, setUser] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState('');
+  const [uploadedPhotoId, setUploadedPhotoId] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [hasPendingEditRequest, setHasPendingEditRequest] = useState(false);
+
+  const profileBgStyle = {
+    backgroundImage: 'url(/profile-page-bg.png)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+
+  const loadPendingEditRequestStatus = async (targetUserId) => {
+    if (!targetUserId) {
+      setHasPendingEditRequest(false);
+      return;
+    }
+
+    try {
+      const response = await api.get(API_ENDPOINTS.PROFILE_EDIT_REQUESTS.LIST, {
+        params: {
+          'filters[users_permissions_user][id][$eq]': targetUserId,
+          'filters[request_status][$eq]': 'Pending',
+          'pagination[page]': 1,
+          'pagination[pageSize]': 1,
+          sort: 'createdAt:desc',
+        },
+      });
+
+      const rows = Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response)
+          ? response
+          : [];
+
+      setHasPendingEditRequest(rows.length > 0);
+    } catch {
+      // Do not block profile UI if pending-state lookup fails.
+      setHasPendingEditRequest(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
 
     const loadUser = async () => {
       const data = getCurrentUser();
-
       if (!data) {
         router.replace('/login');
         return;
       }
 
-      if (isMounted) setUser(data);
+      if (isMounted) {
+        setUser(data);
+        setFormData(getInitialForm(data));
+      }
 
       try {
         const me = await api.get(API_ENDPOINTS.AUTH.ME, {
@@ -90,33 +185,18 @@ export default function ProfilePage() {
         }
 
         if (mergedUser && isMounted) {
-          const avatarFromMerged = getAvatarPropsForUser(mergedUser);
-          if (!avatarFromMerged.src) {
-            try {
-              const searchKey = mergedUser?.email || mergedUser?.emp_id || mergedUser?.emp_code || mergedUser?.username || '';
-              if (searchKey) {
-                const analytics = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-                  params: { search: searchKey, page: 1, pageSize: 25 },
-                });
-                const items = Array.isArray(analytics?.items) ? analytics.items : [];
-                const matched = items.find((emp) =>
-                  (mergedUser?.id && emp?.id === mergedUser.id) ||
-                  (mergedUser?.email && emp?.email === mergedUser.email) ||
-                  (mergedUser?.emp_id && emp?.emp_id === mergedUser.emp_id) ||
-                  (mergedUser?.emp_code && emp?.emp_code === mergedUser.emp_code)
-                ) || items[0];
-                if (matched) mergedUser = { ...mergedUser, ...matched };
-              }
-            } catch {
-              // Keep merged user if analytics fallback fails.
-            }
-          }
-
           setUser(mergedUser);
+          setFormData(getInitialForm(mergedUser));
+          setAvatarPreviewUrl('');
+          setUploadedPhotoId(null);
           localStorage.setItem('user', JSON.stringify(mergedUser));
+          const targetUserId = mergedUser?.id ?? mergedUser?.documentId;
+          await loadPendingEditRequestStatus(targetUserId);
         }
       } catch {
         // Keep local user as fallback when profile fetch fails.
+        const fallbackUserId = data?.id ?? data?.documentId;
+        await loadPendingEditRequestStatus(fallbackUserId);
       }
     };
 
@@ -127,34 +207,185 @@ export default function ProfilePage() {
     };
   }, [router]);
 
-  if (!user) {
+  useEffect(() => {
+    if (!user?.id && !user?.documentId) return;
+
+    const handleFocus = () => {
+      const targetUserId = user?.id ?? user?.documentId;
+      loadPendingEditRequestStatus(targetUserId);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, user?.documentId]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+
+    const timer = setTimeout(() => {
+      setSuccessMessage('');
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [successMessage]);
+
+  if (!user || !formData) {
     return (
-      <PageContainer className="flex justify-center items-center min-h-[50vh]">
+      <PageContainer className="flex min-h-[50vh] items-center justify-center">
         <Loader size="lg" />
       </PageContainer>
     );
   }
 
   const { src: avatarSrc, initials } = getAvatarPropsForUser(user);
+  const displayAvatarSrc = isEditing && avatarPreviewUrl ? avatarPreviewUrl : avatarSrc;
+  const isAIA = String(user?.company || '').toLowerCase().includes('aia');
+  const userCode = isAIA ? user?.emp_code : user?.emp_id;
 
-  const name = user.employee_name || user.username || user.name || '—';
-  const email = user.email || '—';
-  const company = user.company || '—';
-  const designation = user.designation || '—';
-  const joiningDate = user.joining_date || null;
-  const workingLocation = user.working_location || '—';
-  const branch = user.branch || '—';
-  const contactNo = user.contact_no || '—';
-  const dateOfBirth = user.date_of_birth || null;
-  const empCode = user.emp_code || '—';
-  const empId = user.emp_id || '—';
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
-  const companyNorm = company?.toLowerCase() || '';
-  const isAIA = companyNorm.includes('aia');
-  const isVega = companyNorm.includes('vega');
+  const handleEdit = () => {
+    if (hasPendingEditRequest) {
+      setErrorMessage('You have already requested profile changes. Please wait for admin review.');
+      return;
+    }
+    setErrorMessage('');
+    setSuccessMessage('');
+    setFormData(getInitialForm(user));
+    setIsEditing(true);
+  };
+
+  const handleCancel = () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    setFormData(getInitialForm(user));
+    setAvatarPreviewUrl('');
+    setUploadedPhotoId(null);
+    setIsEditing(false);
+  };
+
+  const handleAvatarIconClick = () => {
+    if (!isEditing || uploadingPhoto) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please select a valid image file.');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMessage('Image size should be under 5MB.');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreviewUrl(objectUrl);
+
+    try {
+      setUploadingPhoto(true);
+      const formDataForUpload = new FormData();
+      formDataForUpload.append('files', file);
+
+      const uploaded = await api.post('/upload', formDataForUpload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const mediaId = Array.isArray(uploaded) ? uploaded[0]?.id : uploaded?.id;
+      if (!mediaId) {
+        throw new Error('Image upload failed. Please try again.');
+      }
+      setUploadedPhotoId(mediaId);
+    } catch (err) {
+      setErrorMessage(err?.error?.message || err?.message || 'Failed to upload profile image.');
+      setAvatarPreviewUrl('');
+      setUploadedPhotoId(null);
+    } finally {
+      setUploadingPhoto(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSave = async () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const changes = {};
+
+    const updatedFullName = (formData.username || '').trim();
+    if (updatedFullName !== (user.username || user.employee_name || user.name || '').trim()) {
+      changes.username = updatedFullName;
+    }
+    if ((formData.contact_no || '').trim() !== (user.contact_no || '').trim()) {
+      changes.contact_no = (formData.contact_no || '').trim();
+    }
+    if ((formData.designation || '').trim() !== (user.designation || '').trim()) {
+      changes.designation = (formData.designation || '').trim();
+    }
+    if ((formData.email || '').trim() !== (user.email || '').trim()) {
+      changes.email = (formData.email || '').trim();
+    }
+    if ((formData.date_of_birth || '') !== toInputDate(user.date_of_birth)) {
+      changes.date_of_birth = formData.date_of_birth || null;
+    }
+    if ((formData.joining_date || '') !== toInputDate(user.joining_date)) {
+      changes.joining_date = formData.joining_date || null;
+    }
+    const currentPhotographId = getPhotographId(user);
+    if (uploadedPhotoId && uploadedPhotoId !== currentPhotographId) {
+      changes.photograph = uploadedPhotoId;
+    }
+
+    if (Object.keys(changes).length === 0) {
+      setErrorMessage('No changes detected.');
+      return;
+    }
+
+    const userId = user?.id || user?.documentId;
+    if (!userId) {
+      setErrorMessage('User ID not found.');
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await api.post(API_ENDPOINTS.PROFILE_EDIT_REQUESTS.CREATE, {
+        data: {
+          users_permissions_user: userId,
+          requested_changes: changes,
+          request_status: 'Pending',
+        },
+      });
+
+      setIsEditing(false);
+      // Keep UI on approved profile values until admin approves the request.
+      setFormData(getInitialForm(user));
+      setAvatarPreviewUrl('');
+      setUploadedPhotoId(null);
+      setSuccessMessage('Profile update request sent to admin for approval.');
+      setHasPendingEditRequest(true);
+    } catch (err) {
+      setErrorMessage(err?.error?.message || err?.message || 'Failed to submit request.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <>
+    <div className="min-h-screen bg-[#fafafa]" style={profileBgStyle}>
       <PageHeader
         title="My Profile"
         breadcrumbs={[
@@ -165,56 +396,157 @@ export default function ProfilePage() {
         containerClassName="pt-xl pb-0 px-xl bg-transparent"
       />
 
-      <PageContainer className="px-xl py-xl">
-        <div className="max-w-5xl mx-auto">
-          {/* Profile Card */}
-          <div className="bg-card rounded-card shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-transform transition-shadow duration-200 overflow-hidden">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row items-start gap-6 p-xl border-border bg-primary-opacity-10">
-              <Avatar className="h-20 w-20 border border-border">
-                <AvatarImage src={avatarSrc} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-
-              {/* Top row: name, designation, company as label+icon+value rows */}
-              <div className="pt-lg pl-lg grid grid-cols-1 sm:grid-cols-3 gap-4 flex-1">
-                <InfoItem icon={User} label="Name" value={name} />
-                <InfoItem icon={Briefcase} label="Designation" value={designation} />
-                <InfoItem icon={Building2} label="Company" value={company} />
-              </div>
+      <PageContainer className="px-xl pb-xl">
+        <div className="mx-auto space-y-4">
+          {successMessage && (
+            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+              {successMessage}
             </div>
+          )}
 
-            {/* Info Grid */}
-            <div className="p-xl">
-              <h3 className="font-semibold mb-6 text-gray-dark">
-                Personal Information
-              </h3>
+          {hasPendingEditRequest && !isEditing && (
+            <div className="rounded-xl border border-primary-opacity-20 bg-primary-light px-4 py-3 text-sm text-primary">
+              You have requested profile changes. Your request has been submitted to the admin for approval.
+            </div>
+          )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <InfoItem icon={Mail} label="Email" value={email} />
-                <InfoItem icon={Phone} label="Contact" value={contactNo} />
-                <InfoItem icon={Calendar} label="Date of Birth" value={formatDate(dateOfBirth)} />
-                <InfoItem icon={Calendar} label="Joining Date" value={formatDate(joiningDate)} />
+          <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-8">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Avatar className="h-18 w-18 border border-gray-300">
+                    <AvatarImage src={displayAvatarSrc} />
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
 
-                {isVega && (
-                  <InfoItem icon={MapPin} label="Working Location" value={workingLocation} />
-                )}
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={handleAvatarIconClick}
+                      disabled={uploadingPhoto}
+                      className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white shadow-sm transition-colors hover:bg-primary/90 disabled:opacity-60"
+                      title="Change profile picture"
+                      aria-label="Change profile picture"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                    </button>
+                  )}
 
-                {isAIA && (
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-xl font-semibold text-gray-900">{formData.username || '—'}</p>
+                  <div className="mt-1 flex items-center gap-2 text-gray-500">
+                    <Building2 className="h-3.5 w-3.5 text-primary" />
+                    <span>{user?.company || '—'}</span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-gray-500">
+                    <Hash className="h-3.5 w-3.5 text-primary" />
+                    <span>{userCode || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end md:self-auto">
+                {isEditing ? (
                   <>
-                    <InfoItem icon={Building2} label="Branch" value={branch} />
-                    <InfoItem icon={Hash} label="Employee Code" value={empCode} />
+                    <button
+                      type="button"
+                      onClick={handleCancel}
+                      disabled={saving}
+                      className="rounded-md h-10 border border-primary px-3 py-1.5 text-primary transition-colors hover:bg-primary/5 disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSave}
+                      disabled={saving || uploadingPhoto}
+                      className="rounded-md h-10 bg-primary px-3 py-1.5 text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+                    >
+                      {uploadingPhoto ? 'Uploading...' : saving ? 'Saving...' : 'Save'}
+                    </button>
                   </>
-                )}
-
-                {isVega && (
-                  <InfoItem icon={IdCard} label="Employee ID" value={empId} />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleEdit}
+                    disabled={hasPendingEditRequest}
+                    className={`inline-flex h-10 items-center gap-1.5 rounded-md p-4 text-white transition-colors ${
+                      hasPendingEditRequest
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-primary hover:bg-primary/90'
+                    }`}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    {hasPendingEditRequest ? 'Requested' : 'Edit Profile'}
+                  </button>
                 )}
               </div>
             </div>
-          </div>
+          </section>
+
+          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-8">
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+              <Field
+                label="Full Name"
+                name="username"
+                value={formData.username}
+                editing={isEditing}
+                onChange={handleChange}
+              />
+              <Field
+                label="Email"
+                name="email"
+                value={formData.email}
+                editing={isEditing}
+                onChange={handleChange}
+              />
+              <Field
+                label="Contact"
+                name="contact_no"
+                value={formData.contact_no}
+                editing={isEditing}
+                onChange={handleChange}
+              />
+              <Field
+                label="Designation"
+                name="designation"
+                value={formData.designation}
+                editing={isEditing}
+                onChange={handleChange}
+              />
+              <Field
+                label="Date of Birth"
+                name="date_of_birth"
+                value={isEditing ? formData.date_of_birth : formatDate(formData.date_of_birth)}
+                editing={isEditing}
+                onChange={handleChange}
+                type="date"
+              />
+              <Field
+                label="Joining Date"
+                name="joining_date"
+                value={isEditing ? formData.joining_date : formatDate(formData.joining_date)}
+                editing={isEditing}
+                onChange={handleChange}
+                type="date"
+              />
+            </div>
+
+            {errorMessage && (
+              <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
+            )}
+          </section>
         </div>
       </PageContainer>
-    </>
+    </div>
   );
 }

@@ -105,7 +105,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Date', text
           onClick={() => setOpen((s) => !s)}
           className="h-12 w-full rounded-[12px] border border-gray-100 bg-white px-4 text-left text-small shadow-sm flex items-center justify-between"
         >
-          <span className={cn('truncate', textSize, selected ? 'text-black' : 'text-[#B3B3B3]')}>{selected ? selected.toLocaleDateString() : placeholder}</span>
+          <span className={cn('truncate', textSize, selected ? 'text-black' : 'text-gray-text')}>{selected ? selected.toLocaleDateString() : placeholder}</span>
           <div className="flex items-center gap-2">
             {selected && (
               <span
@@ -127,27 +127,27 @@ export default function DatePicker({ value, onChange, placeholder = 'Date', text
                 aria-label="clear date"
                 className="p-1 rounded hover:bg-gray-100 inline-flex items-center justify-center"
               >
-                <X className="h-4 w-4 text-[#9CA3AF]" />
+                <X className="h-4 w-4 text-gray-text" />
               </span>
             )}
-            <CalIcon className="h-4 w-4 text-[#B3B3B3]" />
+            <CalIcon className="h-4 w-4 text-gray-text" />
           </div>
         </button>
       </div>
 
       {open && (
-        <div className="absolute z-50 mt-2 w-full max-w-[340px] rounded-lg bg-white shadow-md ring-1 ring-black/5 p-3 sm:p-4">
+        <div className="absolute z-50 mt-2 w-full max-w-[340px] rounded-[12px] bg-white shadow-md ring-1 ring-black/5 p-3 sm:p-4">
           <div className="flex items-center justify-between mb-2">
             <button type="button" onClick={() => setView((v) => ({ ...v, month: v.month - 1 < 0 ? 11 : v.month - 1, year: v.month - 1 < 0 ? v.year - 1 : v.year }))} className="p-1">
-              <ChevronLeft className="h-4 w-4 text-[#374151]" />
+              <ChevronLeft className="h-4 w-4 text-gray-text" />
             </button>
-            <div className="text-sm font-medium text-[#1F2937]">{new Date(view.year, view.month).toLocaleString('default', { month: 'long' })} {view.year}</div>
+            <div className="text-sm font-medium text-black">{new Date(view.year, view.month).toLocaleString('default', { month: 'long' })} {view.year}</div>
             <button type="button" onClick={() => setView((v) => ({ ...v, month: v.month + 1 > 11 ? 0 : v.month + 1, year: v.month + 1 > 11 ? v.year + 1 : v.year }))} className="p-1">
-              <ChevronRight className="h-4 w-4 text-[#374151]" />
+              <ChevronRight className="h-4 w-4 text-gray-text" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-1 text-xs sm:text-sm text-[#6B7280] mb-2">
+          <div className="grid grid-cols-7 gap-1 text-xs sm:text-sm text-gray-text mb-2">
             <div className="text-center">Sun</div>
             <div className="text-center">Mon</div>
             <div className="text-center">Tue</div>
@@ -178,7 +178,7 @@ export default function DatePicker({ value, onChange, placeholder = 'Date', text
                   aria-disabled={isFuture}
                   className={cn(
                     'flex items-center justify-center rounded',
-                    isFuture ? 'text-[#9CA3AF] opacity-50 cursor-not-allowed' : 'text-[#374151] hover:bg-gray-100',
+                    isFuture ? 'text-gray-text opacity-50 cursor-not-allowed' : 'text-black hover:bg-gray-100',
                     isSelected ? 'bg-primary text-white' : ''
                   )}
                   style={{
