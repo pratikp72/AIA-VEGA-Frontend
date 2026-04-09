@@ -115,7 +115,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
     e.preventDefault();
     if (isSubmitting) return;
 
-    // Build answers array: one entry per question + courseRating + additionalFeedback
+    // Build answers array: one entry per active feedback question
     const answersArray = [
       ...activeQuestions.map((q) => ({
         question_id: q.question_id,
@@ -163,7 +163,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
         courseId: Number(courseId),
         routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
         feedbackId: String(courseId || ''),
-        rating: courseRating || null,
+        rating: null,
         metadata: {
           course_id: Number(courseId),
           user_id: Number(userId),
@@ -178,7 +178,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
         courseId: Number(courseId),
         routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
         feedbackId: String(courseId || ''),
-        rating: courseRating || null,
+        rating: null,
         metadata: {
           course_id: Number(courseId),
           user_id: Number(userId),
