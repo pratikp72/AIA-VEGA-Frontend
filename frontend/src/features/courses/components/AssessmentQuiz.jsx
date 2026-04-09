@@ -548,7 +548,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   }, [handleAutoSubmit]);
 
   useEffect(() => {
-    if (!quizStartedRef.current || submittedRef.current) return;
+    if (!quizStartedRef.current || submittedRef.current || submitted || showFeedbackForm) return;
 
     let submissionInProgress = false;
 
@@ -627,7 +627,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
-  }, [quizStartedRef.current, handleAutoSubmit]);
+  }, [quizStartedRef.current, handleAutoSubmit, submitted, showFeedbackForm]);
 
   const handleStartAssessment = () => {
     quizStartedRef.current = true;
