@@ -1,28 +1,18 @@
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337/api').replace(/\/api\/?$/, '');
 
 const HONORIFIC_PREFIXES = new Set([
-  'mr',
-  'mrs',
-  'ms',
-  'miss',
-  'dr',
-  'prof',
-  'sir',
-  'madam',
+  'mr', 'mrs', 'ms', 'miss', 'dr', 'prof', 'sir', 'madam',
 ]);
 
 function getNameWithoutPrefix(name) {
   const raw = (name || '').toString().trim();
   if (!raw) return '';
-
   const parts = raw.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '';
-
   const normalizedFirst = parts[0].replace(/[^a-zA-Z]/g, '').toLowerCase();
   if (normalizedFirst && HONORIFIC_PREFIXES.has(normalizedFirst) && parts.length > 1) {
     return parts.slice(1).join(' ');
   }
-
   return raw;
 }
 
@@ -59,6 +49,13 @@ function resolveMediaUrl(media) {
 function getUserPhotoSrc(user) {
   if (!user) return '';
 
+  // AIA users: prefer the direct mount-served photo (no Strapi upload involved)
+  const empPhotoFile = user.emp_photo_file || user.attributes?.emp_photo_file;
+  if (empPhotoFile && String(empPhotoFile).trim()) {
+    return `${API_BASE}/empimages/${encodeURIComponent(String(empPhotoFile).trim())}`;
+  }
+
+  // Fallback: Strapi media relation (photograph field) for any user
   const candidates = [
     user.photograph,
     user.avatar,
@@ -87,14 +84,13 @@ function getUserPhotoSrc(user) {
 
 /**
  * Avatar rule:
- * - Company users (AIA/VEGA): use backend photograph when available.
- * - Others: use photograph if present, else first-letter fallback.
+ * - AIA users: serve photo from /empimages/:emp_photo_file (direct mount, always fresh)
+ * - Vega / others: use Strapi photograph media if present
+ * - No photo found: first-letter initials fallback
  */
 export function getAvatarPropsForEmployee(user) {
   const name = user?.employee_name || user?.username || user?.name || 'Unknown';
   const firstLetter = getFirstLetter(name, user?.email?.[0] || '?');
-
   const photoSrc = getUserPhotoSrc(user);
-
   return { src: photoSrc, initials: firstLetter };
 }
