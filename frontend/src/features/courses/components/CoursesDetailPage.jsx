@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import MarkdownIt from "markdown-it";
 import { useRouter, useParams, usePathname, useSearchParams } from "next/navigation";
 import { FolderOpen, Clock, Maximize2, Languages, User, ListOrdered, CheckCircle2 } from "lucide-react";
@@ -105,11 +105,6 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const isLanguageSelectionLocked = allModulesCompleted;
   const hasQuizInSelectedLanguage = filteredQuizzes.length > 0;
 
-  const displayedProgressPercentage = useMemo(() => {
-    if (contents.length === 0) return 0;
-    const completedInLang = contents.filter((m) => m.mark_as_read).length;
-    return Math.round((completedInLang / contents.length) * 80);
-  }, [contents]);
 
   const moduleIdFromQuery = searchParams.get('moduleId');
   const requestedModuleId = moduleIdFromPath || moduleIdFromQuery;
@@ -835,7 +830,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
 
             {/* Right Column: Stats + Course Contents */}
             <div className="lg:col-span-1 mt-18">
-              <CourseStats course={course} progressPercentage={displayedProgressPercentage} quizScore={courseProgress.quizScore} totalModuleTimeMin={totalModuleTimeMin} />
+              <CourseStats course={course} progressPercentage={courseProgress.progressPercentage} quizScore={courseProgress.quizScore} totalModuleTimeMin={totalModuleTimeMin} />
               <CourseContentList
                 contents={contents}
                 current={currentModule?.moduleId || currentModule?.id || 0}

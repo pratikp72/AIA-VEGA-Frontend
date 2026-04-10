@@ -282,6 +282,7 @@ export default function PeopleListingPage() {
         <Filters
           search={searchTerm}
           onSearchChange={(val) => setSearchTerm(val)}
+          searchPlaceholder="Search by Name, Employee ID"
           showDate={false}
           selects={[
             {
