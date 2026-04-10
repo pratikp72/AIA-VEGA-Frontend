@@ -77,6 +77,7 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                   </div>
 
                   {typeof person.email === 'string' &&
+                    person.email.includes('@') &&
                     !person.email.trim().toLowerCase().endsWith('@aia.internal') && (
                       <div className="flex items-center gap-2">
                         <Mail className="w-3 h-3 text-muted-foreground shrink-0" />

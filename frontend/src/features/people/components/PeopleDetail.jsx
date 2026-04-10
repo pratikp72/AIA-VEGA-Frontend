@@ -100,6 +100,7 @@ const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmpl
           </div>
         )}
         {typeof selectedEmployee.email === 'string' &&
+          selectedEmployee.email.includes('@') &&
           !selectedEmployee.email.trim().toLowerCase().endsWith('@aia.internal') && (
           <div className="flex items-center gap-2 min-w-0">
             <Mail className="h-4 w-4 shrink-0" />
