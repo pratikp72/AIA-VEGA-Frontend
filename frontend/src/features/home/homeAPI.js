@@ -464,16 +464,16 @@ export const fetchMyCourses = async () => {
 
 
 export const fetchBirthdaysToday = async () => {
-  // Fetch all users
-  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
-    params: {
-      'populate[photograph]': true,
-      sort: 'username:asc',
-      'filters[exit_date][$null]': true,
-      'filters[active][$ne]': false,
-      'filters[blocked][$ne]': true,
-    },
-  });
+  const userCompany = normalizeCompanyForFilter(getCurrentUserCompany());
+  const params = {
+    'populate[photograph]': true,
+    sort: 'username:asc',
+    'filters[exit_date][$null]': true,
+    'filters[active][$ne]': false,
+    'filters[blocked][$ne]': true,
+    ...(userCompany && { 'filters[company][$eq]': userCompany }),
+  };
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, { params });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
@@ -496,22 +496,23 @@ export const fetchBirthdaysToday = async () => {
         avatar: avatar.src,
         avatarInitial: avatar.initials,
         date: u.date_of_birth,
+        company: u.company || '',
       };
     });
 };
 
 
 export const fetchWorkAnniversaries = async () => {
-  // Fetch all users
-  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
-    params: {
-      'populate[photograph]': true,
-      sort: 'username:asc',
-      'filters[exit_date][$null]': true,
-      'filters[active][$ne]': false,
-      'filters[blocked][$ne]': true,
-    },
-  });
+  const userCompany = normalizeCompanyForFilter(getCurrentUserCompany());
+  const params = {
+    'populate[photograph]': true,
+    sort: 'username:asc',
+    'filters[exit_date][$null]': true,
+    'filters[active][$ne]': false,
+    'filters[blocked][$ne]': true,
+    ...(userCompany && { 'filters[company][$eq]': userCompany }),
+  };
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, { params });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
@@ -537,6 +538,7 @@ export const fetchWorkAnniversaries = async () => {
         avatarInitial: avatar.initials,
         yearsCompleted,
         joinDate: u.joining_date,
+        company: u.company || '',
       };
     });
 };
