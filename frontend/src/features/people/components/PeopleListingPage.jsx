@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import useInfiniteScroll from '@/hooks/useInfiniteScroll';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Filters from '@/components/common/Filters';
@@ -71,9 +72,23 @@ export default function PeopleListingPage() {
   const [locationFilter, setLocationFilter] = useState('');
   const [perPage, setPerPage] = useState(PER_PAGE);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-  const autoLoadTriggerRef = useRef(null);
   const isAutoMode = perPage === AUTO_PER_PAGE;
   const resolvedPageSize = isAutoMode ? 100 : Number(perPage) || PER_PAGE;
+
+  // IntersectionObserver for infinite scroll in auto mode
+  const handleLoadMore = useCallback(() => {
+    dispatch(setPage(currentPage + 1));
+  }, [currentPage, dispatch]);
+
+  const sentinelRef = useInfiniteScroll({
+    isLoading,
+    currentPage,
+    totalPages,
+    onLoadMore: handleLoadMore,
+    rootMargin: '200px 0px',
+    threshold: 0.01,
+    enabled: isAutoMode, // Only activate in auto mode
+  });
 
   // Track which company's options have already been loaded so we never
   // fire /analytics/departments + /analytics/unit-locations simultaneously
@@ -119,27 +134,6 @@ export default function PeopleListingPage() {
       }
     });
   }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
-
-  useEffect(() => {
-    if (!isAutoMode) return;
-    if (isLoading) return;
-    if (currentPage >= totalPages) return;
-    const node = autoLoadTriggerRef.current;
-    if (!node) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0]?.isIntersecting) return;
-        if (isLoading) return;
-        if (currentPage >= totalPages) return;
-        dispatch(setPage(currentPage + 1));
-      },
-      { root: null, rootMargin: '200px 0px', threshold: 0.01 }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [isAutoMode, isLoading, currentPage, totalPages, dispatch]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);
@@ -381,7 +375,7 @@ export default function PeopleListingPage() {
                 </div>
 
                 {currentPage < totalPages && (
-                  <div ref={autoLoadTriggerRef} className="mt-4 flex justify-center py-4">
+                  <div ref={sentinelRef} className="mt-4 flex justify-center py-4">
                     {isLoading ? <Loader size="sm" /> : <span className="text-small text-muted-foreground">Scroll to load more</span>}
                   </div>
                 )}

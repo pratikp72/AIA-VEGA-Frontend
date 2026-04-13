@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PageSection from '@/components/common/PageSection';
 import PageHeader from '@/components/common/PageHeader';
@@ -12,7 +12,8 @@ import { PlayCircle, MoreVertical, ChevronRight, Clock, BookOpen, Users, Award }
 import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadAllCourses } from '@/features/courses/coursesSlice';
-import { selectCoursesList, selectCoursesLoading } from '@/features/courses/coursesSelectors';
+import { selectCoursesList, selectCoursesLoading, selectCurrentPage, selectTotalPages } from '@/features/courses/coursesSelectors';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { fetchCourseWorkflows, fetchUserCourseProgress } from '@/features/courses/coursesAPI';
 import { getLatestSubmission } from '../quizSubmissionAPI';
 import { getCurrentUserId } from '@/lib/auth';
@@ -28,12 +29,15 @@ const COURSE_CARD_META_ROW_CLASS = 'flex items-center gap-6 text-small text-mute
 const COURSE_CARD_TITLE_CLASS = 'font-medium text-gray-900 text-lg leading-7 h-7 truncate';
 const COURSE_CARD_ACTION_CLASS = 'mt-auto pt-2 min-h-[52px]';
 const COURSE_CARD_ACTION_BUTTON_BASE = 'rounded-md font-normal px-6 py-2 flex items-center gap-2 w-full justify-center';
+const PAGE_SIZE = 9;
 
 export default function CoursesCategoryPage({ category }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const allCourses = useAppSelector(selectCoursesList);
   const isLoading = useAppSelector(selectCoursesLoading);
+  const currentPage = useAppSelector(selectCurrentPage);
+  const totalPages = useAppSelector(selectTotalPages);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [feedbackEligibility, setFeedbackEligibility] = useState({});
   const [courseWorkflows, setCourseWorkflows] = useState([]);
@@ -53,7 +57,7 @@ export default function CoursesCategoryPage({ category }) {
   };
 
   useEffect(() => {
-    dispatch(loadAllCourses());
+    dispatch(loadAllCourses({ page: 1, pageSize: PAGE_SIZE }));
   }, [dispatch]);
 
   useEffect(() => {
@@ -78,6 +82,19 @@ export default function CoursesCategoryPage({ category }) {
       alive = false;
     };
   }, []);
+
+  // Handle loading next page
+  const handleLoadMore = useCallback(() => {
+    dispatch(loadAllCourses({ page: currentPage + 1, pageSize: PAGE_SIZE }));
+  }, [dispatch, currentPage]);
+
+  // Set up infinite scroll with custom hook
+  const sentinelRef = useInfiniteScroll({
+    isLoading,
+    currentPage,
+    totalPages,
+    onLoadMore: handleLoadMore,
+  });
 
   const normalized = (category || '').toLowerCase();
   const title = CATEGORY_LABELS[normalized] || 'Courses';
@@ -529,13 +546,18 @@ export default function CoursesCategoryPage({ category }) {
       </PageHeader>
       <main>
         <PageSection className="pt-md">
-          {isLoading ? (
+          {isLoading && currentPage === 1 ? (
             <div className="min-h-[50vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>
+          ) : courses.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-body text-gray-medium">No courses found</p>
+            </div>
           ) : (
-            <div className="grid w-full gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(350px,1fr))]">
-              {courses.map((course) => {
+            <>
+              <div className="grid w-full gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(350px,1fr))]">
+                {courses.map((course) => {
                 const isNotStarted = !course.completed && (!course.progressStatus || course.progressStatus === 'Not_started');
                 const isInProgress = !course.completed && (course.progressStatus === 'In_progress' || course.progressStatus === 'Failed');
                 const isCompleted = !!course.completed || course.progressStatus === 'Completed';
@@ -699,7 +721,16 @@ export default function CoursesCategoryPage({ category }) {
                   </Link>
                 );
               })}
-            </div>
+              </div>
+
+              {/* Sentinel — triggers next page load when scrolled into view */}
+              <div ref={sentinelRef} className="py-4 flex justify-center">
+                {isLoading && <Loader size="sm" />}
+                {!isLoading && currentPage >= totalPages && courses.length > 0 && (
+                  <p className="text-xs text-gray-400">All courses loaded.</p>
+                )}
+              </div>
+            </>
           )}
         </PageSection>
       </main>
