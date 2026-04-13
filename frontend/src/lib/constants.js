@@ -13,6 +13,7 @@ export const API_CONFIG = {
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'authToken',
   REFRESH_TOKEN: 'refreshToken',
+  USER: 'user',
   USER_DATA: 'userData',
   THEME: 'theme',
 };
