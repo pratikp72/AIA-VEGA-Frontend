@@ -601,7 +601,7 @@ export default function ProfilePage() {
 
           {/* Reset Password */}
           <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-8">
-            <h2 className="mb-4 text-base font-semibold text-gray-900">Reset Password</h2>
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">Reset Password</h2>
 
             {pwError && (
               <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
@@ -627,7 +627,7 @@ export default function ProfilePage() {
                 { field: 'confirmPassword', label: 'Confirm Password' },
               ].map(({ field, label }) => (
                 <div key={field}>
-                  <p className="mb-2 text-sm">{label}</p>
+                  <p className="mb-2">{label}</p>
                   <div className="relative">
                     <input
                       type={pwShow[field] ? 'text' : 'password'}
