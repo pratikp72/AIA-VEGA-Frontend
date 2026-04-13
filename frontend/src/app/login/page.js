@@ -8,7 +8,7 @@ import { useImageGrid } from '../../hooks/useImageGrid';
  * Login page with animated background grid
  */
 const LoginPage = () => {
-  const gridImages = useImageGrid();
+  const { slots } = useImageGrid();
 
   return (
     <div style={{
@@ -21,7 +21,7 @@ const LoginPage = () => {
       background: '#000',
     }}>
       {/* Animated Background Grid */}
-      <BackgroundGrid images={gridImages} />
+      <BackgroundGrid slots={slots} />
 
       {/* Dark Overlay */}
       <div style={{
