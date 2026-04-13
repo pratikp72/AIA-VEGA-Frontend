@@ -334,9 +334,13 @@ export default function RoutesPage() {
           </div>
         ) : error ? (
           <div className="py-8 text-red-600">{error}</div>
-        ) : !activeUnit ? (
-          <div className="py-8 text-gray-500">
-            No routes configured for this location.
+        ) : !selectedUnitId ? (
+          <div className="py-8 text-center text-gray-500">
+            Please select a unit to continue.
+          </div>
+        ) : !selectedRouteId ? (
+          <div className="py-8 text-center text-gray-500">
+            Please select a route to view the map and stops.
           </div>
         ) : (
           <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] gap-6 items-start">
