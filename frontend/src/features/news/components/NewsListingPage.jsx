@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loadAllNews, loadNewsByCategory, setCategory } from '@/features/news/newsSlice';
 import {
@@ -29,6 +30,19 @@ export default function NewsListingPage() {
   const selectedCategory = useAppSelector(selectCurrentCategory);
 
   const [categories, setCategories] = useState([]);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Restore category from URL on mount
+  useEffect(() => {
+    const urlCategory = searchParams.get('category');
+    if (urlCategory) {
+      dispatch(setCategory(urlCategory));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -68,6 +82,22 @@ export default function NewsListingPage() {
   const handleCategoryChange = (value) => {
     dispatch(setCategory(value === '' ? 'All Categories' : value));
   };
+
+  // ── Sync category → URL search params (persistence across refresh) ──
+  const isFirstCategorySync = useRef(true);
+  useEffect(() => {
+    if (isFirstCategorySync.current) {
+      isFirstCategorySync.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (selectedCategory && selectedCategory !== 'All Categories') {
+      params.set('category', selectedCategory);
+    }
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCategory]);
 
   const categoryOptions = [
     { label: 'All Categories', value: 'All Categories' },

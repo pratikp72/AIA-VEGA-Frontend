@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
@@ -42,18 +43,21 @@ function formatDateForApi(value) {
 
 export default function GalleryPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const items = useAppSelector(selectGalleryItems);
   const isLoading = useAppSelector(selectGalleryLoading);
   const error = useAppSelector(selectGalleryError);
   const currentPage = useAppSelector(selectGalleryCurrentPage);
   const totalPages = useAppSelector(selectGalleryTotalPages);
 
-  const [companyFilter, setCompanyFilter] = useState('AIA');
-  const [search, setSearch] = useState('');
-  const [searchDebounced, setSearchDebounced] = useState('');
-  const [sortBy, setSortBy] = useState('');
-  const [date, setDate] = useState('');
-  const [type, setType] = useState('');
+  const [companyFilter, setCompanyFilter] = useState(searchParams.get('company') || 'AIA');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [searchDebounced, setSearchDebounced] = useState(searchParams.get('search') || '');
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || '');
+  const [date, setDate] = useState(searchParams.get('date') || '');
+  const [type, setType] = useState(searchParams.get('type') || '');
   const searchDebounceRef = useRef(null);
 
   // Debounce search input
@@ -102,6 +106,27 @@ export default function GalleryPage() {
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   };
+
+  // ── Sync filter/sort state → URL search params (persistence across refresh) ──
+  const isFirstUrlSync = useRef(true);
+  useEffect(() => {
+    if (isFirstUrlSync.current) {
+      isFirstUrlSync.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
+    if (searchDebounced?.trim()) params.set('search', searchDebounced.trim());
+    if (sortBy) params.set('sortBy', sortBy);
+    if (date) {
+      const dateStr = typeof date === 'string' ? date : formatDateForApi(date);
+      if (dateStr) params.set('date', dateStr);
+    }
+    if (type) params.set('type', type);
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyFilter, searchDebounced, sortBy, date, type]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={galleryBgStyle}>

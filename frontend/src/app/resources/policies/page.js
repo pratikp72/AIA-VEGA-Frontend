@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
@@ -19,10 +19,12 @@ import {
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export default function PoliciesPage() {
-  const [search, setSearch] = useState('');
-  const [date, setDate] = useState('');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [date, setDate] = useState(searchParams.get('date') || '');
 
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
 
   const policiesList = useAppSelector(selectPoliciesList);
@@ -56,6 +58,31 @@ export default function PoliciesPage() {
     totalPages: policiesTotalPages,
     onLoadMore: handleLoadMore,
   });
+
+  // ── Sync filter state → URL search params (persistence across refresh) ──
+  const isFirstUrlSync = useRef(true);
+  const urlSyncTimerRef = useRef(null);
+  useEffect(() => {
+    if (isFirstUrlSync.current) {
+      isFirstUrlSync.current = false;
+      return;
+    }
+    if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);
+    urlSyncTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (search?.trim()) params.set('search', search.trim());
+      if (date) {
+        const dateStr = typeof date === 'string' ? date : date?.toISOString?.()?.slice(0, 10);
+        if (dateStr) params.set('date', dateStr);
+      }
+      const qs = params.toString();
+      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    }, 300);
+    return () => {
+      if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, date]);
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import PageHeader from '@/components/common/PageHeader';
@@ -43,6 +43,8 @@ const SORT_OPTIONS = [
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') ?? '';
   const urlCompany = searchParams.get('company') ?? '';
@@ -67,10 +69,14 @@ export default function PeopleListingPage() {
   // Debounced value — updated 350ms after the user stops typing (init from URL when from global search)
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
 
-  const [sortBy, setSortBy] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
-  const [perPage, setPerPage] = useState(PER_PAGE);
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') ?? '');
+  const [departmentFilter, setDepartmentFilter] = useState(searchParams.get('department') ?? '');
+  const [locationFilter, setLocationFilter] = useState(searchParams.get('location') ?? '');
+  const [perPage, setPerPage] = useState(() => {
+    const urlPerPage = searchParams.get('perPage');
+    if (urlPerPage === AUTO_PER_PAGE) return AUTO_PER_PAGE;
+    return Number(urlPerPage) || PER_PAGE;
+  });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const isAutoMode = perPage === AUTO_PER_PAGE;
   const resolvedPageSize = isAutoMode ? 100 : Number(perPage) || PER_PAGE;
@@ -134,6 +140,32 @@ export default function PeopleListingPage() {
       }
     });
   }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
+
+  // ── Sync filter/sort state → URL search params (persistence across refresh) ──
+  const isFirstUrlSync = useRef(true);
+  useEffect(() => {
+    if (isFirstUrlSync.current) {
+      isFirstUrlSync.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    // Preserve person-targeting params
+    if (targetPersonId) params.set('personId', targetPersonId);
+    if (targetPersonEmpId) params.set('personEmpId', targetPersonEmpId);
+    if (targetPersonName) params.set('personName', targetPersonName);
+    if (targetPersonCompany) params.set('personCompany', targetPersonCompany);
+    // Filter / sort params (omit defaults to keep URL clean)
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
+    if (sortBy) params.set('sortBy', sortBy);
+    if (departmentFilter) params.set('department', departmentFilter);
+    if (locationFilter) params.set('location', locationFilter);
+    if (perPage !== PER_PAGE) params.set('perPage', String(perPage));
+
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);

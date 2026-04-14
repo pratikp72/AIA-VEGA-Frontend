@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
@@ -23,7 +23,18 @@ export default function FormTemplatesPage() {
   const [date, setDate] = useState('');
 
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
+
+  // Restore filters from URL on mount
+  useEffect(() => {
+    const urlSearch = searchParams.get('search');
+    const urlDate = searchParams.get('date');
+    if (urlSearch) setSearch(urlSearch);
+    if (urlDate) setDate(urlDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const formTemplates = useAppSelector(selectFormTemplatesList);
   const formTemplatesLoading = useAppSelector(selectFormTemplatesLoading);
@@ -56,6 +67,24 @@ export default function FormTemplatesPage() {
     totalPages,
     onLoadMore: handleLoadMore,
   });
+
+  // ── Sync filter state → URL search params (persistence across refresh) ──
+  const isFirstUrlSync = useRef(true);
+  useEffect(() => {
+    if (isFirstUrlSync.current) {
+      isFirstUrlSync.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (search?.trim()) params.set('search', search.trim());
+    if (date) {
+      const dateStr = typeof date === 'string' ? date : date?.toISOString?.()?.slice(0, 10);
+      if (dateStr) params.set('date', dateStr);
+    }
+    const qs = params.toString();
+    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, date]);
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',
