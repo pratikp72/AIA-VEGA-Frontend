@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
@@ -16,6 +16,7 @@ import {
   selectPoliciesCurrentPage,
   selectPoliciesTotalPages,
 } from '@/features/resources/policiesSelectors';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export default function PoliciesPage() {
   const [search, setSearch] = useState('');
@@ -30,43 +31,31 @@ export default function PoliciesPage() {
   const policiesCurrentPage = useAppSelector(selectPoliciesCurrentPage);
   const policiesTotalPages = useAppSelector(selectPoliciesTotalPages);
 
-  const RES_PER_PAGE = 6;
+  const RES_PER_PAGE = 24;
 
+  // Load first page when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      dispatch(loadPolicies({ page: 1, limit: RES_PER_PAGE, search, date, append: false }));
       dispatch(setPoliciesPage(1));
+      dispatch(loadPolicies({ page: 1, limit: RES_PER_PAGE, search, date, append: false }));
     }, search ? 300 : 0);
 
     return () => clearTimeout(timeoutId);
   }, [dispatch, search, date]);
 
-  const sentinelRef = useRef(null);
-
-  const loadNext = useCallback(() => {
-    if (policiesLoading) return;
-    if (policiesCurrentPage >= policiesTotalPages) return;
+  // Load next page on infinite scroll
+  const handleLoadMore = useCallback(() => {
     const next = policiesCurrentPage + 1;
     dispatch(loadPolicies({ page: next, limit: RES_PER_PAGE, search, date, append: true }));
     dispatch(setPoliciesPage(next));
-  }, [dispatch, policiesLoading, policiesCurrentPage, policiesTotalPages, search, date]);
+  }, [dispatch, policiesCurrentPage, search, date]);
 
-  useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) loadNext();
-        });
-      },
-      { root: null, rootMargin: '200px', threshold: 0 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadNext]);
+  const sentinelRef = useInfiniteScroll({
+    isLoading: policiesLoading,
+    currentPage: policiesCurrentPage,
+    totalPages: policiesTotalPages,
+    onLoadMore: handleLoadMore,
+  });
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',
@@ -97,7 +86,7 @@ export default function PoliciesPage() {
 
       <main>
         <PageSection>
-          {policiesLoading ? (
+          {policiesLoading && policiesCurrentPage === 1 ? (
             <div className="min-h-[50vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>
@@ -114,7 +103,10 @@ export default function PoliciesPage() {
           ) : (
             <>
               <PoliciesGrid resources={policiesList} />
-              <div ref={sentinelRef} className="h-1 w-full" />
+              {/* Sentinel — triggers next page load when scrolled into view */}
+              <div ref={sentinelRef} className="py-4 flex justify-center">
+                {policiesLoading && <Loader size="sm" />}
+              </div>
             </>
           )}
         </PageSection>

@@ -29,7 +29,7 @@ const COURSE_CARD_META_ROW_CLASS = 'flex items-center gap-6 text-small text-mute
 const COURSE_CARD_TITLE_CLASS = 'font-medium text-gray-900 text-lg leading-7 h-7 truncate';
 const COURSE_CARD_ACTION_CLASS = 'mt-auto pt-2 min-h-[52px]';
 const COURSE_CARD_ACTION_BUTTON_BASE = 'rounded-md font-normal px-6 py-2 flex items-center gap-2 w-full justify-center';
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 24;
 
 export default function CoursesCategoryPage({ category }) {
   const router = useRouter();
@@ -726,9 +726,6 @@ export default function CoursesCategoryPage({ category }) {
               {/* Sentinel — triggers next page load when scrolled into view */}
               <div ref={sentinelRef} className="py-4 flex justify-center">
                 {isLoading && <Loader size="sm" />}
-                {!isLoading && currentPage >= totalPages && courses.length > 0 && (
-                  <p className="text-xs text-gray-400">All courses loaded.</p>
-                )}
               </div>
             </>
           )}

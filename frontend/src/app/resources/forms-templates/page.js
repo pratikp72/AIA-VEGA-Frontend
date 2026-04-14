@@ -1,19 +1,22 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
 import PolicyFilters from '@/features/resources/components/PolicyFilters';
 import FormTemplatesGrid from '@/features/resources/components/FormTemplatesGrid';
-import { loadFormTemplates } from '@/features/resources/formTemplatesSlice';
+import { loadFormTemplates, setPage as setFormTemplatesPage } from '@/features/resources/formTemplatesSlice';
 import {
   selectFormTemplatesList,
   selectFormTemplatesLoading,
   selectFormTemplatesError,
+  selectFormTemplatesCurrentPage,
+  selectFormTemplatesTotalPages,
 } from '@/features/resources/formTemplatesSelectors';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export default function FormTemplatesPage() {
   const [search, setSearch] = useState('');
@@ -25,16 +28,34 @@ export default function FormTemplatesPage() {
   const formTemplates = useAppSelector(selectFormTemplatesList);
   const formTemplatesLoading = useAppSelector(selectFormTemplatesLoading);
   const formTemplatesError = useAppSelector(selectFormTemplatesError);
+  const currentPage = useAppSelector(selectFormTemplatesCurrentPage);
+  const totalPages = useAppSelector(selectFormTemplatesTotalPages);
 
-  const RES_PER_PAGE = 20;
+  const RES_PER_PAGE = 24;
 
+  // Load first page when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      dispatch(loadFormTemplates({ page: 1, limit: RES_PER_PAGE, search, date }));
+      dispatch(setFormTemplatesPage(1));
+      dispatch(loadFormTemplates({ page: 1, limit: RES_PER_PAGE, search, date, append: false }));
     }, search ? 300 : 0);
 
     return () => clearTimeout(timeoutId);
   }, [dispatch, search, date]);
+
+  // Load next page on infinite scroll
+  const handleLoadMore = useCallback(() => {
+    const nextPage = currentPage + 1;
+    dispatch(loadFormTemplates({ page: nextPage, limit: RES_PER_PAGE, search, date, append: true }));
+    dispatch(setFormTemplatesPage(nextPage));
+  }, [dispatch, currentPage, search, date]);
+
+  const sentinelRef = useInfiniteScroll({
+    isLoading: formTemplatesLoading,
+    currentPage,
+    totalPages,
+    onLoadMore: handleLoadMore,
+  });
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',
@@ -65,7 +86,7 @@ export default function FormTemplatesPage() {
 
       <main>
         <PageSection>
-          {formTemplatesLoading ? (
+          {formTemplatesLoading && currentPage === 1 ? (
             <div className="min-h-[50vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>
@@ -80,7 +101,13 @@ export default function FormTemplatesPage() {
               </p>
             </div>
           ) : (
-            <FormTemplatesGrid resources={formTemplates} />
+            <>
+              <FormTemplatesGrid resources={formTemplates} />
+              {/* Sentinel — triggers next page load when scrolled into view */}
+              <div ref={sentinelRef} className="py-4 flex justify-center">
+                {formTemplatesLoading && <Loader size="sm" />}
+              </div>
+            </>
           )}
         </PageSection>
       </main>

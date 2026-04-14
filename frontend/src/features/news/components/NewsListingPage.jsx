@@ -18,7 +18,7 @@ import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Select from '@/components/ui/select';
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 24;
 
 export default function NewsListingPage() {
   const dispatch = useAppDispatch();
@@ -120,9 +120,6 @@ export default function NewsListingPage() {
               {/* Sentinel — triggers next page load when scrolled into view */}
               <div ref={sentinelRef} className="py-4 flex justify-center">
                 {isLoading && <Loader size="sm" />}
-                {!isLoading && currentPage >= totalPages && newsList.length > 0 && (
-                  <p className="text-xs text-gray-400">All news loaded.</p>
-                )}
               </div>
             </>
           )}

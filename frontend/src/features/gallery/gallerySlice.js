@@ -3,10 +3,10 @@ import { fetchGalleryByFilters } from './galleryAPI';
 
 export const loadGalleryByFilters = createAsyncThunk(
   'gallery/loadGalleryByFilters',
-  async (filters = {}, { rejectWithValue }) => {
+  async ({ append = false, ...filters } = {}, { rejectWithValue }) => {
     try {
       const result = await fetchGalleryByFilters(filters);
-      return result;
+      return { ...result, __append: append };
     } catch (err) {
       return rejectWithValue(err?.message ?? 'Failed to load gallery');
     }
@@ -48,7 +48,16 @@ const gallerySlice = createSlice({
       .addCase(loadGalleryByFilters.fulfilled, (state, action) => {
         state.loading = false;
         const payload = action.payload || {};
-        state.items = payload.items ?? [];
+        const incoming = payload.items ?? [];
+        const append = payload.__append === true;
+        if (append) {
+          state.items = Array.isArray(state.items) ? state.items.concat(incoming) : incoming;
+        } else {
+          state.items = incoming;
+        }
+        state.currentPage = payload.currentPage || 1;
+        state.totalPages = payload.totalPages || 1;
+        state.totalItems = payload.totalItems || 0;
       })
       .addCase(loadGalleryByFilters.rejected, (state, action) => {
         state.loading = false;
