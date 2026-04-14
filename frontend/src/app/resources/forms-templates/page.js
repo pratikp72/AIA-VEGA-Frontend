@@ -75,14 +75,18 @@ export default function FormTemplatesPage() {
       isFirstUrlSync.current = false;
       return;
     }
-    const params = new URLSearchParams();
-    if (search?.trim()) params.set('search', search.trim());
-    if (date) {
-      const dateStr = typeof date === 'string' ? date : date?.toISOString?.()?.slice(0, 10);
-      if (dateStr) params.set('date', dateStr);
-    }
-    const qs = params.toString();
-    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    const timeoutId = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (search?.trim()) params.set('search', search.trim());
+      if (date) {
+        const dateStr = typeof date === 'string' ? date : date?.toISOString?.()?.slice(0, 10);
+        if (dateStr) params.set('date', dateStr);
+      }
+      const qs = params.toString();
+      const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+      window.history.replaceState(null, '', newUrl);
+    }, 300);
+    return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, date]);
 

@@ -95,9 +95,10 @@ export default function NewsListingPage() {
       params.set('category', selectedCategory);
     }
     const qs = params.toString();
-    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    window.history.replaceState(null, '', newUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory]);
+  }, [selectedCategory, pathname]);
 
   const categoryOptions = [
     { label: 'All Categories', value: 'All Categories' },

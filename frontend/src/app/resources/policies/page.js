@@ -76,7 +76,8 @@ export default function PoliciesPage() {
         if (dateStr) params.set('date', dateStr);
       }
       const qs = params.toString();
-      router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+      const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+      window.history.replaceState(null, '', newUrl);
     }, 300);
     return () => {
       if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);

@@ -124,9 +124,10 @@ export default function GalleryPage() {
     }
     if (type) params.set('type', type);
     const qs = params.toString();
-    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    window.history.replaceState(null, '', newUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyFilter, searchDebounced, sortBy, date, type]);
+  }, [companyFilter, searchDebounced, sortBy, date, type, pathname]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={galleryBgStyle}>

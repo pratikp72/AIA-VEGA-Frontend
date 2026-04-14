@@ -142,12 +142,7 @@ export default function PeopleListingPage() {
   }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
 
   // ── Sync filter/sort state → URL search params (persistence across refresh) ──
-  const isFirstUrlSync = useRef(true);
   useEffect(() => {
-    if (isFirstUrlSync.current) {
-      isFirstUrlSync.current = false;
-      return;
-    }
     const params = new URLSearchParams();
     // Preserve person-targeting params
     if (targetPersonId) params.set('personId', targetPersonId);
@@ -163,9 +158,10 @@ export default function PeopleListingPage() {
     if (perPage !== PER_PAGE) params.set('perPage', String(perPage));
 
     const qs = params.toString();
-    router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false });
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    window.history.replaceState(null, '', newUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage]);
+  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage, pathname]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);
@@ -225,6 +221,17 @@ export default function PeopleListingPage() {
     setSearchTerm('');
     setDebouncedSearch('');
     dispatch(setPage(1));
+    
+    // Immediately clear filter params from URL (preserve person-targeting params)
+    const params = new URLSearchParams();
+    if (targetPersonId) params.set('personId', targetPersonId);
+    if (targetPersonEmpId) params.set('personEmpId', targetPersonEmpId);
+    if (targetPersonName) params.set('personName', targetPersonName);
+    if (targetPersonCompany) params.set('personCompany', targetPersonCompany);
+    if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
+    const qs = params.toString();
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    window.history.replaceState(null, '', newUrl);
   };
 
   useEffect(() => {
