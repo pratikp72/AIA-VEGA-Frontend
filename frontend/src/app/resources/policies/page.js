@@ -19,14 +19,15 @@ import {
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export default function PoliciesPage() {
-  const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [date, setDate] = useState(searchParams.get('date') || '');
-
+  
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
-
+  
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [date, setDate] = useState(searchParams.get('date') || '');
+  
   const policiesList = useAppSelector(selectPoliciesList);
   const policiesLoading = useAppSelector(selectPoliciesLoading);
   const policiesError = useAppSelector(selectPoliciesError);
