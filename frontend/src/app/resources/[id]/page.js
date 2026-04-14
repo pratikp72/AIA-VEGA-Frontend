@@ -16,7 +16,6 @@ import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
 import PolicyDetail from '@/features/resources/components/PolicyDetail';
 import { fetchPolicyById } from '@/features/resources/policiesAPI';
-import { fetchFormTemplateById } from '@/features/resources/formTemplatesAPI';
 import openPdfInNewTab from '@/features/courses/utils/openPdfInNewTab';
 
 export default function ResourceDetailPage() {
@@ -26,40 +25,53 @@ export default function ResourceDetailPage() {
   const [isFormTemplate, setIsFormTemplate] = useState(false);
   const [loading, setLoading] = useState(!!documentId);
   const formType = String(item?.form_type || '').toLowerCase();
-  const isFormDownloadable = formType === 'pdf' || formType === 'excel' || formType === 'word';
   const backHref = isFormTemplate ? '/resources/forms-templates' : '/resources/policies';
+
+  // useEffect(() => {
+  //   if (!documentId) return;
+  //   setLoading(true);
+  //   // Try to fetch as form template first
+  //   fetchFormTemplateById(documentId)
+  //     .then((data) => {
+  //       if (data && data.id) {
+  //         setItem(data);
+  //         setIsFormTemplate(true);
+  //         setLoading(false);
+  //       } else {
+  //         // fallback to policy
+  //         fetchPolicyById(documentId)
+  //           .then((data) => {
+  //             setItem(data);
+  //             setIsFormTemplate(false);
+  //           })
+  //           .catch(() => setItem(null))
+  //           .finally(() => setLoading(false));
+  //       }
+  //     })
+  //     .catch(() => {
+  //       // fallback to policy
+  //       fetchPolicyById(documentId)
+  //         .then((data) => {
+  //           setItem(data);
+  //           setIsFormTemplate(false);
+  //         })
+  //         .catch(() => setItem(null))
+  //         .finally(() => setLoading(false));
+  //     });
+  // }, [documentId]);
+
 
   useEffect(() => {
     if (!documentId) return;
     setLoading(true);
     // Try to fetch as form template first
-    fetchFormTemplateById(documentId)
-      .then((data) => {
-        if (data && data.id) {
-          setItem(data);
-          setIsFormTemplate(true);
-          setLoading(false);
-        } else {
-          // fallback to policy
-          fetchPolicyById(documentId)
+    fetchPolicyById(documentId)
             .then((data) => {
               setItem(data);
               setIsFormTemplate(false);
             })
             .catch(() => setItem(null))
             .finally(() => setLoading(false));
-        }
-      })
-      .catch(() => {
-        // fallback to policy
-        fetchPolicyById(documentId)
-          .then((data) => {
-            setItem(data);
-            setIsFormTemplate(false);
-          })
-          .catch(() => setItem(null))
-          .finally(() => setLoading(false));
-      });
   }, [documentId]);
 
   const handleOpenPdf = async (fileUrl, title) => {
