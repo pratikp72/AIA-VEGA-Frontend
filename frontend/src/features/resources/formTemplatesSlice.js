@@ -1,6 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { fetchFormTemplates, fetchFormTemplateById } from './formTemplatesAPI';
 
+function dedupeByStableId(list = []) {
+  const seen = new Set();
+  const output = [];
+  for (const item of list) {
+    const key = item?.id ?? item?.documentId;
+    if (key == null || seen.has(key)) continue;
+    seen.add(key);
+    output.push(item);
+  }
+  return output;
+}
+
 export const loadFormTemplates = createAsyncThunk(
   'formTemplates/loadFormTemplates',
   async ({ page = 1, limit = 10, search = '', date = '', append = false } = {}, { rejectWithValue }) => {
@@ -34,6 +46,7 @@ const initialState = {
   currentPage: 1,
   totalPages: 1,
   totalItems: 0,
+  latestRequestId: null,
 };
 
 const formTemplatesSlice = createSlice({
@@ -50,31 +63,37 @@ const formTemplatesSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loadFormTemplates.pending, (state) => {
+      .addCase(loadFormTemplates.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.latestRequestId = action.meta.requestId;
       })
       .addCase(loadFormTemplates.fulfilled, (state, action) => {
+        if (state.latestRequestId && state.latestRequestId !== action.meta.requestId) return;
         state.loading = false;
         const payload = action.payload || {};
         const incoming = payload.templates || [];
         const append = payload.__append === true;
         if (append) {
-          state.templatesList = Array.isArray(state.templatesList)
+          const merged = Array.isArray(state.templatesList)
             ? state.templatesList.concat(incoming)
             : incoming;
+          state.templatesList = dedupeByStableId(merged);
         } else {
-          state.templatesList = incoming;
+          state.templatesList = dedupeByStableId(incoming);
         }
         const pagination = payload.meta?.pagination || {};
         state.currentPage = pagination.page || 1;
         state.totalPages = pagination.pageCount || 1;
         state.totalItems = pagination.total || incoming.length;
         state.meta = payload.meta || {};
+        state.latestRequestId = null;
       })
       .addCase(loadFormTemplates.rejected, (state, action) => {
+        if (state.latestRequestId && state.latestRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload || 'Failed to load form templates';
+        state.latestRequestId = null;
       })
       .addCase(loadFormTemplateDetail.pending, (state) => {
         state.loading = true;

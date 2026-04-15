@@ -1,6 +1,18 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { fetchGalleryByFilters } from './galleryAPI';
 
+function dedupeByStableId(list = []) {
+  const seen = new Set();
+  const output = [];
+  for (const item of list) {
+    const key = item?.id ?? item?.documentId;
+    if (key == null || seen.has(key)) continue;
+    seen.add(key);
+    output.push(item);
+  }
+  return output;
+}
+
 export const loadGalleryByFilters = createAsyncThunk(
   'gallery/loadGalleryByFilters',
   async ({ append = false, ...filters } = {}, { rejectWithValue }) => {
@@ -21,6 +33,7 @@ const initialState = {
   totalItems: 0,
   loading: false,
   error: null,
+  latestRequestId: null,
 };
 
 const gallerySlice = createSlice({
@@ -41,27 +54,33 @@ const gallerySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loadGalleryByFilters.pending, (state) => {
+      .addCase(loadGalleryByFilters.pending, (state, action) => {
         state.loading = true;
         state.error = null;
+        state.latestRequestId = action.meta.requestId;
       })
       .addCase(loadGalleryByFilters.fulfilled, (state, action) => {
+        if (state.latestRequestId && state.latestRequestId !== action.meta.requestId) return;
         state.loading = false;
         const payload = action.payload || {};
         const incoming = payload.items ?? [];
         const append = payload.__append === true;
         if (append) {
-          state.items = Array.isArray(state.items) ? state.items.concat(incoming) : incoming;
+          const merged = Array.isArray(state.items) ? state.items.concat(incoming) : incoming;
+          state.items = dedupeByStableId(merged);
         } else {
-          state.items = incoming;
+          state.items = dedupeByStableId(incoming);
         }
         state.currentPage = payload.currentPage || 1;
         state.totalPages = payload.totalPages || 1;
         state.totalItems = payload.totalItems || 0;
+        state.latestRequestId = null;
       })
       .addCase(loadGalleryByFilters.rejected, (state, action) => {
+        if (state.latestRequestId && state.latestRequestId !== action.meta.requestId) return;
         state.loading = false;
         state.error = action.payload ?? 'Failed to load gallery';
+        state.latestRequestId = null;
       });
   },
 });

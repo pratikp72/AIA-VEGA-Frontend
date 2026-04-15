@@ -40,6 +40,7 @@ export const useInfiniteScroll = ({
   useEffect(() => {
     // Don't observe if disabled, loading, at last page, or no callback
     if (!enabled || isLoading || currentPage >= totalPages) return;
+    if (typeof IntersectionObserver === 'undefined') return;
 
     const node = sentinelRef.current;
     if (!node) return;

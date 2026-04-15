@@ -75,22 +75,28 @@ export default function AuthGuard({ children }) {
     return null;
   }
   
-   if (showResetPassword) {
+  if (showResetPassword) {
     return (
       <ResetPasswordModal
         open={true}
         onSuccess={() => {
           setShowResetPassword(false);
 
-          // update user in localStorage
-          const userStr = localStorage.getItem(STORAGE_KEYS.USER);
+          // update user in localStorage safely
+          const userStr = typeof window !== 'undefined'
+            ? localStorage.getItem(STORAGE_KEYS.USER)
+            : null;
           if (userStr) {
-            const user = JSON.parse(userStr);
-            user.is_first_login = false;
-            localStorage.setItem(
-              STORAGE_KEYS.USER,
-              JSON.stringify(user)
-            );
+            try {
+              const user = JSON.parse(userStr);
+              user.is_first_login = false;
+              localStorage.setItem(
+                STORAGE_KEYS.USER,
+                JSON.stringify(user)
+              );
+            } catch (e) {
+              console.error('User parse error on reset-password success:', e);
+            }
           }
         }}
       />
