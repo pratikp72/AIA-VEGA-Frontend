@@ -78,13 +78,13 @@ export default function PoliciesPage() {
       }
       const qs = params.toString();
       const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
-      window.history.replaceState(null, '', newUrl);
+      router.replace(newUrl, { scroll: false });
     }, 300);
     return () => {
       if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, date]);
+  }, [search, date, pathname, router]);
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',

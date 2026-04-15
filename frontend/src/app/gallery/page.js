@@ -125,9 +125,9 @@ export default function GalleryPage() {
     if (type) params.set('type', type);
     const qs = params.toString();
     const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
-    window.history.replaceState(null, '', newUrl);
+    router.replace(newUrl, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyFilter, searchDebounced, sortBy, date, type, pathname]);
+  }, [companyFilter, searchDebounced, sortBy, date, type, pathname, router]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={galleryBgStyle}>

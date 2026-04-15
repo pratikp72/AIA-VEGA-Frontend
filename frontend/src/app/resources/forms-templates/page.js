@@ -84,11 +84,11 @@ export default function FormTemplatesPage() {
       }
       const qs = params.toString();
       const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
-      window.history.replaceState(null, '', newUrl);
+      router.replace(newUrl, { scroll: false });
     }, 300);
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, date]);
+  }, [search, date, pathname, router]);
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',

@@ -101,13 +101,24 @@ export default function PeopleListingPage() {
   // with the employees request.
   const optionsCompanyRef = useRef(null);
 
-  const urlCompanyApplied = useRef(false);
+  const lastAppliedUrlCompanyRef = useRef(null);
   useEffect(() => {
-    if (urlCompanyApplied.current || !urlCompany) return;
-    urlCompanyApplied.current = true;
-    const normalised = urlCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA';
-    dispatch(setCompanyFilter(normalised));
-  }, [urlCompany, dispatch]);
+    const normalizedUrlCompany = urlCompany ? (urlCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA') : 'AIA';
+    if (lastAppliedUrlCompanyRef.current === normalizedUrlCompany) return;
+    lastAppliedUrlCompanyRef.current = normalizedUrlCompany;
+    if (companyFilter !== normalizedUrlCompany) {
+      dispatch(setCompanyFilter(normalizedUrlCompany));
+      dispatch(setPage(1));
+    }
+  }, [urlCompany, companyFilter, dispatch]);
+
+  // When global search navigates to /people while this page is already open,
+  // sync URL search param back into local input/debounce state.
+  useEffect(() => {
+    setSearchTerm((prev) => (prev === initialSearch ? prev : initialSearch));
+    setDebouncedSearch((prev) => (prev === initialSearch ? prev : initialSearch));
+    dispatch(setPage(1));
+  }, [initialSearch, dispatch]);
 
   // Debounce: update debouncedSearch 350ms after user stops typing
   useEffect(() => {
@@ -159,9 +170,9 @@ export default function PeopleListingPage() {
 
     const qs = params.toString();
     const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
-    window.history.replaceState(null, '', newUrl);
+    router.replace(newUrl, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage, pathname]);
+  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage, pathname, router]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);
@@ -231,7 +242,7 @@ export default function PeopleListingPage() {
     if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
     const qs = params.toString();
     const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
-    window.history.replaceState(null, '', newUrl);
+    router.replace(newUrl, { scroll: false });
   };
 
   useEffect(() => {

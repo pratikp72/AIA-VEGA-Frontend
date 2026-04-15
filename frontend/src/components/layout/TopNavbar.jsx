@@ -177,7 +177,10 @@ function GlobalSearch() {
     setQuery('');
     const params = new URLSearchParams();
     if (searchQuery) params.set('search', searchQuery);
-    if (company && company.toUpperCase() === 'VEGA') params.set('company', 'VEGA');
+    const normalizedCompany = String(company || '').trim().toUpperCase();
+    if (normalizedCompany === 'VEGA' || normalizedCompany === 'AIA') {
+      params.set('company', normalizedCompany);
+    }
     const qs = params.toString();
     router.push(qs ? `${href}?${qs}` : href);
   }, [router]);

@@ -96,9 +96,9 @@ export default function NewsListingPage() {
     }
     const qs = params.toString();
     const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
-    window.history.replaceState(null, '', newUrl);
+    router.replace(newUrl, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedCategory, pathname]);
+  }, [selectedCategory, pathname, router]);
 
   const categoryOptions = [
     { label: 'All Categories', value: 'All Categories' },
