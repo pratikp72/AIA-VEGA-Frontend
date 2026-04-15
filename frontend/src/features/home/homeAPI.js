@@ -3,6 +3,7 @@ import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
 import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
+import { NEW_JOINEE_DAYS, isNewJoinee } from '@/lib/newJoinee';
 
 export const fetchDashboardData = async () => {
   const rest = USE_MOCK_DATA
@@ -158,8 +159,6 @@ export const fetchUpcomingEvents = async () => {
   return picked.map(normalizeEvent);
 };
 
-const NEW_JOINEE_DAYS = 30;
-
 function getCurrentUserCompany() {
   if (typeof window === 'undefined') return null;
   try {
@@ -198,17 +197,6 @@ function normalizeUserForJoinee(user) {
     avatar: avatar.src,
     avatarInitial: avatar.initials,
   };
-}
-
-/** Check if joining_date is within the last N days (UTC-based to avoid timezone shift) */
-function isNewJoinee(joiningDateStr, withinDays = NEW_JOINEE_DAYS) {
-  if (!joiningDateStr) return false;
-  const joinDate = new Date(joiningDateStr);
-  const now = new Date();
-  const joinUtc = Date.UTC(joinDate.getUTCFullYear(), joinDate.getUTCMonth(), joinDate.getUTCDate());
-  const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const daysSinceJoin = (nowUtc - joinUtc) / (1000 * 60 * 60 * 24);
-  return daysSinceJoin >= 0 && daysSinceJoin <= withinDays;
 }
 
 function toUtcDateStringDaysAgo(daysAgo) {
