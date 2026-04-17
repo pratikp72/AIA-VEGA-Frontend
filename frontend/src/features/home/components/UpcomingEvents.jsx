@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Clock, MapPin, Monitor } from "lucide-react";
+import { Clock, MapPin, CalendarDays  } from "lucide-react";
 import MarkdownIt from "markdown-it";
 
 const md = new MarkdownIt().disable(["image"]);
@@ -114,6 +114,19 @@ export default function UpcomingEvents({ events = [] }) {
                   <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
                     <span>{event.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4 flex-shrink-0 text-[#9C2EDB]" />
+                    {event.start_date && (
+                      <span>
+                        {(() => {
+                          const start = new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          if (!event.end_date) return start;
+                          const end = new Date(event.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                          return start === end ? start : `${start} – ${end}`;
+                        })()}
+                      </span>
+                      )}
                   </div>
                 </div>
               </div>
