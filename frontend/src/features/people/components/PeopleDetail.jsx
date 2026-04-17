@@ -44,35 +44,51 @@ const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmpl
     <SurfaceCard className="w-full border border-gray-200 bg-white p-0 xl:sticky xl:top-20 xl:max-w-[340px] xl:self-start gap-0 xl:max-h-[calc(100vh-6rem)] overflow-hidden xl:flex xl:flex-col">
       <div className="bg-white px-4 pt-4 pb-3 border-b border-gray-200">
         <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-4 min-w-0">
+          {/* Image */}
+          <img
+            src={selectedEmployee.avatar}
+            alt={selectedEmployee.name}
+            className="w-16 h-16 rounded object-cover"
+          />
+
+          {/* Text content */}
           <div className="min-w-0">
-            <h3 className="text-[22px] font-semibold leading-[28px] break-words">{selectedEmployee.name}</h3>
-            <p className="mt-1 text-small text-muted-foreground break-words">{selectedEmployee.title}</p>
-          {/* ID code with background and description */}
-          {isAIA && selectedEmployee.emp_code && (
-            <>
-              <div className="inline-block mt-2 px-3 py-1 rounded-lg bg-[#E9D8FD] text-primary-purple text-[15px] font-medium">
-                #{selectedEmployee.emp_code}
-              </div>
-              {selectedEmployee.description && (
-                <div className="text-[13px] text-muted-foreground mt-0.5 mb-0 break-words">
-                  {selectedEmployee.description}
+            <h3 className="text-[22px] font-semibold leading-[28px] break-words">
+              {selectedEmployee.name}
+            </h3>
+            <p className="mt-1 text-small text-muted-foreground break-words">
+              {selectedEmployee.title}
+            </p>
+
+            {/* ID code with background and description */}
+            {isAIA && selectedEmployee.emp_code && (
+              <>
+                <div className="inline-block mt-2 px-3 py-1 rounded-lg bg-[#E9D8FD] text-primary-purple text-[15px] font-medium">
+                  #{selectedEmployee.emp_code}
                 </div>
-              )}
-            </>
-          )}
-          {isVega && selectedEmployee.emp_id && (
-            <>
-              <div className="inline-block mt-2 px-3 py-1 rounded-lg bg-[#E9D8FD] text-primary-purple text-[15px] font-medium">
-                #{selectedEmployee.emp_id}
-              </div>
-              {selectedEmployee.description && (
-                <div className="text-[13px] text-muted-foreground mt-3 mb-0 break-words">
-                  {selectedEmployee.description}
+                {selectedEmployee.description && (
+                  <div className="text-[13px] text-muted-foreground mt-0.5 break-words">
+                    {selectedEmployee.description}
+                  </div>
+                )}
+              </>
+            )}
+
+            {isVega && selectedEmployee.emp_id && (
+              <>
+                <div className="inline-block mt-2 px-3 py-1 rounded-lg bg-[#E9D8FD] text-primary-purple text-[15px] font-medium">
+                  #{selectedEmployee.emp_id}
                 </div>
-              )}
-            </>
-          )}
+                {selectedEmployee.description && (
+                  <div className="text-[13px] text-muted-foreground mt-3 break-words">
+                    {selectedEmployee.description}
+                  </div>
+                )}
+              </>
+            )}
           </div>
+        </div>
           <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Close employee details">
             <X className="h-4 w-4" />
           </Button>
