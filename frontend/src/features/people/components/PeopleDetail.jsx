@@ -46,12 +46,13 @@ const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmpl
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-4 min-w-0">
           {/* Image */}
-          <img
-            src={selectedEmployee.avatar}
-            alt={selectedEmployee.name}
-            className="w-16 h-16 rounded-full object-cover"
-          />
-
+          <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+            <img
+              src={selectedEmployee.avatar}
+              alt={selectedEmployee.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
           {/* Text content */}
           <div className="min-w-0">
             <h3 className="text-[22px] font-semibold leading-[28px] break-words">
