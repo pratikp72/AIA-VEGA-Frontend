@@ -49,7 +49,7 @@ const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmpl
           <img
             src={selectedEmployee.avatar}
             alt={selectedEmployee.name}
-            className="w-16 h-16 rounded object-cover"
+            className="w-16 h-16 rounded-full object-cover"
           />
 
           {/* Text content */}
