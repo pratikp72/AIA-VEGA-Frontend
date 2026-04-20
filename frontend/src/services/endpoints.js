@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
     REFRESH_TOKEN: '/auth/refresh',
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
+    RESET_FORGOT_PASSWORD: '/auth/reset-forgot-password',
     VERIFY_EMAIL: '/auth/verify-email',
     ME: '/users/me',
     CHECK_ADMIN_ACCESS: '/auth/check-admin-access',

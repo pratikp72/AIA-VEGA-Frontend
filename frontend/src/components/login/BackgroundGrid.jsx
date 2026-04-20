@@ -45,6 +45,7 @@ const BackgroundGrid = ({ slots = [] }) => {
                 src={`/login-bg/${slot.image}`}
                 alt={`bg-${cellIndex}`}
                 fill
+                loading="eager"
                 sizes="12vw"
                 style={{
                   objectFit: 'cover',

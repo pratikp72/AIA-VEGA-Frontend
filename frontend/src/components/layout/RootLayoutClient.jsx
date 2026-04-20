@@ -12,11 +12,11 @@ const RootLayoutInner = ({ children }) => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   useTelemetryTracking(pathname, searchParams);
-  const isLoginPage = pathname.startsWith('/login');
+  const isPublicAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
   const isFeedbackScreen = searchParams.get('feedback') === '1';
   return (
     <AuthGuard>
-      {isLoginPage ? (
+      {isPublicAuthPage ? (
         <>{children}</>
       ) : (
         <LayoutShell hideSidebar={isFeedbackScreen}>{children}</LayoutShell>

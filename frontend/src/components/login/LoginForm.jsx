@@ -3,9 +3,11 @@ import Image from 'next/image';
 import { apiService } from '../../services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { STORAGE_KEYS } from '@/lib/constants';
-import { useRef } from 'react';
+import toast from 'react-hot-toast';
+import ForgotPasswordModal from '@/components/auth/ForgotPasswordModal';
 
 const LOGIN_API = API_ENDPOINTS.AUTH.LOGIN;
+const FORGOT_PASSWORD_API = API_ENDPOINTS.AUTH.FORGOT_PASSWORD;
 
 const LoginForm = () => {
   const [identifier, setIdentifier] = useState('');
@@ -13,14 +15,19 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [userFirstLogin, setUserFirstLogin] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotModalError, setForgotModalError] = useState('');
+  const [forgotModalNotice, setForgotModalNotice] = useState('');
 
   const clearError = () => setError('');
 
   const handleIdentifierChange = (e) => {
     setIdentifier(e.target.value.trim());
     clearError();
+    setForgotMessage('');
   };
 
 
@@ -35,7 +42,6 @@ const LoginForm = () => {
       if (response?.jwt) {
        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, response.jwt);
        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
-        setUserFirstLogin(response.user?.is_first_login || false);
        window.location.href = '/home';
       } else {
         setError('Unexpected response from server. Please try again.');
@@ -48,6 +54,63 @@ const LoginForm = () => {
     }
   };
 
+  const closeForgotModal = () => {
+    setShowForgotModal(false);
+    setForgotModalError('');
+    setForgotModalNotice('');
+    setForgotLoading(false);
+  };
+
+  const openForgotModal = () => {
+    setForgotMessage('');
+    setForgotModalError('');
+    setForgotModalNotice('');
+    setForgotEmail('');
+    setShowForgotModal(true);
+  };
+
+  const handleForgotPassword = async () => {
+    setForgotModalError('');
+    setForgotModalNotice('');
+    setForgotMessage('');
+
+    const email = forgotEmail.trim();
+    if (!email) {
+      setForgotModalError('Please enter your company email address.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const response = await apiService.post(FORGOT_PASSWORD_API, {
+        identifier: email,
+      });
+      const hasEmail = response?.hasEmail ?? response?.data?.hasEmail;
+      const emailSent = response?.emailSent ?? response?.data?.emailSent;
+
+      if (hasEmail === true && emailSent === true) {
+        const message = 'Reset email sent. Check inbox.';
+        setForgotMessage(message);
+        toast.success(message);
+        setForgotEmail('');
+        closeForgotModal();
+        return;
+      }
+
+      if (hasEmail === false) {
+        setForgotModalNotice('No company email is linked to this account. Please contact your administrator to reset your password.');
+        return;
+      }
+
+      setForgotModalError('Unable to process forgot password request. Please try again.');
+    } catch (err) {
+      const raw = parseApiError(err);
+      setForgotModalError(raw || 'Unable to process forgot password request.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const hasError = Boolean(error);
 
 
@@ -56,11 +119,9 @@ const LoginForm = () => {
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
-          <Image src="/aia_logo.png" alt="AIA Logo" width={40} height={40}
-            style={{ height: 40, width: 'auto' }} priority />
+          <Image src="/aia_logo.png" alt="AIA Logo" width={40} height={40} priority />
           <span style={{ fontSize: 28, fontWeight: 300, color: '#fff', letterSpacing: 2 }}>|</span>
-          <Image src="/vega_logo.png" alt="Vega Logo" width={40} height={40}
-            style={{ height: 40, width: 'auto' }} priority />
+          <Image src="/vega_logo.png" alt="Vega Logo" width={40} height={40} priority />
         </div>
         <h2 style={{ fontWeight: 500, color: '#fff', fontSize: 32, marginTop: 8, letterSpacing: 0.5 }}>
           Login
@@ -169,6 +230,21 @@ const LoginForm = () => {
         <button type="submit" className="submit-button" disabled={loading}>
           {loading ? 'Logging in…' : 'Log in'}
         </button>
+        {forgotMessage && (
+          <p
+            role="status"
+            aria-live="polite"
+            style={{
+              marginTop: '12px',
+              textAlign: 'center',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: '#86efac',
+            }}
+          >
+            {forgotMessage}
+          </p>
+        )}
         <p
         style={{
           marginTop: '16px',
@@ -179,58 +255,27 @@ const LoginForm = () => {
           cursor: 'pointer',
           textDecoration: 'underline',
         }}
-        onClick={() => setShowForgotModal(true)}
+        onClick={openForgotModal}
       >
         Forgot Password?
       </p>
 
       </form>
 
-        {showForgotModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-          }}
-          onClick={() => setShowForgotModal(false)} // close when clicking outside
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              textAlign: 'center',
-            }}
-            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
-          >
-            <h3 style={{ marginBottom: '12px' }}>Forgot Password ?</h3>
-            <p>Please contact your administrator to reset your password.</p>
-            <button
-              onClick={() => setShowForgotModal(false)}
-              style={{
-                marginTop: '12px',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                border: 'none',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                cursor: 'pointer',
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <ForgotPasswordModal
+        open={showForgotModal}
+        email={forgotEmail}
+        onEmailChange={(value) => {
+          setForgotEmail(value);
+          setForgotModalError('');
+          setForgotModalNotice('');
+        }}
+        loading={forgotLoading}
+        error={forgotModalError}
+        notice={forgotModalNotice}
+        onClose={closeForgotModal}
+        onSubmit={handleForgotPassword}
+      />
 
     </div>
   );

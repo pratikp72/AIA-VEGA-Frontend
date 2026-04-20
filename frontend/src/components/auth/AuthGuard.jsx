@@ -7,6 +7,7 @@ import { STORAGE_KEYS } from '@/lib/constants';
 import ResetPasswordModal from '@/components/auth/ResetPasswordModal';
 
 const LOGIN_PATH = '/login';
+const RESET_FORGOT_PASSWORD_PATH = '/reset-password';
 
 /**
  * AuthGuard – protects routes from unauthenticated access.
@@ -22,9 +23,9 @@ export default function AuthGuard({ children }) {
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) : null;
 
-    if (pathname.startsWith(LOGIN_PATH)) {
+    if (pathname.startsWith(LOGIN_PATH) || pathname.startsWith(RESET_FORGOT_PASSWORD_PATH)) {
       // If already logged in and on login page, redirect to home
-      if (token) {
+      if (token && pathname.startsWith(LOGIN_PATH)) {
         router.replace('/home');
         return;
       }
