@@ -82,7 +82,10 @@ export default function CoursesPage() {
             </div>
           ) : Object.keys(categoryGroups).length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-body text-muted-foreground">No courses available</p>
+              <p className="text-xl text-muted-foreground">No courses available.</p>
+              <p className="text-md text-muted-foreground mt-2">
+                You haven't been enrolled in any courses yet.
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-6">

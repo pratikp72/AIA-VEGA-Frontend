@@ -13,7 +13,6 @@ const LoginForm = () => {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -22,20 +21,18 @@ const LoginForm = () => {
   const [forgotModalError, setForgotModalError] = useState('');
   const [forgotModalNotice, setForgotModalNotice] = useState('');
 
-  const clearError = () => setError('');
-
   const handleIdentifierChange = (e) => {
     setIdentifier(e.target.value.trim());
-    clearError();
     setForgotMessage('');
   };
 
 
-  const handlePasswordChange   = (e) => { setPassword(e.target.value);   clearError(); };
+  const handlePasswordChange = (e) => {
+    setPassword(e.target.value);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
     try {
       const response = await apiService.post(LOGIN_API, { identifier, password });
@@ -44,11 +41,11 @@ const LoginForm = () => {
        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user));
        window.location.href = '/home';
       } else {
-        setError('Unexpected response from server. Please try again.');
+        toast.error('Unexpected response from server. Please try again.');
       }
     } catch (err) {
       const raw = parseApiError(err);
-      setError(toFriendlyMessage(raw));
+      toast.error(toFriendlyMessage(raw));
     } finally {
       setLoading(false);
     }
@@ -110,81 +107,21 @@ const LoginForm = () => {
       setForgotLoading(false);
     }
   };
-
-  const hasError = Boolean(error);
-
-
   return (
     <div className="glass-card">
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 12 }}>
-          <Image src="/aia_logo.png" alt="AIA Logo" width={40} height={40} priority />
+          <Image src="/aia_logo.png" alt="AIA Logo" width={70} height={70} priority />
           <span style={{ fontSize: 28, fontWeight: 300, color: '#fff', letterSpacing: 2 }}>|</span>
-          <Image src="/vega_logo.png" alt="Vega Logo" width={40} height={40} priority />
+          <Image src="/vega_logo.png" alt="Vega Logo" width={70} height={70} priority />
         </div>
-        <h2 style={{ fontWeight: 500, color: '#fff', fontSize: 32, marginTop: 8, letterSpacing: 0.5 }}>
+        <h2 style={{ fontWeight: 500, color: '#fff', fontSize: 28, marginTop: 8, letterSpacing: 0.5 }}>
           Login
         </h2>
       </div>
 
       <form onSubmit={handleSubmit} noValidate>
-
-        {/* ── Error Banner ── */}
-        {hasError && (
-          <>
-            <style>{`
-              @keyframes errorShake {
-                0%   { transform: translateX(0); }
-                20%  { transform: translateX(-6px); }
-                40%  { transform: translateX(6px); }
-                60%  { transform: translateX(-4px); }
-                80%  { transform: translateX(4px); }
-                100% { transform: translateX(0); }
-              }
-              @keyframes errorFadeIn {
-                from { opacity: 0; transform: translateY(-6px); }
-                to   { opacity: 1; transform: translateY(0); }
-              }
-            `}</style>
-            <div
-              role="alert"
-              aria-live="assertive"
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: '10px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.55)',
-                borderRadius: '10px',
-                padding: '12px 14px',
-                marginBottom: '20px',
-                backdropFilter: 'blur(8px)',
-                animation: 'errorFadeIn 0.25s ease, errorShake 0.4s ease',
-              }}
-            >
-              {/* Warning icon */}
-              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"
-                style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-                <path d="M10 2L1.5 17h17L10 2z" stroke="#f87171" strokeWidth="1.5"
-                  strokeLinejoin="round" fill="rgba(239,68,68,0.2)" />
-                <path d="M10 8v4" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="10" cy="14.5" r="0.75" fill="#f87171" />
-              </svg>
-
-              <p style={{ margin: 0, flex: 1, color: '#fca5a5', fontSize: 13.5, fontWeight: 500, lineHeight: 1.5 }}>
-                {error}
-              </p>
-
-              <button type="button" onClick={clearError} aria-label="Dismiss error"
-                style={{ background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#fca5a5', fontSize: 20, lineHeight: 1, padding: '0 0 0 6px',
-                  flexShrink: 0, opacity: 0.8 }}>
-                ×
-              </button>
-            </div>
-          </>
-        )}
 
         {/* Employee ID */}
         <div style={{ marginBottom: '24px' }}>
@@ -195,10 +132,8 @@ const LoginForm = () => {
             value={identifier}
             onChange={handleIdentifierChange}
             className="glass-input"
-            style={hasError ? { borderColor: 'rgba(239,68,68,0.6)', boxShadow: '0 0 0 2px rgba(239,68,68,0.12)' } : undefined}
             required
             autoComplete="username"
-            aria-invalid={hasError}
           />
         </div>
 
@@ -212,13 +147,9 @@ const LoginForm = () => {
               value={password}
               onChange={handlePasswordChange}
               className="glass-input"
-              style={{
-                paddingRight: '70px',
-                ...(hasError ? { borderColor: 'rgba(239,68,68,0.6)', boxShadow: '0 0 0 2px rgba(239,68,68,0.12)' } : {}),
-              }}
+              style={{ paddingRight: '70px' }}
               required
               autoComplete="current-password"
-              aria-invalid={hasError}
             />
             <button type="button" onClick={() => setShowPassword(!showPassword)} className="password-toggle">
               👁 {showPassword ? 'Hide' : 'Show'}
