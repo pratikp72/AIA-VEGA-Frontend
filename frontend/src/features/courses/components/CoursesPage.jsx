@@ -77,11 +77,11 @@ export default function CoursesPage() {
               <Loader size="lg" />
             </div>
           ) : error ? (
-            <div className="text-center py-20">
+            <div className="text-center py-10 border border-gray-200 bg-gray-200 rounded-[20px] shadow-2xl w-full max-w-2xl mx-auto">
               <p className="text-body text-muted-foreground">{error}</p>
             </div>
           ) : Object.keys(categoryGroups).length === 0 ? (
-            <div className="text-center py-20">
+            <div className="text-center py-10 border border-gray-200 bg-gray-200 rounded-[20px] shadow-2xl w-full max-w-2xl mx-auto">
               <p className="text-xl text-muted-foreground">No courses available.</p>
               <p className="text-md text-muted-foreground mt-2">
                 You haven't been enrolled in any courses yet.
