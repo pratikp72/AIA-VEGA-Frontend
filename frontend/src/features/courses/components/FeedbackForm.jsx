@@ -90,8 +90,6 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
     Array.isArray(questions) && questions.length > 0 ? questions : FALLBACK_QUESTIONS;
 
   const [answers, setAnswers] = useState({});
-  const [courseRating, setCourseRating] = useState(0);
-  const [additionalFeedback, setAdditionalFeedback] = useState("");
 
   const setAnswer = (questionId, value) =>
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
@@ -117,7 +115,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
     e.preventDefault();
     if (isSubmitting) return;
 
-    // Build answers array: one entry per question + courseRating + additionalFeedback
+    // Build answers array: one entry per active feedback question
     const answersArray = [
       ...activeQuestions.map((q) => ({
         question_id: q.question_id,
@@ -165,7 +163,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
         courseId: Number(courseId),
         routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
         feedbackId: String(courseId || ''),
-        rating: courseRating || null,
+        rating: null,
         metadata: {
           course_id: Number(courseId),
           user_id: Number(userId),
@@ -180,7 +178,7 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
         courseId: Number(courseId),
         routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
         feedbackId: String(courseId || ''),
-        rating: courseRating || null,
+        rating: null,
         metadata: {
           course_id: Number(courseId),
           user_id: Number(userId),
@@ -205,9 +203,10 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
         }}
       />
 
-      <div className="w-full min-h-screen py-10 px-4 relative">
-        <div className="relative w-full max-w-[947px] mx-auto bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/80">
-          <form onSubmit={handleSubmit} className="p-6 sm:p-10">
+      <div className="w-full min-h-screen py-6 px-4 relative">
+        <div className="relative w-full max-w-236.75 mx-auto bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/80">
+          <form onSubmit={handleSubmit}>
+            <div className="p-6 sm:p-10">
 
             {activeQuestions.map((q) => {
               const qid = q.question_id;
@@ -266,40 +265,26 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
               );
             })}
 
-            {/* Course rating */}
-            {/* <div className="mb-6">
-              <p className="text-[15px] font-medium text-[#2d2a6e] mb-3">Course rating</p>
-              <StarRating value={courseRating} onChange={setCourseRating} />
-            </div>
 
-            {/* Additional feedback */}
-            {/* <div className="mb-8">
-              <p className="text-[15px] font-medium text-[#2d2a6e] mb-3">Additional feedback</p>
-              <textarea
-                value={additionalFeedback}
-                onChange={(e) => setAdditionalFeedback(e.target.value)}
-                placeholder="If you have more to add, please type it here..."
-                rows={4}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-              />
-            </div> */}
 
             {submitError && (
               <p className="text-sm text-red-600 mb-4">{submitError}</p>
             )}
-            <div className="flex justify-start gap-3">
-              <button
+            </div>
+            <div className="px-6 sm:px-10 py-6">
+              <div className="flex justify-start gap-3">
+                <button
                 type="button"
                 onClick={onCancel}
                 disabled={isSubmitting}
                 className="px-5 py-2.5 rounded-xl border-2 border-primary bg-white text-primary font-semibold text-sm hover:bg-primary/5 transition disabled:opacity-50"
               >
                 Cancel
-              </button>
-              <button
-                type="submit"
+                </button>
+                <button
+                  type="submit"
                 disabled={isSubmitting}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-[140px]"
+                  className="px-5 py-2.5 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-w-35"
               >
                 {isSubmitting ? (
                   <>
@@ -309,7 +294,8 @@ export default function FeedbackForm({ questions, onCancel, onSubmit, userId, co
                 ) : (
                   'Submit Form'
                 )}
-              </button>
+                </button>
+              </div>
             </div>
           </form>
         </div>

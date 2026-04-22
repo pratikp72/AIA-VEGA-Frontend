@@ -3,6 +3,7 @@ import API_ENDPOINTS from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
 import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
+import { NEW_JOINEE_DAYS, isNewJoinee } from '@/lib/newJoinee';
 
 export const fetchDashboardData = async () => {
   const rest = USE_MOCK_DATA
@@ -158,8 +159,6 @@ export const fetchUpcomingEvents = async () => {
   return picked.map(normalizeEvent);
 };
 
-const NEW_JOINEE_DAYS = 30;
-
 function getCurrentUserCompany() {
   if (typeof window === 'undefined') return null;
   try {
@@ -198,17 +197,6 @@ function normalizeUserForJoinee(user) {
     avatar: avatar.src,
     avatarInitial: avatar.initials,
   };
-}
-
-/** Check if joining_date is within the last N days (UTC-based to avoid timezone shift) */
-function isNewJoinee(joiningDateStr, withinDays = NEW_JOINEE_DAYS) {
-  if (!joiningDateStr) return false;
-  const joinDate = new Date(joiningDateStr);
-  const now = new Date();
-  const joinUtc = Date.UTC(joinDate.getUTCFullYear(), joinDate.getUTCMonth(), joinDate.getUTCDate());
-  const nowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const daysSinceJoin = (nowUtc - joinUtc) / (1000 * 60 * 60 * 24);
-  return daysSinceJoin >= 0 && daysSinceJoin <= withinDays;
 }
 
 function toUtcDateStringDaysAgo(daysAgo) {
@@ -464,16 +452,16 @@ export const fetchMyCourses = async () => {
 
 
 export const fetchBirthdaysToday = async () => {
-  // Fetch all users
-  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
-    params: {
-      'populate[photograph]': true,
-      sort: 'username:asc',
-      'filters[exit_date][$null]': true,
-      'filters[active][$ne]': false,
-      'filters[blocked][$ne]': true,
-    },
-  });
+  const userCompany = normalizeCompanyForFilter(getCurrentUserCompany());
+  const params = {
+    'populate[photograph]': true,
+    sort: 'username:asc',
+    'filters[exit_date][$null]': true,
+    'filters[active][$ne]': false,
+    'filters[blocked][$ne]': true,
+    ...(userCompany && { 'filters[company][$eq]': userCompany }),
+  };
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, { params });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
@@ -496,22 +484,23 @@ export const fetchBirthdaysToday = async () => {
         avatar: avatar.src,
         avatarInitial: avatar.initials,
         date: u.date_of_birth,
+        company: u.company || '',
       };
     });
 };
 
 
 export const fetchWorkAnniversaries = async () => {
-  // Fetch all users
-  const response = await api.get(API_ENDPOINTS.USERS.LIST, {
-    params: {
-      'populate[photograph]': true,
-      sort: 'username:asc',
-      'filters[exit_date][$null]': true,
-      'filters[active][$ne]': false,
-      'filters[blocked][$ne]': true,
-    },
-  });
+  const userCompany = normalizeCompanyForFilter(getCurrentUserCompany());
+  const params = {
+    'populate[photograph]': true,
+    sort: 'username:asc',
+    'filters[exit_date][$null]': true,
+    'filters[active][$ne]': false,
+    'filters[blocked][$ne]': true,
+    ...(userCompany && { 'filters[company][$eq]': userCompany }),
+  };
+  const response = await api.get(API_ENDPOINTS.USERS.LIST, { params });
   const users = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const today = new Date();
   const todayMonth = today.getMonth() + 1;
@@ -537,6 +526,7 @@ export const fetchWorkAnniversaries = async () => {
         avatarInitial: avatar.initials,
         yearsCompleted,
         joinDate: u.joining_date,
+        company: u.company || '',
       };
     });
 };

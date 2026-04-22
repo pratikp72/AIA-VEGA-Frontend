@@ -28,6 +28,7 @@ export default function PeopleFilters({
         <Filters
           search={searchTerm}
           onSearchChange={onSearchChange}
+          searchPlaceholder="Search by Name and Employee ID"
           showDate={false}
           selects={[
             {

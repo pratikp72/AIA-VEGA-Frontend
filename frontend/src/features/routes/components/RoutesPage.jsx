@@ -205,7 +205,7 @@ export default function RoutesPage() {
         </p>
       </PageHeader>
 
-      <PageContainer className="py-3 space-y-6">
+      <PageContainer className="pt-3 pb-50 space-y-6">
         {/* Location selector (full width) */}
         <div className="w-full">
           <div className="font-semibold text-[18px] text-[#363A4D] mb-2">
@@ -334,9 +334,13 @@ export default function RoutesPage() {
           </div>
         ) : error ? (
           <div className="py-8 text-red-600">{error}</div>
-        ) : !activeUnit ? (
-          <div className="py-8 text-gray-500">
-            No routes configured for this location.
+        ) : !selectedUnitId ? (
+          <div className="py-8 text-center text-gray-500">
+            Please select a unit to continue.
+          </div>
+        ) : !selectedRouteId ? (
+          <div className="py-8 text-center text-gray-500">
+            Please select a route to view the map and stops.
           </div>
         ) : (
           <div className="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,1.1fr)] gap-6 items-start">
@@ -377,7 +381,7 @@ export default function RoutesPage() {
                     >
                       <span className="text-[#111827]">{stop.name}</span>
                       <span className="text-xs text-gray-500 flex items-center gap-3">
-                        {stop.time ? stop.time.slice(0, 5) : ""}
+                        {stop.time || ""}
                         {stop.locationLink && (
                           <a
                             href={stop.locationLink}

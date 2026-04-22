@@ -232,6 +232,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const [violationWarning, setViolationWarning] = useState(false);
   const [timeLimitExceeded, setTimeLimitExceeded] = useState(false);
   const [quizStarted, setQuizStarted] = useState(false);
+  const [showAutoSubmitModal, setShowAutoSubmitModal] = useState(false);
 
   const isSubmittingRef = useRef(false);
   const submittedRef = useRef(false);
@@ -285,6 +286,14 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       document.exitFullscreen().catch(() => {});
     }
   }, [submitted]);
+
+  useEffect(() => {
+    if (!showAutoSubmitModal) return;
+    const timer = setTimeout(() => {
+      setShowAutoSubmitModal(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [showAutoSubmitModal]);
 
   const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -443,6 +452,38 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       });
     } catch (e) {
       console.error('Quiz submission failed', e);
+
+      try {
+        const latestRes = await getLatestSubmission(Number(userId), Number(courseNumericId));
+        const latestSubmission = latestRes?.submission;
+        const latestMaxAttempt = latestRes?.maxAttempt ?? 1;
+
+        if (latestMaxAttempt !== undefined) setMaxAttempt(latestMaxAttempt);
+
+        if (latestSubmission) {
+          const latestAttempt = latestSubmission?.attempt_number;
+          const latestPassed = latestSubmission?.passed === true;
+
+          setScore(latestSubmission?.score ?? 0);
+          setIsPassed(latestPassed);
+          if (latestAttempt != null) setAttemptNumber(latestAttempt);
+
+          const reachedMaxWithFail =
+            !latestPassed &&
+            latestAttempt != null &&
+            latestMaxAttempt != null &&
+            latestAttempt >= latestMaxAttempt;
+
+          if (reachedMaxWithFail) {
+            setReattemptRequired(true);
+            const reattemptStatus = await checkPendingReattemptRequest(Number(userId), Number(courseNumericId));
+            setReattemptSent(Boolean(reattemptStatus?.hasPending));
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('Failed to load latest submission after submit error', fallbackErr);
+      }
+
       telemetryService.trackLearningQuizSubmitted({
         courseId: Number(courseNumericId),
         routePath: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : '/courses',
@@ -473,6 +514,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const handleAutoSubmit = useCallback(() => {
     if (!quizStartedRef.current || submittedRef.current || isSubmittingRef.current) return;
     setViolationWarning(true);
+    setShowAutoSubmitModal(true);
     performSubmit(answersRef.current, timeLeftRef.current, 'Auto Submit or Leave');
   }, [performSubmit]);
 
@@ -480,6 +522,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   useEffect(() => {
     if (timeLeft === 0 && !submittedRef.current && !isSubmittingRef.current) {
       setTimeLimitExceeded(true);
+      setShowAutoSubmitModal(true);
       performSubmit(answersRef.current, 0, 'Time Limit Exceed');
     }
   }, [timeLeft, performSubmit]);
@@ -505,7 +548,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   }, [handleAutoSubmit]);
 
   useEffect(() => {
-    if (!quizStartedRef.current || submittedRef.current) return;
+    if (!quizStartedRef.current || submittedRef.current || submitted || showFeedbackForm) return;
 
     let submissionInProgress = false;
 
@@ -584,7 +627,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
-  }, [quizStartedRef.current, handleAutoSubmit]);
+  }, [quizStartedRef.current, handleAutoSubmit, submitted, showFeedbackForm]);
 
   const handleStartAssessment = () => {
     quizStartedRef.current = true;
@@ -603,6 +646,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     setReattemptRequired(false);
     setViolationWarning(false);
     setTimeLimitExceeded(false);
+    setShowAutoSubmitModal(false);
     submittedRef.current = false;
     isSubmittingRef.current = false;
     quizStartedRef.current = true;
@@ -752,6 +796,34 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     );
   }
 
+  if (showAutoSubmitModal) {
+    return (
+      <div className="fixed inset-0 z-110 bg-black/70 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
+          {timeLimitExceeded ? (
+            <Clock className="w-14 h-14 text-destructive mx-auto mb-4" />
+          ) : (
+            <XCircle className="w-14 h-14 text-destructive mx-auto mb-4" />
+          )}
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            {timeLimitExceeded ? "Time&apos;s Up!" : 'Quiz Auto-Submitted'}
+          </h2>
+          <p className="text-gray-600 text-sm mb-4">
+            {timeLimitExceeded
+              ? 'Your quiz has been automatically submitted.'
+              : 'You switched tabs or exited fullscreen mode. Your quiz has been automatically submitted and scored based on your current answers.'}
+          </p>
+          {isSubmitting && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              Submitting...
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <ResultScreen
@@ -815,34 +887,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col">
-      {timeLimitExceeded && (
-        <div className="fixed inset-0 z-110 bg-black/70 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
-            <Clock className="w-14 h-14 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Time&apos;s Up!</h2>
-            <p className="text-gray-600 text-sm mb-4">
-              Your quiz has been automatically submitted.
-            </p>
-            {isSubmitting && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                Submitting...
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {violationWarning && (
-        <div className="fixed inset-0 z-100 bg-black/70 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-8 text-center">
-            <XCircle className="w-14 h-14 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Quiz Auto-Submitted</h2>
-            <p className="text-gray-600 text-sm">
-              You switched tabs or exited fullscreen mode. Your quiz has been automatically submitted and scored based on your current answers.
-            </p>
-          </div>
-        </div>
-      )}
       {/* Top Bar — floating card */}
       <div className="px-6 pt-6">
         <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 px-6 py-4">

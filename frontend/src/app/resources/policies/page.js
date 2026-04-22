@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
@@ -16,57 +16,75 @@ import {
   selectPoliciesCurrentPage,
   selectPoliciesTotalPages,
 } from '@/features/resources/policiesSelectors';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export default function PoliciesPage() {
-  const [search, setSearch] = useState('');
-  const [date, setDate] = useState('');
-
+  
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
-
+  
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [date, setDate] = useState(searchParams.get('date') || '');
+  
   const policiesList = useAppSelector(selectPoliciesList);
   const policiesLoading = useAppSelector(selectPoliciesLoading);
   const policiesError = useAppSelector(selectPoliciesError);
   const policiesCurrentPage = useAppSelector(selectPoliciesCurrentPage);
   const policiesTotalPages = useAppSelector(selectPoliciesTotalPages);
 
-  const RES_PER_PAGE = 6;
+  const RES_PER_PAGE = 24;
 
+  // Load first page when filters change
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      dispatch(loadPolicies({ page: 1, limit: RES_PER_PAGE, search, date, append: false }));
       dispatch(setPoliciesPage(1));
+      dispatch(loadPolicies({ page: 1, limit: RES_PER_PAGE, search, date, append: false }));
     }, search ? 300 : 0);
 
     return () => clearTimeout(timeoutId);
   }, [dispatch, search, date]);
 
-  const sentinelRef = useRef(null);
-
-  const loadNext = useCallback(() => {
-    if (policiesLoading) return;
-    if (policiesCurrentPage >= policiesTotalPages) return;
+  // Load next page on infinite scroll
+  const handleLoadMore = useCallback(() => {
     const next = policiesCurrentPage + 1;
     dispatch(loadPolicies({ page: next, limit: RES_PER_PAGE, search, date, append: true }));
     dispatch(setPoliciesPage(next));
-  }, [dispatch, policiesLoading, policiesCurrentPage, policiesTotalPages, search, date]);
+  }, [dispatch, policiesCurrentPage, search, date]);
 
+  const sentinelRef = useInfiniteScroll({
+    isLoading: policiesLoading,
+    currentPage: policiesCurrentPage,
+    totalPages: policiesTotalPages,
+    onLoadMore: handleLoadMore,
+  });
+
+  // ── Sync filter state → URL search params (persistence across refresh) ──
+  const isFirstUrlSync = useRef(true);
+  const urlSyncTimerRef = useRef(null);
   useEffect(() => {
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) loadNext();
-        });
-      },
-      { root: null, rootMargin: '200px', threshold: 0 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [loadNext]);
+    if (isFirstUrlSync.current) {
+      isFirstUrlSync.current = false;
+      return;
+    }
+    if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);
+    urlSyncTimerRef.current = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (search?.trim()) params.set('search', search.trim());
+      if (date) {
+        const dateStr = typeof date === 'string' ? date : date?.toISOString?.()?.slice(0, 10);
+        if (dateStr) params.set('date', dateStr);
+      }
+      const qs = params.toString();
+      const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+      router.replace(newUrl, { scroll: false });
+    }, 300);
+    return () => {
+      if (urlSyncTimerRef.current) clearTimeout(urlSyncTimerRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, date, pathname, router]);
 
   const resourcesBgStyle = {
     backgroundImage: 'url(/policies-page-bg.png)',
@@ -97,7 +115,7 @@ export default function PoliciesPage() {
 
       <main>
         <PageSection>
-          {policiesLoading ? (
+          {policiesLoading && policiesCurrentPage === 1 ? (
             <div className="min-h-[50vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>
@@ -114,7 +132,10 @@ export default function PoliciesPage() {
           ) : (
             <>
               <PoliciesGrid resources={policiesList} />
-              <div ref={sentinelRef} className="h-1 w-full" />
+              {/* Sentinel — triggers next page load when scrolled into view */}
+              <div ref={sentinelRef} className="py-4 flex justify-center">
+                {policiesLoading && <Loader size="sm" />}
+              </div>
             </>
           )}
         </PageSection>

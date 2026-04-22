@@ -19,13 +19,15 @@ const withDeadlineLock = (course) => {
 
 export const loadAllCourses = createAsyncThunk(
   'courses/loadAllCourses',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, pageSize = 9 } = {}, { rejectWithValue }) => {
     try {
-      const courses = await fetchAllCourses();
+      const result = await fetchAllCourses({ page, pageSize });
+      const courses = result.items || [];
       const userId = getCurrentUserId();
+      let enrichedCourses = courses;
       if (userId) {
         const progressByCourse = await fetchAllUserProgress(userId);
-        return courses
+        enrichedCourses = courses
           .map((c) => ({
             ...c,
             completed: progressByCourse[c.id]?.completed ?? c.completed,
@@ -34,8 +36,15 @@ export const loadAllCourses = createAsyncThunk(
             feedbackSubmitted: progressByCourse[c.id]?.feedback_submitted ?? false,
           }))
           .map(withDeadlineLock);
+      } else {
+        enrichedCourses = courses.map(withDeadlineLock);
       }
-      return courses.map(withDeadlineLock);
+      return {
+        items: enrichedCourses,
+        totalCount: result.totalCount,
+        totalPages: result.totalPages,
+        currentPage: result.currentPage,
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -64,6 +73,9 @@ export const loadCourseCategories = loadAllCourses;
 
 const initialState = {
   coursesList: [],
+  totalPages: 1,
+  totalCount: 0,
+  currentPage: 1,
   loading: false,
   error: null,
   currentCourse: null,
@@ -77,6 +89,9 @@ const coursesSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    setPage: (state, action) => {
+      state.currentPage = action.payload;
     },
     resetCoursesState: () => initialState,
     clearCurrentCourse: (state) => {
@@ -111,7 +126,25 @@ const coursesSlice = createSlice({
       })
       .addCase(loadAllCourses.fulfilled, (state, action) => {
         state.loading = false;
-        state.coursesList = action.payload || [];
+        const incomingItems = action.payload.items || [];
+        const currentPage = action.payload.currentPage || 1;
+        
+        // If page 1, replace; otherwise append
+        if (currentPage === 1) {
+          state.coursesList = incomingItems;
+        } else {
+          const seen = new Set(state.coursesList.map((c) => String(c.id || c.documentId)));
+          for (const course of incomingItems) {
+            const idKey = String(course?.id || course?.documentId);
+            if (seen.has(idKey)) continue;
+            seen.add(idKey);
+            state.coursesList.push(course);
+          }
+        }
+        
+        state.totalPages = action.payload.totalPages || 1;
+        state.totalCount = action.payload.totalCount || 0;
+        state.currentPage = currentPage;
       })
       .addCase(loadAllCourses.rejected, (state, action) => {
         state.loading = false;
@@ -132,5 +165,5 @@ const coursesSlice = createSlice({
   },
 });
 
-export const { clearError, resetCoursesState, clearCurrentCourse, markModuleAsRead, initializeModuleReadState } = coursesSlice.actions;
+export const { clearError, setPage, resetCoursesState, clearCurrentCourse, markModuleAsRead, initializeModuleReadState } = coursesSlice.actions;
 export default coursesSlice.reducer;

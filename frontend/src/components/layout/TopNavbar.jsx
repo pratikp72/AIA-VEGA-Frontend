@@ -172,14 +172,17 @@ function GlobalSearch() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const handleSelect = useCallback((href, searchQuery) => {
+  const handleSelect = useCallback((href, searchQuery, company) => {
     setOpen(false);
     setQuery('');
-    if (searchQuery) {
-      router.push(`${href}?search=${encodeURIComponent(searchQuery)}`);
-    } else {
-      router.push(href);
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    const normalizedCompany = String(company || '').trim().toUpperCase();
+    if (normalizedCompany === 'VEGA' || normalizedCompany === 'AIA') {
+      params.set('company', normalizedCompany);
     }
+    const qs = params.toString();
+    router.push(qs ? `${href}?${qs}` : href);
   }, [router]);
 
   const hasResults = results.people.length > 0 || results.courses.length > 0;
@@ -230,7 +233,7 @@ function GlobalSearch() {
                         <button
                           type="button"
                           className="w-full text-left px-4 py-2.5 hover:bg-gray-700/70 flex flex-col gap-0.5"
-                          onClick={() => handleSelect(p.href, p.searchQuery)}
+                          onClick={() => handleSelect(p.href, p.searchQuery, p.company)}
                           role="option"
                         >
                           <span className="font-medium text-white text-sm truncate">{p.name}</span>
@@ -493,7 +496,7 @@ export default function TopNavbar({ onMobileMenuToggle }) {
     <header className="fixed top-0 left-0 right-0 h-16 bg-[#000000] border-b border-gray-800 z-50">
       <div className="h-full px-4 sm:px-6 flex items-center">
         {/* LEFT LOGOS */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 cursor-pointer" onClick={() => (window.location.href = '/home')}>
           {isVega ? (
             <>{vegaLogo}{separator}{aiaLogo}</>
           ) : (

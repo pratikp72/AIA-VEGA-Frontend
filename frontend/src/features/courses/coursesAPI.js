@@ -335,28 +335,27 @@ const COURSES_LIST_PARAMS = {
   sort: 'createdAt:desc',
 };
 
-export const fetchAllCourses = async () => {
+export const fetchAllCourses = async ({ page = 1, pageSize = 9 } = {}) => {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
-    return MOCK_COURSE_CATEGORIES;
+    const items = MOCK_COURSE_CATEGORIES;
+    return {
+      items,
+      totalCount: items.length,
+      totalPages: 1,
+      currentPage: 1,
+    };
   }
-  const all = [];
-  let page = 1;
-  let pageCount = 1;
-  do {
-    const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
-      params: {
-        ...COURSES_LIST_PARAMS,
-        'pagination[page]': page,
-      },
-    });
-    const data = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
-    all.push(...data);
-    pageCount = response?.meta?.pagination?.pageCount ?? 1;
-    page += 1;
-  } while (page <= pageCount);
+  const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
+    params: {
+      ...COURSES_LIST_PARAMS,
+      'pagination[page]': page,
+      'pagination[pageSize]': pageSize,
+    },
+  });
+  const data = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const dueDateMap = await fetchCourseDueDateMap();
-  return all
+  const items = data
     .filter(c => c.active !== 'unpublished')
     .map((course) => {
       const normalizedCourse = normalizeCourse(course);
@@ -366,6 +365,13 @@ export const fetchAllCourses = async () => {
         deadline: assignedDueDate || normalizedCourse.deadline || null,
       };
     });
+  const meta = response?.meta?.pagination || {};
+  return {
+    items,
+    totalCount: meta.total || items.length,
+    totalPages: meta.pageCount || 1,
+    currentPage: meta.page || page,
+  };
 };
 
 const COURSE_WORKFLOWS_LIST_PARAMS = {

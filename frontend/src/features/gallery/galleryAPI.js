@@ -46,11 +46,11 @@ function normalizeGalleryItem(item) {
 }
 
 /**
- * Fetch gallery items from /api/gallery-items/by-filters.
+ * Fetch gallery items from /api/gallery-items/by-filters with pagination.
  * Uses backend data only.
  */
 export async function fetchGalleryByFilters(filters = {}) {
-  const { company, type, sortBy, search, date } = filters;
+  const { company, type, sortBy, search, date, page = 1, pageSize = 24 } = filters;
 
   const params = new URLSearchParams();
   if (company) params.set('company', company);
@@ -59,11 +59,19 @@ export async function fetchGalleryByFilters(filters = {}) {
   else params.set('sortBy', 'newest'); // Default to newest first when no sort specified
   if (search?.trim()) params.set('search', search.trim());
   if (date) params.set('date', typeof date === 'string' ? date.slice(0, 10) : (date?.toISOString?.().slice(0, 10) ?? ''));
+  params.set('page', String(page));
+  params.set('pageSize', String(pageSize));
 
   const res = await apiService.get(`${API_ENDPOINTS.GALLERY.BY_FILTERS}?${params.toString()}`);
   const list = Array.isArray(res) ? res : res?.data ?? [];
   const items = list.map(normalizeGalleryItem).filter(Boolean);
-  return { items };
+  const pagination = res?.meta?.pagination || {};
+  return {
+    items,
+    currentPage: pagination.page || page,
+    totalPages: pagination.pageCount || 1,
+    totalItems: pagination.total || items.length,
+  };
 }
 
 export default { fetchGalleryByFilters };

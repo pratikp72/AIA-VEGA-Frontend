@@ -29,7 +29,7 @@ export default function NewsCard({ news }) {
           {news.imageUrl ? <img src={news.imageUrl} alt={news.title} className="w-full h-full object-cover" /> : null}
           {/* Category Badge */}
           <div className="absolute top-4 left-4">
-            <span className="inline-block px-3 py-1 rounded-[4px] bg-primary/10 text-primary text-xs font-semibold">
+            <span className="inline-block px-3 py-1 rounded-[4px] bg-primary text-white text-xs font-semibold">
               {news.category ?? news.news_category?.name ?? 'News'}
             </span>
           </div>

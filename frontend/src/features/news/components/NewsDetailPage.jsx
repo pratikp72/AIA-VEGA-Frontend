@@ -181,7 +181,7 @@ export default function NewsDetailPage() {
           <article className="lg:col-span-2 space-y-6">
             {article.news_category?.name && (
               <div className="mb-2">
-                <span className="inline-block px-3 py-1 rounded-[4px] bg-primary/10 text-primary text-xs font-semibold">
+                <span className="inline-block px-3 py-1 rounded-[4px] bg-primary text-white text-xs font-semibold">
                   {article.news_category.name}
                 </span>
               </div>
@@ -253,7 +253,7 @@ export default function NewsDetailPage() {
                         <div className="min-w-0 flex-1 space-y-2">
                           {item.news_category?.name && (
                             <div className="mb-1">
-                              <span className="inline-block px-2 py-0.5 rounded-[4px] bg-primary/10 text-primary text-xs font-semibold">
+                              <span className="inline-block px-2 py-0.5 rounded-[4px] bg-primary text-white text-xs font-semibold">
                                 {item.news_category.name}
                               </span>
                             </div>

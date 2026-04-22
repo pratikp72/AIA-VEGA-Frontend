@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCurrentUser, getAvatarPropsForUser } from '@/lib/auth';
 import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
-import { Building2, Camera, Edit2, Hash } from 'lucide-react';
+import { AlertCircle, Building2, Camera, CheckCircle2, Edit2, Eye, EyeOff, Hash } from 'lucide-react';
 
 function formatDate(value) {
   if (!value) return '';
@@ -106,6 +106,13 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [hasPendingEditRequest, setHasPendingEditRequest] = useState(false);
+
+  // Password reset state
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [pwShow, setPwShow] = useState({ currentPassword: false, newPassword: false, confirmPassword: false });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState('');
+  const [pwSuccess, setPwSuccess] = useState('');
 
   const profileBgStyle = {
     backgroundImage: 'url(/profile-page-bg.png)',
@@ -384,6 +391,52 @@ export default function ProfilePage() {
     }
   };
 
+  const handlePwChange = (e) => {
+    const { name, value } = e.target;
+    setPwForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const togglePwShow = (field) => {
+    setPwShow((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  const handlePwSubmit = async () => {
+    setPwError('');
+    setPwSuccess('');
+
+    const { currentPassword, newPassword, confirmPassword } = pwForm;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPwError('All fields are required.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('New password and confirm password do not match.');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setPwError('New password must be different from your current password.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwError('New password must be at least 6 characters.');
+      return;
+    }
+
+    try {
+      setPwSaving(true);
+      await api.post('/auth/update-password', { currentPassword, newPassword, confirmPassword });
+
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPwSuccess('Password updated successfully.');
+      setTimeout(() => setPwSuccess(''), 3000);
+    } catch (err) {
+      const msg = err?.error?.message || err?.message || 'Failed to update password.';
+      setPwError(msg);
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#fafafa]" style={profileBgStyle}>
       <PageHeader
@@ -545,6 +598,71 @@ export default function ProfilePage() {
               <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
             )}
           </section>
+
+          {/* Reset Password */}
+          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:p-8">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900">Reset Password</h2>
+
+            {pwError && (
+              <div className="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <AlertCircle className="h-5 w-5 shrink-0 text-red-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-red-700">Password update failed</p>
+                  <p className="text-sm text-red-600 mt-0.5">{pwError}</p>
+                </div>
+              </div>
+            )}
+
+            {pwSuccess && (
+              <div className="mb-4 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-green-500" />
+                <p className="text-sm font-medium text-green-700">{pwSuccess}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+              {[
+                { field: 'currentPassword', label: 'Current Password' },
+                { field: 'newPassword', label: 'New Password' },
+                { field: 'confirmPassword', label: 'Confirm Password' },
+              ].map(({ field, label }) => (
+                <div key={field}>
+                  <p className="mb-2">{label}</p>
+                  <div className="relative">
+                    <input
+                      type={pwShow[field] ? 'text' : 'password'}
+                      name={field}
+                      value={pwForm[field]}
+                      onChange={handlePwChange}
+                      placeholder={label}
+                      className="h-11 w-full rounded-xl border border-gray-200 bg-white text-sm p-3 pr-10 text-gray-text outline-none transition focus:border-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => togglePwShow(field)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      tabIndex={-1}
+                    >
+                      {pwShow[field] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={handlePwSubmit}
+                disabled={pwSaving}
+                className="rounded-md h-10 bg-primary px-6 py-1.5 text-white transition-colors hover:bg-primary/90 disabled:opacity-60"
+              >
+                {pwSaving ? 'Updating...' : 'Update Password'}
+              </button>
+            </div>
+
+          </section>
+
         </div>
       </PageContainer>
     </div>

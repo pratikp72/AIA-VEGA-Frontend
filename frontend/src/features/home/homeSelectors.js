@@ -1,4 +1,6 @@
 // Selectors for Home feature (news carousel shows only homepage-visible news)
+import { createSelector } from '@reduxjs/toolkit';
+
 const isPublishedNewsItem = (item) => {
   const publishValue =
     item?.publish_date ??
@@ -22,15 +24,16 @@ const isPublishedNewsItem = (item) => {
   return parsed <= new Date();
 };
 
-export const selectNewsCarousel = (state) => {
-  const list = state.news?.newsList ?? [];
-  return list.filter(
+const selectNewsList = (state) => state.news?.newsList ?? [];
+
+export const selectNewsCarousel = createSelector(selectNewsList, (list) =>
+  list.filter(
     (n) =>
       n.active !== false &&
       (n.visible_on_homepage === true || n.visible_on_homepage === 1) &&
       isPublishedNewsItem(n)
-  );
-};
+  )
+);
 export const selectQuickLinks = (state) => state.home.quickLinks;
 export const selectUpcomingEvents = (state) => state.home.upcomingEvents;
 export const selectNewJoinees = (state) => state.home.newJoinees;

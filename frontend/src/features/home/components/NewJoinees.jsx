@@ -66,7 +66,8 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                 <div className="flex flex-col items-start gap-2 flex-[1_0_0] min-w-0 ">
                   <h3 className="text-h3">{person.name}</h3>
                   <p className="text-small text-muted-foreground mb-2">
-                    {person.position}
+                    {person.position}  ,  
+                  <span className='font-medium'> Joining Date : {new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </p>
 
                   <div className="flex items-center gap-2 mb-1">
@@ -77,6 +78,7 @@ export default function NewJoinees({ joinees = [], showAll = false }) {
                   </div>
 
                   {typeof person.email === 'string' &&
+                    person.email.includes('@') &&
                     !person.email.trim().toLowerCase().endsWith('@aia.internal') && (
                       <div className="flex items-center gap-2">
                         <Mail className="w-3 h-3 text-muted-foreground shrink-0" />

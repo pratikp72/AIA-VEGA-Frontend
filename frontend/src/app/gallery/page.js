@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Loader from '@/components/common/Loader';
@@ -8,13 +9,17 @@ import { Button } from '@/components/ui/button';
 import GalleryGrid from '@/features/gallery/components/GalleryGrid';
 import Filters from '@/components/common/Filters';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { loadGalleryByFilters } from '@/features/gallery/gallerySlice';
+import { loadGalleryByFilters, setPage as setGalleryPage } from '@/features/gallery/gallerySlice';
 import {
   selectGalleryItems,
   selectGalleryLoading,
   selectGalleryError,
+  selectGalleryCurrentPage,
+  selectGalleryTotalPages,
 } from '@/features/gallery/gallerySelectors';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
+const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
 
 const SORT_BY_OPTIONS = [
@@ -38,16 +43,21 @@ function formatDateForApi(value) {
 
 export default function GalleryPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const items = useAppSelector(selectGalleryItems);
   const isLoading = useAppSelector(selectGalleryLoading);
   const error = useAppSelector(selectGalleryError);
+  const currentPage = useAppSelector(selectGalleryCurrentPage);
+  const totalPages = useAppSelector(selectGalleryTotalPages);
 
-  const [companyFilter, setCompanyFilter] = useState('AIA');
-  const [search, setSearch] = useState('');
-  const [searchDebounced, setSearchDebounced] = useState('');
-  const [sortBy, setSortBy] = useState('');
-  const [date, setDate] = useState('');
-  const [type, setType] = useState('');
+  const [companyFilter, setCompanyFilter] = useState(searchParams.get('company') || 'AIA');
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [searchDebounced, setSearchDebounced] = useState(searchParams.get('search') || '');
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || '');
+  const [date, setDate] = useState(searchParams.get('date') || '');
+  const [type, setType] = useState(searchParams.get('type') || '');
   const searchDebounceRef = useRef(null);
 
   // Debounce search input
@@ -61,9 +71,9 @@ export default function GalleryPage() {
     };
   }, [search]);
 
-  // Fetch from /by-filters when filters change — backend handles all filtering
   useEffect(() => {
-    const params = {};
+    dispatch(setGalleryPage(1));
+    const params = { page: 1, pageSize: PAGE_SIZE };
     if (companyFilter) params.company = companyFilter;
     if (type) params.type = type;
     if (sortBy) params.sortBy = sortBy;
@@ -72,12 +82,52 @@ export default function GalleryPage() {
     dispatch(loadGalleryByFilters(params));
   }, [companyFilter, type, sortBy, date, searchDebounced, dispatch]);
 
+  const handleLoadMore = useCallback(() => {
+    const nextPage = currentPage + 1;
+    const params = { page: nextPage, pageSize: PAGE_SIZE, append: true };
+    if (companyFilter) params.company = companyFilter;
+    if (type) params.type = type;
+    if (sortBy) params.sortBy = sortBy;
+    if (searchDebounced?.trim()) params.search = searchDebounced.trim();
+    if (date) params.date = formatDateForApi(date);
+    dispatch(loadGalleryByFilters(params));
+  }, [dispatch, currentPage, companyFilter, type, sortBy, searchDebounced, date]);
+
+  const sentinelRef = useInfiniteScroll({
+    isLoading,
+    currentPage,
+    totalPages,
+    onLoadMore: handleLoadMore,
+  });
+
   const galleryBgStyle = {
     backgroundImage: 'url(/gallery-page-bg.png)',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundRepeat: 'no-repeat',
   };
+
+  // ── Sync filter/sort state → URL search params (persistence across refresh) ──
+  const isFirstUrlSync = useRef(true);
+  useEffect(() => {
+    if (isFirstUrlSync.current) {
+      isFirstUrlSync.current = false;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
+    if (searchDebounced?.trim()) params.set('search', searchDebounced.trim());
+    if (sortBy) params.set('sortBy', sortBy);
+    if (date) {
+      const dateStr = typeof date === 'string' ? date : formatDateForApi(date);
+      if (dateStr) params.set('date', dateStr);
+    }
+    if (type) params.set('type', type);
+    const qs = params.toString();
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    router.replace(newUrl, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [companyFilter, searchDebounced, sortBy, date, type, pathname, router]);
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={galleryBgStyle}>
@@ -145,7 +195,7 @@ export default function GalleryPage() {
 
       <main>
         <PageSection className="pt-7">
-          {isLoading ? (
+          {isLoading && currentPage === 1 ? (
             <div className="min-h-[40vh] flex items-center justify-center">
               <Loader size="lg" />
             </div>
@@ -155,6 +205,8 @@ export default function GalleryPage() {
               <button
                 type="button"
                 onClick={() => dispatch(loadGalleryByFilters({
+                  page: 1,
+                  pageSize: PAGE_SIZE,
                   company: companyFilter,
                   type: type || undefined,
                   sortBy: sortBy || 'newest',
@@ -171,7 +223,13 @@ export default function GalleryPage() {
               <p className="text-body text-muted-foreground">No items found</p>
             </div>
           ) : (
-            <GalleryGrid items={items ?? []} />
+            <>
+              <GalleryGrid items={items ?? []} />
+              {/* Sentinel — triggers next page load when scrolled into view */}
+              <div ref={sentinelRef} className="py-4 flex justify-center">
+                {isLoading && <Loader size="sm" />}
+              </div>
+            </>
           )}
         </PageSection>
       </main>

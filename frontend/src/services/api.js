@@ -26,6 +26,18 @@ function shouldForceLogoutOn401(url = '') {
   return path.includes('/users/me') || path.includes('/auth/refresh');
 }
 
+function shouldSuppressBadRequestLog(url = '', data = {}) {
+  const path = normalizeUrlPath(url);
+  const message = String(data?.error?.message || data?.message || '').toLowerCase();
+
+  // This is a common user-flow case and is handled gracefully in UI.
+  if (path.includes('/auth/reset-forgot-password') && (message.includes('invalid') || message.includes('expired'))) {
+    return true;
+  }
+
+  return false;
+}
+
 // Request Interceptor - Add auth token to all requests
 api.interceptors.request.use(
   (config) => {
@@ -51,7 +63,9 @@ api.interceptors.response.use(
 
       switch (status) {
         case 400:
-          console.error('Bad Request:', data?.error?.message || data?.message || 'Invalid request parameters');
+          if (!shouldSuppressBadRequestLog(error.config?.url || '', data)) {
+            console.error('Bad Request:', data?.error?.message || data?.message || 'Invalid request parameters');
+          }
           break;
         case 401:
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {

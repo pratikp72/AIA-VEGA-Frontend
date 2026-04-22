@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
@@ -31,6 +31,7 @@ import toast from 'react-hot-toast';
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
+  const [username, setUsername] = useState('there');
 
   // Selectors
   const news = useAppSelector(selectNewsCarousel);
@@ -50,14 +51,15 @@ export default function HomePage() {
     return 'Good Evening';
   };
 
-  const getUsername = () => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      return user?.username || user?.name || 'there';
+      setUsername(user?.username || user?.name || 'there');
     } catch {
-      return 'there';
+      setUsername('there');
     }
-  };
+  }, []);
 
   // Load dashboard data and news (carousel reads from news slice)
   useEffect(() => {
@@ -111,7 +113,7 @@ export default function HomePage() {
         <PageHeader
           className="bg-transparent"
           containerClassName="pt-xl pb-xl px-xl bg-transparent"
-          title={`${getGreeting()}, ${getUsername()}`}
+          title={`${getGreeting()}, ${username}`}
           breadcrumbs={[{ label: 'Home' }]}
         >
           <p className="text-body text-muted-foreground max-w-3xl sm:max-w-5xl">

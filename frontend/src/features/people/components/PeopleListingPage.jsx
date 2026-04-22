@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import Filters from '@/components/common/Filters';
@@ -42,6 +43,8 @@ const SORT_OPTIONS = [
 
 export default function PeopleListingPage() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const initialSearch = searchParams.get('search') ?? '';
   const urlCompany = searchParams.get('company') ?? '';
@@ -66,27 +69,56 @@ export default function PeopleListingPage() {
   // Debounced value — updated 350ms after the user stops typing (init from URL when from global search)
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
 
-  const [sortBy, setSortBy] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
-  const [perPage, setPerPage] = useState(PER_PAGE);
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') ?? '');
+  const [departmentFilter, setDepartmentFilter] = useState(searchParams.get('department') ?? '');
+  const [locationFilter, setLocationFilter] = useState(searchParams.get('location') ?? '');
+  const [perPage, setPerPage] = useState(() => {
+    const urlPerPage = searchParams.get('perPage');
+    if (urlPerPage === AUTO_PER_PAGE) return AUTO_PER_PAGE;
+    return Number(urlPerPage) || PER_PAGE;
+  });
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-  const autoLoadTriggerRef = useRef(null);
   const isAutoMode = perPage === AUTO_PER_PAGE;
   const resolvedPageSize = isAutoMode ? 100 : Number(perPage) || PER_PAGE;
+
+  // IntersectionObserver for infinite scroll in auto mode
+  const handleLoadMore = useCallback(() => {
+    dispatch(setPage(currentPage + 1));
+  }, [currentPage, dispatch]);
+
+  const sentinelRef = useInfiniteScroll({
+    isLoading,
+    currentPage,
+    totalPages,
+    onLoadMore: handleLoadMore,
+    rootMargin: '200px 0px',
+    threshold: 0.01,
+    enabled: isAutoMode, // Only activate in auto mode
+  });
 
   // Track which company's options have already been loaded so we never
   // fire /analytics/departments + /analytics/unit-locations simultaneously
   // with the employees request.
   const optionsCompanyRef = useRef(null);
 
-  const urlCompanyApplied = useRef(false);
+  const lastAppliedUrlCompanyRef = useRef(null);
   useEffect(() => {
-    if (urlCompanyApplied.current || !urlCompany) return;
-    urlCompanyApplied.current = true;
-    const normalised = urlCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA';
-    dispatch(setCompanyFilter(normalised));
-  }, [urlCompany, dispatch]);
+    const normalizedUrlCompany = urlCompany ? (urlCompany.toUpperCase() === 'VEGA' ? 'VEGA' : 'AIA') : 'AIA';
+    if (lastAppliedUrlCompanyRef.current === normalizedUrlCompany) return;
+    lastAppliedUrlCompanyRef.current = normalizedUrlCompany;
+    if (companyFilter !== normalizedUrlCompany) {
+      dispatch(setCompanyFilter(normalizedUrlCompany));
+      dispatch(setPage(1));
+    }
+  }, [urlCompany, companyFilter, dispatch]);
+
+  // When global search navigates to /people while this page is already open,
+  // sync URL search param back into local input/debounce state.
+  useEffect(() => {
+    setSearchTerm((prev) => (prev === initialSearch ? prev : initialSearch));
+    setDebouncedSearch((prev) => (prev === initialSearch ? prev : initialSearch));
+    dispatch(setPage(1));
+  }, [initialSearch, dispatch]);
 
   // Debounce: update debouncedSearch 350ms after user stops typing
   useEffect(() => {
@@ -120,26 +152,27 @@ export default function PeopleListingPage() {
     });
   }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
 
+  // ── Sync filter/sort state → URL search params (persistence across refresh) ──
   useEffect(() => {
-    if (!isAutoMode) return;
-    if (isLoading) return;
-    if (currentPage >= totalPages) return;
-    const node = autoLoadTriggerRef.current;
-    if (!node) return;
+    const params = new URLSearchParams();
+    // Preserve person-targeting params
+    if (targetPersonId) params.set('personId', targetPersonId);
+    if (targetPersonEmpId) params.set('personEmpId', targetPersonEmpId);
+    if (targetPersonName) params.set('personName', targetPersonName);
+    if (targetPersonCompany) params.set('personCompany', targetPersonCompany);
+    // Filter / sort params (omit defaults to keep URL clean)
+    if (debouncedSearch) params.set('search', debouncedSearch);
+    if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
+    if (sortBy) params.set('sortBy', sortBy);
+    if (departmentFilter) params.set('department', departmentFilter);
+    if (locationFilter) params.set('location', locationFilter);
+    if (perPage !== PER_PAGE) params.set('perPage', String(perPage));
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0]?.isIntersecting) return;
-        if (isLoading) return;
-        if (currentPage >= totalPages) return;
-        dispatch(setPage(currentPage + 1));
-      },
-      { root: null, rootMargin: '200px 0px', threshold: 0.01 }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [isAutoMode, isLoading, currentPage, totalPages, dispatch]);
+    const qs = params.toString();
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    router.replace(newUrl, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage, pathname, router]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);
@@ -199,6 +232,17 @@ export default function PeopleListingPage() {
     setSearchTerm('');
     setDebouncedSearch('');
     dispatch(setPage(1));
+    
+    // Immediately clear filter params from URL (preserve person-targeting params)
+    const params = new URLSearchParams();
+    if (targetPersonId) params.set('personId', targetPersonId);
+    if (targetPersonEmpId) params.set('personEmpId', targetPersonEmpId);
+    if (targetPersonName) params.set('personName', targetPersonName);
+    if (targetPersonCompany) params.set('personCompany', targetPersonCompany);
+    if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
+    const qs = params.toString();
+    const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
+    router.replace(newUrl, { scroll: false });
   };
 
   useEffect(() => {
@@ -282,6 +326,7 @@ export default function PeopleListingPage() {
         <Filters
           search={searchTerm}
           onSearchChange={(val) => setSearchTerm(val)}
+          searchPlaceholder="Search by Name, Employee ID"
           showDate={false}
           selects={[
             {
@@ -380,7 +425,7 @@ export default function PeopleListingPage() {
                 </div>
 
                 {currentPage < totalPages && (
-                  <div ref={autoLoadTriggerRef} className="mt-4 flex justify-center py-4">
+                  <div ref={sentinelRef} className="mt-4 flex justify-center py-4">
                     {isLoading ? <Loader size="sm" /> : <span className="text-small text-muted-foreground">Scroll to load more</span>}
                   </div>
                 )}

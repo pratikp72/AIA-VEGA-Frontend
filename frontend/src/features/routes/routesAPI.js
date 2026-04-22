@@ -23,9 +23,25 @@ function resolveMediaUrl(media) {
 ========================= */
 function normalizeShift(s) {
   const attrs = s?.attributes ?? s ?? {};
+  let rawTime = attrs.shift_time ?? attrs.time ?? '';
+  let formattedTime = rawTime;
+
+  if (rawTime && typeof rawTime === 'string') {
+    const timeParts = rawTime.split(':');
+    if (timeParts.length >= 2) {
+      let hours = parseInt(timeParts[0], 10);
+      const minutes = timeParts[1];
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // the hour '0' should be '12'
+      const hoursStr = hours < 10 ? `0${hours}` : hours;
+      formattedTime = `${hoursStr}:${minutes} ${ampm}`;
+    }
+  }
+
   return {
     name: attrs.shift_name ?? attrs.name ?? '',
-    time: attrs.shift_time ?? attrs.time ?? '',
+    time: formattedTime,
   };
 }
 

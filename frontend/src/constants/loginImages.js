@@ -91,4 +91,4 @@ export const LOGIN_BACKGROUND_IMAGES = {
 
 export const GRID_SIZE = 64; // 8x8 grid
 export const TRANSITION_INTERVAL = 2000; // 4 seconds
-export const TRANSITION_DURATION = 300; // 600ms
+export const TRANSITION_DURATION = 1000; 

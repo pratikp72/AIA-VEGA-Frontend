@@ -100,16 +100,36 @@ async function fetchNewsInternal(params = {}) {
 }
 
 /** Fetch ALL news (no filter). Used for the "View all news" listing page. Filters by user company (AIA/Vega) when applicable. */
-export async function fetchAllNews() {
+export async function fetchAllNews({ page = 1, pageSize = 9 } = {}) {
   if (USE_MOCK_DATA) {
     await mockDelay();
-    return { news: MOCK_NEWS_DATA.map((item) => withImageUrl(item)) };
+    const items = MOCK_NEWS_DATA.map((item) => withImageUrl(item));
+    return { 
+      items: items, 
+      totalCount: items.length,
+      totalPages: 1,
+      currentPage: 1
+    };
   }
   const res = await api.get('/news-items', {
-    params: { populate: '*', sort: 'createdAt:desc', ...getCompanyFilterParams() },
+    params: { 
+      populate: '*', 
+      sort: 'publishedAt:desc',
+      page,
+      pageSize,
+      ...getCompanyFilterParams() 
+    },
   });
   const raw = Array.isArray(res?.data) ? res.data : [];
-  return { news: raw.map(normalizeItem).filter(isActiveNews) };
+  const items = raw.map(normalizeItem).filter(isActiveNews);
+  const meta = res?.meta?.pagination || {};
+  
+  return {
+    items,
+    totalCount: meta.total || items.length,
+    totalPages: meta.pageCount || 1,
+    currentPage: meta.page || page,
+  };
 }
 
 
@@ -129,7 +149,7 @@ export async function fetchNewsCategories() {
   return raw.map((c) => ({ id: c.id, documentId: c.documentId, name: c.name }));
 }
 
-export async function fetchNewsByCategory(categoryIdOrName) {
+export async function fetchNewsByCategory(categoryIdOrName, { page = 1, pageSize = 9 } = {}) {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
     const filtered =
@@ -140,19 +160,41 @@ export async function fetchNewsByCategory(categoryIdOrName) {
               n.news_category?.name?.toLowerCase() === String(categoryIdOrName).toLowerCase() ||
               String(n.news_category?.id) === String(categoryIdOrName)
           );
-    return { news: filtered.map((item) => withImageUrl(item)) };
+    const items = filtered.map((item) => withImageUrl(item));
+    return {
+      items,
+      totalCount: items.length,
+      totalPages: 1,
+      currentPage: 1
+    };
   }
   // Strapi: filter by news_category relation (by name or documentId)
-  let params = {};
+  let params = { page, pageSize };
   if (categoryIdOrName && categoryIdOrName !== 'all') {
     const isNumeric = /^\d+$/.test(String(categoryIdOrName));
     if (isNumeric) {
-      params = { 'filters[news_category][id][$eq]': Number(categoryIdOrName) };
+      params['filters[news_category][id][$eq]'] = Number(categoryIdOrName);
     } else {
-      params = { 'filters[news_category][name][$eq]': categoryIdOrName };
+      params['filters[news_category][name][$eq]'] = categoryIdOrName;
     }
   }
-  return fetchNewsInternal(params);
+  return fetchNewsInternalPaginated(params);
+}
+
+async function fetchNewsInternalPaginated(params = {}) {
+  const res = await api.get('/news-items', {
+    params: { populate: '*', sort: 'publishedAt:desc', ...getCompanyFilterParams(), ...params },
+  });
+  const raw = Array.isArray(res?.data) ? res.data : [];
+  const items = raw.map(normalizeItem).filter(isActiveNews);
+  const meta = res?.meta?.pagination || {};
+  
+  return {
+    items,
+    totalCount: meta.total || items.length,
+    totalPages: meta.pageCount || 1,
+    currentPage: meta.page || params.page || 1,
+  };
 }
 
 /** Fetch a single news by id (numeric) or documentId (Strapi v5). Used for detail page. */

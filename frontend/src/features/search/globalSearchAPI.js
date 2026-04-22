@@ -17,7 +17,7 @@ export async function searchPeople(query) {
   if (!q) return [];
   try {
     const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, {
-      params: { search: q, page: 1, pageSize: SEARCH_PEOPLE_LIMIT },
+      params: { search: q, company: 'all companies', page: 1, pageSize: SEARCH_PEOPLE_LIMIT },
       timeout: 8000,
     });
     const items = response?.items ?? [];
@@ -28,6 +28,7 @@ export async function searchPeople(query) {
       subtitle: [user.designation, user.department].filter(Boolean).join(' · ') || user.email || '',
       href: '/people',
       searchQuery: q,
+      company: user.company || 'AIA',
     }));
   } catch (e) {
     console.warn('[globalSearch] searchPeople failed:', e?.message);

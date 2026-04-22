@@ -7,6 +7,7 @@ import { STORAGE_KEYS } from '@/lib/constants';
 import ResetPasswordModal from '@/components/auth/ResetPasswordModal';
 
 const LOGIN_PATH = '/login';
+const RESET_FORGOT_PASSWORD_PATH = '/reset-password';
 
 /**
  * AuthGuard – protects routes from unauthenticated access.
@@ -22,9 +23,9 @@ export default function AuthGuard({ children }) {
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) : null;
 
-    if (pathname.startsWith(LOGIN_PATH)) {
+    if (pathname.startsWith(LOGIN_PATH) || pathname.startsWith(RESET_FORGOT_PASSWORD_PATH)) {
       // If already logged in and on login page, redirect to home
-      if (token) {
+      if (token && pathname.startsWith(LOGIN_PATH)) {
         router.replace('/home');
         return;
       }
@@ -75,22 +76,28 @@ export default function AuthGuard({ children }) {
     return null;
   }
   
-   if (showResetPassword) {
+  if (showResetPassword) {
     return (
       <ResetPasswordModal
         open={true}
         onSuccess={() => {
           setShowResetPassword(false);
 
-          // update user in localStorage
-          const userStr = localStorage.getItem(STORAGE_KEYS.USER);
+          // update user in localStorage safely
+          const userStr = typeof window !== 'undefined'
+            ? localStorage.getItem(STORAGE_KEYS.USER)
+            : null;
           if (userStr) {
-            const user = JSON.parse(userStr);
-            user.is_first_login = false;
-            localStorage.setItem(
-              STORAGE_KEYS.USER,
-              JSON.stringify(user)
-            );
+            try {
+              const user = JSON.parse(userStr);
+              user.is_first_login = false;
+              localStorage.setItem(
+                STORAGE_KEYS.USER,
+                JSON.stringify(user)
+              );
+            } catch (e) {
+              console.error('User parse error on reset-password success:', e);
+            }
           }
         }}
       />

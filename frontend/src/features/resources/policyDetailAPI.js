@@ -1,16 +1,10 @@
-// Fetch a single company policy by documentId
+import api from '@/services/api';
+
+// Fetch a single company policy by documentId.
+// Uses shared API client so env base URL + auth handling are consistent.
 export async function fetchPolicyById(documentId) {
-  const url = `http://localhost:1337/api/company-policies/${documentId}`;
-  const getToken = () => localStorage.getItem('authToken') || '';
-  const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${getToken()}`,
-      'Content-Type': 'application/json',
-    },
-  });
-  if (!res.ok) throw new Error('Failed to fetch policy');
-  const json = await res.json();
-  return json.data;
+  const res = await api.get(`/company-policies/${documentId}`);
+  return res?.data ?? null;
 }
 
 export default { fetchPolicyById };

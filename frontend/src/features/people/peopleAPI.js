@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from '@/services/endpoints';
 import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
 import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
+import { isNewJoinee } from '@/lib/newJoinee';
 function getCurrentUserCompany() {
   if (typeof window === 'undefined') return null;
   try {
@@ -29,9 +30,7 @@ function normalizeUser(user) {
   const joinDate = user.joining_date || null;
   const dateOfBirth = user.date_of_birth || null;
   const now = new Date();
-  const isNew = joinDate
-    ? (now - new Date(joinDate)) / (1000 * 60 * 60 * 24) <= 30
-    : false;
+  const isNew = joinDate ? isNewJoinee(joinDate) : false;
   const company = user.company || '';
   const yearsAtCompany = joinDate ? now.getFullYear() - new Date(joinDate).getFullYear() : null;
   const avatar = getAvatarPropsForEmployee(user);

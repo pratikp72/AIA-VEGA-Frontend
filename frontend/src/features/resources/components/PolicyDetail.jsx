@@ -118,7 +118,7 @@ export default function PolicyDetail({ item, fetchPolicyById }) {
                 </span>
               )}
               {item.title && (
-                <h2 className="text-2xl font-bold mt-3 mb-2">{item.title}</h2>
+                <h2 className={`text-2xl font-bold mb-2${(policy?.tags || item.tags) ? ' mt-3' : ''}`}>{item.title}</h2>
               )}
               <p
                 className="text-sm text-[#65758B]"

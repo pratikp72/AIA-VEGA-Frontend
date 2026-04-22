@@ -1,79 +1,62 @@
 
 import React from "react";
-import { User, ListChecks, AlarmClock } from "lucide-react";
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
-import 'react-circular-progressbar/dist/styles.css';
+import { User, Clock, AlarmClock } from "lucide-react";
 
 export default function CourseStats({ course, progressPercentage = 0, quizScore, totalModuleTimeMin = 0 }) {
   if (!course) return null;
+
   const minPassingScore = course.minPassingScore ?? course.min_passing_score ?? 0;
-  const hasTakenQuiz = quizScore != null && quizScore > 0;
-  const passed = !hasTakenQuiz || quizScore >= minPassingScore;
-  const scoreColor = passed ? 'var(--color-success-light)' : 'var(--color-danger, #ef4444)';
-  const scoreTextClass = passed ? 'text-success-light' : 'text-red-500';
+
+  const timeLabel = totalModuleTimeMin >= 60
+    ? `${Math.floor(totalModuleTimeMin / 60)} hr${Math.floor(totalModuleTimeMin / 60) !== 1 ? 's' : ''}${totalModuleTimeMin % 60 > 0 ? ` ${totalModuleTimeMin % 60} mins` : ''}`
+    : `${totalModuleTimeMin} mins`;
+
+  const stats = [
+    {
+      icon: <User className="w-4 h-4 text-white" />,
+      iconBg: 'bg-primary',
+      label: 'Course Completed',
+      value: `${Math.min(100, progressPercentage)}%`,
+    },
+    {
+      icon: <Clock className="w-4 h-4 text-white" />,
+      iconBg: 'bg-success',
+      label: 'Time',
+      value: timeLabel,
+    },
+    {
+      icon: <AlarmClock className="w-4 h-4 text-white" />,
+      iconBg: 'bg-orange',
+      label: 'Min. Passing Score',
+      value: `${minPassingScore}%`,
+    },
+  ];
+
   return (
-    <div className="bg-white rounded-xl shadow p-6 flex flex-col gap-4 relative">
-      <div className="flex justify-between items-start mb-2">
-        <span className="text-xl font-bold text-gray-900">Statistics</span>
-        {/* <span className="text-xs text-gray-400 mt-1">January - June 2021</span> */}
-      </div>
-      <div className="flex flex-row gap-2 items-center">
-        <div className="flex flex-col gap-6 flex-1">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-primary/10">
-              <User className="w-5 h-5 text-primary" />
-            </span>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-400">Course Completed</span>
-              <span className="text-base font-bold text-gray-900">{Math.min(100, progressPercentage)}%</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-warning-light">
-              <AlarmClock className="w-5 h-5 text-warning" />
-            </span>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-400">Time</span>
-              <span className="text-base font-bold text-gray-900">
-                {totalModuleTimeMin >= 60
-                  ? `${Math.floor(totalModuleTimeMin / 60)} hour${Math.floor(totalModuleTimeMin / 60) !== 1 ? 's' : ''} ${totalModuleTimeMin % 60 > 0 ? `${totalModuleTimeMin % 60} mins` : ''}`
-                  : `${totalModuleTimeMin} mins`}
+    <div className="flex flex-col gap-3">
+      {/* Statistics card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <p className="text-xl font-bold text-gray-900 mb-4">Statistics</p>
+        <div className="flex flex-col">
+          {stats.map(({ icon, iconBg, label, value }) => (
+            <div key={label} className="flex items-center gap-3 py-[10px] first:pt-0 last:pb-0">
+              <span className={`inline-flex items-center justify-center w-9 h-9 rounded-full shrink-0 ${iconBg}`}>
+                {icon}
               </span>
+              <span className="flex-1 text-sm font-medium text-gray-400">{label}</span>
+              <span className="text-sm font-semibold text-gray-900">{value}</span>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-teal-50">
-              <ListChecks className="w-5 h-5 text-teal" />
-            </span>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-400">Min. Passing Score</span>
-              <span className="text-base font-bold text-gray-900">
-                {minPassingScore}%
-              </span>
-            </div>
-          </div>
-
+          ))}
         </div>
-        {/* Circular Progress */}
-        <div className="relative shrink-0 w-36 max-w-[40%] aspect-square">
-          <CircularProgressbar
-            value={quizScore ?? 0}
-            strokeWidth={8}
-            styles={buildStyles({
-              pathColor: scoreColor,
-              trailColor: 'var(--color-primary-light)',
-              pathTransitionDuration: 0.5,
-              strokeLinecap: 'round',
-            })}
-          />
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-[22px] font-bold leading-tight ${scoreTextClass}`}>{quizScore != null ? `${quizScore}%` : '0%'}</span>
-            <span className="text-[10px] text-gray-400 leading-tight">Grades Completed</span>
-          </div>
-        </div>
-
       </div>
+
+      {/* Test Score row */}
+      {quizScore != null && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-4 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-gray-900">Test Score (%)</span>
+          <span className="text-sm font-semibold text-gray-900">{quizScore}%</span>
+        </div>
+      )}
     </div>
   );
 }
