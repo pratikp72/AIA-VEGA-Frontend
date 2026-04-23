@@ -6,6 +6,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
+import { STORAGE_KEYS } from '@/lib/constants';
 
 const RESET_FORGOT_PASSWORD_API = API_ENDPOINTS.AUTH.RESET_FORGOT_PASSWORD;
 
@@ -59,8 +60,17 @@ export default function ResetForgotPasswordPage() {
         passwordConfirmation: confirmPassword,
       });
 
-      toast.success('Password reset successful. Please log in.');
-      router.replace('/login');
+      const hasAuthSession =
+        typeof window !== 'undefined' &&
+        Boolean(localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN));
+
+      if (hasAuthSession) {
+        toast.success('Password reset successful. Redirecting to home.');
+        router.replace('/home');
+      } else {
+        toast.success('Password reset successful. Please log in.');
+        router.replace('/login');
+      }
     } catch (err) {
       const rawMessage =
         err?.error?.message ||

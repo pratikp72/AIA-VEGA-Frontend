@@ -44,7 +44,7 @@ export default function QuickLinks({ links = [] }) {
       <h2 className="text-h2 mb-6">Quick Links</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         {links.map((link, index) => (
-          <Link key={link.id} href={link.url || '#'} target='_blanck' className="block h-full ">
+          <Link key={link.id} href={link.url || '#'} target='_blank' className="block h-full ">
             <Card className="h-full p-4 hover:shadow-lg transition-shadow cursor-pointer border-gray-200 bg-white">
               <div className="flex flex-col items-center text-center gap-3">
                 <div

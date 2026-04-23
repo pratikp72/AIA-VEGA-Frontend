@@ -99,6 +99,11 @@ export default function AuthGuard({ children }) {
               console.error('User parse error on reset-password success:', e);
             }
           }
+
+          // Ensure first-login password reset continues to app home.
+          if (pathname !== '/home') {
+            router.replace('/home');
+          }
         }}
       />
     );

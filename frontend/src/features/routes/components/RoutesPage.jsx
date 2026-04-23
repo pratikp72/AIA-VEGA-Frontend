@@ -291,7 +291,7 @@ export default function RoutesPage() {
               Select Shift
             </div>
             <div className="py-2">
-              <div className="relative justify-center rounded-2xl bg-white border border-gray-100 shadow-sm py-2 px-4 flex flex-wrap gap-2 items-center min-h-12">
+              <div className="relative justify-center rounded-xl bg-white border border-gray-100 shadow-sm py-2 px-4 flex flex-wrap gap-2 items-center min-h-12">
                 <div className="relative flex flex-wrap gap-2 w-full">
                   {availableShifts.length > 0 ? (
                     availableShifts.map((shift) => {

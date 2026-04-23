@@ -8,6 +8,9 @@ import ForgotPasswordModal from '@/components/auth/ForgotPasswordModal';
 
 const LOGIN_API = API_ENDPOINTS.AUTH.LOGIN;
 const FORGOT_PASSWORD_API = API_ENDPOINTS.AUTH.FORGOT_PASSWORD;
+const NO_EMAIL_MESSAGE =
+  'The Employee ID you have entered, does not have a personal email id registered against it. Contact an IT team representative to help you with this process.';
+const INVALID_ID_MESSAGE = 'The Employee ID you entered is incorrect. Please try again.';
 
 const LoginForm = () => {
   const [identifier, setIdentifier] = useState('');
@@ -71,19 +74,22 @@ const LoginForm = () => {
     setForgotModalNotice('');
     setForgotMessage('');
 
-    const email = forgotEmail.trim();
-    if (!email) {
-      setForgotModalError('Please enter your company email address.');
+    const employeeId = forgotEmail.trim();
+    if (!employeeId) {
+      setForgotModalError('Please enter Employee ID.');
       return;
     }
 
     setForgotLoading(true);
     try {
       const response = await apiService.post(FORGOT_PASSWORD_API, {
-        identifier: email,
+        identifier: employeeId,
       });
       const hasEmail = response?.hasEmail ?? response?.data?.hasEmail;
       const emailSent = response?.emailSent ?? response?.data?.emailSent;
+      const invalidIdentifier = response?.invalidIdentifier ?? response?.data?.invalidIdentifier;
+      const errorCode = response?.errorCode ?? response?.data?.errorCode;
+      const apiMessage = String(response?.message ?? response?.data?.message ?? '').toLowerCase();
 
       if (hasEmail === true && emailSent === true) {
         const message = 'Reset email sent. Check inbox.';
@@ -94,15 +100,27 @@ const LoginForm = () => {
         return;
       }
 
-      if (hasEmail === false) {
-        setForgotModalNotice('No company email is linked to this account. Please contact your administrator to reset your password.');
+      if (invalidIdentifier === true || errorCode === 'INVALID_IDENTIFIER') {
+        setForgotModalError(INVALID_ID_MESSAGE);
+        return;
+      }
+
+      if (hasEmail === false || errorCode === 'NO_EMAIL' || apiMessage.includes('no email')) {
+        setForgotModalError(NO_EMAIL_MESSAGE);
         return;
       }
 
       setForgotModalError('Unable to process forgot password request. Please try again.');
     } catch (err) {
       const raw = parseApiError(err);
-      setForgotModalError(raw || 'Unable to process forgot password request.');
+      const lower = String(raw || '').toLowerCase();
+      if (lower.includes('invalid employee id') || lower.includes('wrong employee id') || lower.includes('employee id not found')) {
+        setForgotModalError(INVALID_ID_MESSAGE);
+      } else if (lower.includes('no email') || lower.includes('does not have a personal email')) {
+        setForgotModalError(NO_EMAIL_MESSAGE);
+      } else {
+        setForgotModalError(raw || 'Unable to process forgot password request.');
+      }
     } finally {
       setForgotLoading(false);
     }

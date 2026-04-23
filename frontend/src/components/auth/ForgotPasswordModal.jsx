@@ -1,3 +1,5 @@
+'use strict';
+
 import React from 'react';
 import PropTypes from 'prop-types';
 import { createPortal } from 'react-dom';
@@ -8,7 +10,6 @@ const ForgotPasswordModal = ({
   onEmailChange,
   loading,
   error,
-  notice,
   onClose,
   onSubmit,
 }) => {
@@ -20,34 +21,29 @@ const ForgotPasswordModal = ({
         <div style={headerStyle}>
           <h3 style={titleStyle}>Forgot Password?</h3>
           <p style={subtitleStyle}>
-            Enter your company email to receive a reset password link.
+            Enter your Employee ID to receive a reset password link.
           </p>
         </div>
 
         <div style={contentStyle}>
           <div>
-            <label style={labelStyle}>Company Email</label>
+            <label style={labelStyle}>Employee ID</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
-              placeholder="name@company.com"
-              autoComplete="email"
+              placeholder="Enter Employee ID"
+              autoComplete="off"
               style={inputStyle}
             />
           </div>
 
+          {/* ✅ Error Message */}
           {error && (
             <p style={errorTextStyle}>
               {error}
             </p>
           )}
-
-          <div style={infoBoxStyle}>
-            <p style={infoTextStyle}>
-              {notice || 'If you do not have a company email, please contact your administrator to reset your password.'}
-            </p>
-          </div>
 
           <button
             type="button"
@@ -59,7 +55,7 @@ const ForgotPasswordModal = ({
               cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
-            {loading ? 'Sending...' : 'Send Reset Email'}
+            {loading ? 'Sending...' : 'Send Reset Link'}
           </button>
 
           <button type="button" onClick={onClose} style={secondaryButtonStyle}>
@@ -78,15 +74,15 @@ ForgotPasswordModal.propTypes = {
   onEmailChange: PropTypes.func.isRequired,
   loading: PropTypes.bool.isRequired,
   error: PropTypes.string,
-  notice: PropTypes.string,
   onClose: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
 };
 
 ForgotPasswordModal.defaultProps = {
   error: '',
-  notice: '',
 };
+
+/* ------------------ STYLES ------------------ */
 
 const overlayStyle = {
   position: 'fixed',
@@ -158,14 +154,16 @@ const inputStyle = {
   color: '#1f2937',
 };
 
+/* 🔴 Improved Error Style */
 const errorTextStyle = {
   margin: 0,
-  padding: '10px 12px',
-  borderRadius: '8px',
-  border: '1px solid #fecaca',
-  background: '#fef2f2',
+  padding: '12px 14px',
+  borderRadius: '10px',
+  border: '1px solid #f87171',
+  background: '#fee2e2',
   fontSize: '13px',
-  color: '#dc2626',
+  color: '#b91c1c',
+  fontWeight: 500,
 };
 
 const primaryButtonStyle = {
@@ -177,20 +175,6 @@ const primaryButtonStyle = {
   width: '100%',
   fontWeight: 600,
   letterSpacing: '0.2px',
-};
-
-const infoBoxStyle = {
-  padding: '11px 12px',
-  borderRadius: '8px',
-  background: '#eff6ff',
-  border: '1px solid #bfdbfe',
-};
-
-const infoTextStyle = {
-  margin: 0,
-  fontSize: '13px',
-  lineHeight: 1.45,
-  color: '#1e3a8a',
 };
 
 const secondaryButtonStyle = {
