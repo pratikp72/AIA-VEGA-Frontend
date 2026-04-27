@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
 function getFormFileUrl(item) {
@@ -99,11 +100,20 @@ export default function ResourceDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]" style={policiesBgStyle}>
-      <PageHeader breadcrumbs={[{ label: 'Resources', href: backHref }, { label: isFormTemplate ? 'Forms & Templates' : 'Policies' }]} containerClassName="pt-xl pb-0 px-xl bg-transparent">
-        <div className="flex items-center gap-4">
-          <Link href={backHref} className="text-sm text-primary hover:underline">&larr; Back to {isFormTemplate ? 'Forms & Templates' : 'Policies'}</Link>
-        </div>
-      </PageHeader>
+      <PageHeader
+        title={null}
+        breadcrumbs={[{ label: 'Resources', href: backHref }, { label: isFormTemplate ? 'Forms & Templates' : 'Policies' }]}
+        containerClassName="pt-xl pb-0 px-xl bg-transparent"
+        right={(
+          <Link
+            href={backHref}
+            className="flex items-center gap-2 text-small font-medium text-gray-medium hover:text-gray-dark hover:underline shrink-0"
+          >
+            <ChevronRight className="w-4 h-4 rotate-180" />
+            Back 
+          </Link>
+        )}
+      />
       <PageSection>
         {loading ? (
           <div className="min-h-[40vh] flex items-center justify-center">
