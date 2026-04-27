@@ -28,6 +28,7 @@ import {
   selectPeopleTotalCount,
   selectPeopleCompanyFilter,
   selectPeopleDepartmentOptions,
+  selectPeopleDesignationOptions,
   selectPeopleLocationOptions,
 } from '@/features/people/peopleSelectors';
 
@@ -62,6 +63,7 @@ export default function PeopleListingPage() {
   const totalCount = useAppSelector(selectPeopleTotalCount);
   const companyFilter = useAppSelector(selectPeopleCompanyFilter);
   const departmentOptions = useAppSelector(selectPeopleDepartmentOptions);
+  const designationOptions = useAppSelector(selectPeopleDesignationOptions);
   const locationOptions = useAppSelector(selectPeopleLocationOptions);
 
   // Immediate search input value (shown in the input box); init from URL when coming from global search
@@ -71,6 +73,7 @@ export default function PeopleListingPage() {
 
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') ?? '');
   const [departmentFilter, setDepartmentFilter] = useState(searchParams.get('department') ?? '');
+  const [designationFilter, setDesignationFilter] = useState(searchParams.get('designation') ?? '');
   const [locationFilter, setLocationFilter] = useState(searchParams.get('location') ?? '');
   const [perPage, setPerPage] = useState(() => {
     const urlPerPage = searchParams.get('perPage');
@@ -137,6 +140,7 @@ export default function PeopleListingPage() {
       loadPeople({
         company: companyFilter,
         department: departmentFilter,
+        designation: designationFilter,
         location: locationFilter,
         search: debouncedSearch,
         sort: sortBy,
@@ -150,7 +154,7 @@ export default function PeopleListingPage() {
         dispatch(loadPeopleOptions(companyFilter));
       }
     });
-  }, [companyFilter, departmentFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
+  }, [companyFilter, departmentFilter, designationFilter, locationFilter, debouncedSearch, sortBy, currentPage, resolvedPageSize, isAutoMode, dispatch]);
 
   // ── Sync filter/sort state → URL search params (persistence across refresh) ──
   useEffect(() => {
@@ -165,6 +169,7 @@ export default function PeopleListingPage() {
     if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
     if (sortBy) params.set('sortBy', sortBy);
     if (departmentFilter) params.set('department', departmentFilter);
+    if (designationFilter) params.set('designation', designationFilter);
     if (locationFilter) params.set('location', locationFilter);
     if (perPage !== PER_PAGE) params.set('perPage', String(perPage));
 
@@ -172,7 +177,7 @@ export default function PeopleListingPage() {
     const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
     router.replace(newUrl, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortBy, departmentFilter, locationFilter, debouncedSearch, companyFilter, perPage, pathname, router]);
+  }, [sortBy, departmentFilter, designationFilter, locationFilter, debouncedSearch, companyFilter, perPage, pathname, router]);
 
   const handleFilterChange = (setter) => (val) => {
     setter(val);
@@ -183,6 +188,7 @@ export default function PeopleListingPage() {
     dispatch(setCompanyFilter(company));
     dispatch(setPage(1));
     setDepartmentFilter('');
+    setDesignationFilter('');
     setLocationFilter('');
     setSearchTerm('');
     setDebouncedSearch('');
@@ -223,11 +229,12 @@ export default function PeopleListingPage() {
     backgroundRepeat: 'no-repeat',
   };
 
-  const hasActiveFilters = sortBy || departmentFilter || locationFilter || searchTerm;
+  const hasActiveFilters = sortBy || departmentFilter || designationFilter || locationFilter || searchTerm;
 
   const handleResetFilters = () => {
     setSortBy('');
     setDepartmentFilter('');
+    setDesignationFilter('');
     setLocationFilter('');
     setSearchTerm('');
     setDebouncedSearch('');
@@ -249,6 +256,7 @@ export default function PeopleListingPage() {
     if (!hasTargetFromHome) return;
     setSortBy('');
     setDepartmentFilter('');
+    setDesignationFilter('');
     setLocationFilter('');
     setSearchTerm('');
     setDebouncedSearch('');
@@ -341,6 +349,13 @@ export default function PeopleListingPage() {
               onChange: handleFilterChange(setDepartmentFilter),
               options: departmentOptions,
               placeholder: 'Department',
+              variant: 'filter',
+            },
+            {
+              value: designationFilter,
+              onChange: handleFilterChange(setDesignationFilter),
+              options: designationOptions,
+              placeholder: 'Designation',
               variant: 'filter',
             },
             {

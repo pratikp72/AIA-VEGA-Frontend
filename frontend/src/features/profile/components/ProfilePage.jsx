@@ -417,8 +417,8 @@ export default function ProfilePage() {
       setPwError('New password must be different from your current password.');
       return;
     }
-    if (newPassword.length < 6) {
-      setPwError('New password must be at least 6 characters.');
+    if (newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters.');
       return;
     }
 

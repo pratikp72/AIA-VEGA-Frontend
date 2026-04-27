@@ -373,6 +373,7 @@ function normalizeUser(user) {
 export const fetchPeople = async ({
   company = '',
   department = '',
+  designation = '',
   location = '',
   search = '',
   sort = '',
@@ -390,12 +391,13 @@ export const fetchPeople = async ({
     };
   }
 
-  console.log('[fetchPeople] called with:', { company, department, location, search, sort, page, pageSize });
+  console.log('[fetchPeople] called with:', { company, department, designation, location, search, sort, page, pageSize });
 
   const params = { page, pageSize };
 
   if (company) params.company = company;
   if (department) params.department = department;
+  if (designation) params.designation = designation;
   if (location) params.location = location;
   if (search) params.search = search;
   // sortBy values match the sortFieldMap keys in analyticsShared.js
@@ -584,14 +586,15 @@ function generateMockBirthdaysAndAnniversaries() {
  */
 export const fetchPeopleOptions = async (company = '') => {
   if (USE_MOCK_DATA) {
-    return { departments: [], locations: [] };
+    return { departments: [], designations: [], locations: [] };
   }
 
   const params = company ? { company } : {};
 
-  const [deptRes, locRes] = await Promise.all([
+  const [deptRes, locRes, allEmployees] = await Promise.all([
     api.get(API_ENDPOINTS.ANALYTICS.DEPARTMENTS, { params }),
     api.get(API_ENDPOINTS.ANALYTICS.UNIT_LOCATIONS, { params }),
+    fetchAllAnalyticsEmployees(api, API_ENDPOINTS.ANALYTICS.EMPLOYEES, params),
   ]);
 
   const departments = (Array.isArray(deptRes) ? deptRes : [])
@@ -599,12 +602,20 @@ export const fetchPeopleOptions = async (company = '') => {
     .filter(Boolean)
     .sort();
 
+  const designations = Array.from(
+    new Set(
+      (Array.isArray(allEmployees) ? allEmployees : [])
+        .map((u) => (u?.designation || '').trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
   const locations = (Array.isArray(locRes) ? locRes : [])
     .map((l) => l.name)
     .filter(Boolean)
     .sort();
 
-  return { departments, locations };
+  return { departments, designations, locations };
 };
 
 export default { fetchPeople, fetchPeopleOptions };

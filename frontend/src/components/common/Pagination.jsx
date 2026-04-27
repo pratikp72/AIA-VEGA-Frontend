@@ -30,8 +30,6 @@ export default function Pagination({
     };
   };
 
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
-
   const goPrev = () => {
     if (currentPage > 1) onPageChange(currentPage - 1);
   };
@@ -45,17 +43,38 @@ export default function Pagination({
     ? perPageOptions
     : [3, 6, 9, 12, 15]).map(normalizeOption);
 
-  // compute visible page window of length 3
-  const visiblePages = (() => {
-    if (totalPages <= 3) return pages;
-    let start = Math.max(1, currentPage - 1);
-    let end = start + 2;
-    if (end > totalPages) {
-      end = totalPages;
-      start = totalPages - 2;
+  // Sliding window of 3 pages ending at currentPage (clamped).
+  // Prefixes [1] … when window doesn't start at 1.
+  // Suffixes … [N] when window doesn't end at N.
+  const getPageItems = () => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+
+    const rawEnd = Math.min(totalPages, Math.max(3, currentPage));
+    const windowEnd = rawEnd === totalPages - 1 ? totalPages : rawEnd;
+    const windowStart = Math.max(1, windowEnd - 2);
+
+    const items = [];
+
+    // Leading: [1] + ellipsis if gap > 1, just [1] if adjacent
+    if (windowStart > 2) {
+      items.push(1, null);
+    } else if (windowStart === 2) {
+      items.push(1);
     }
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-  })();
+
+    for (let p = windowStart; p <= windowEnd; p++) items.push(p);
+
+    // Trailing: ellipsis + [N] if gap > 1, just [N] if adjacent
+    if (windowEnd < totalPages - 1) {
+      items.push(null, totalPages);
+    } else if (windowEnd === totalPages - 1) {
+      items.push(totalPages);
+    }
+
+    return items;
+  };
+
+  const pageItems = getPageItems();
 
   return (
     <div className={cn('w-full', className)}>
@@ -76,21 +95,27 @@ export default function Pagination({
               <ChevronLeft className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             </Button>
 
-            {visiblePages.map((page) => (
-              <button
-                key={page}
-                onClick={() => onPageChange(page)}
-                className={cn(
-                  'w-8 h-8 flex items-center justify-center text-sm font-medium rounded-md',
-                  currentPage === page
-                    ? 'bg-primary-purple text-white'
-                    : 'border border-gray-200 bg-white text-gray-700'
-                )}
-                aria-current={currentPage === page ? 'true' : undefined}
-              >
-                {page}
-              </button>
-            ))}
+            {pageItems.map((page, idx) =>
+              page === null ? (
+                <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-sm text-gray-400 select-none">
+                  &hellip;
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => onPageChange(page)}
+                  className={cn(
+                    'w-8 h-8 flex items-center justify-center text-sm font-medium rounded-md',
+                    currentPage === page
+                      ? 'bg-primary-purple text-white'
+                      : 'border border-gray-200 bg-white text-gray-700'
+                  )}
+                  aria-current={currentPage === page ? 'true' : undefined}
+                >
+                  {page}
+                </button>
+              )
+            )}
 
             <Button
               variant="ghost"
@@ -137,21 +162,27 @@ export default function Pagination({
               <ChevronLeft className="w-4 h-4" />
             </Button>
 
-            {pages.map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? 'default' : 'outline'}
-                size="icon"
-                onClick={() => onPageChange(page)}
-                className={
-                  currentPage === page
-                    ? 'rounded-full bg-primary-purple hover:bg-primary-purple/90 border-gray-200'
-                    : 'rounded-full border-gray-200 hover:shadow-md'
-                }
-              >
-                {page}
-              </Button>
-            ))}
+            {pageItems.map((page, idx) =>
+              page === null ? (
+                <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-sm text-gray-400 select-none">
+                  &hellip;
+                </span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? 'default' : 'outline'}
+                  size="icon"
+                  onClick={() => onPageChange(page)}
+                  className={
+                    currentPage === page
+                      ? 'rounded-full bg-primary-purple hover:bg-primary-purple/90 border-gray-200'
+                      : 'rounded-full border-gray-200 hover:shadow-md'
+                  }
+                >
+                  {page}
+                </Button>
+              )
+            )}
 
             <Button
               variant="outline"

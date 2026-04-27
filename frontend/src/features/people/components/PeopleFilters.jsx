@@ -16,9 +16,12 @@ export default function PeopleFilters({
   onSortChange,
   departmentFilter,
   onDepartmentChange,
+  designationFilter,
+  onDesignationChange,
   locationFilter,
   onLocationChange,
   departmentOptions = [],
+  designationOptions = [],
   locationOptions = [],
 }) {
   return (
@@ -43,6 +46,13 @@ export default function PeopleFilters({
               onChange: onDepartmentChange,
               options: departmentOptions,
               placeholder: 'Department',
+              variant: 'filter',
+            },
+            {
+              value: designationFilter,
+              onChange: onDesignationChange,
+              options: designationOptions,
+              placeholder: 'Designation',
               variant: 'filter',
             },
             {
