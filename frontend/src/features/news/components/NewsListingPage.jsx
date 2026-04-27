@@ -116,7 +116,8 @@ export default function NewsListingPage() {
     <div className="min-h-screen bg-background" style={newsBgStyle}>
       <PageHeader
         title="News"
-        breadcrumbs={[{ label: 'Home', href: '/home' }, { label: 'News' }]}
+        breadcrumbs={[{ label: 'News' }]}
+        showBreadcrumbSeparator
         right={
           <div className="w-50">
             <Select

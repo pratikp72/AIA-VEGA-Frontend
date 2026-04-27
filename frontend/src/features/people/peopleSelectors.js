@@ -6,6 +6,7 @@ export const selectPeopleTotalPages = (state) => state.people.totalPages;
 export const selectPeopleTotalCount = (state) => state.people.totalCount;
 export const selectPeopleCompanyFilter = (state) => state.people.companyFilter;
 export const selectPeopleDepartmentOptions = (state) => state.people.departmentOptions;
+export const selectPeopleDesignationOptions = (state) => state.people.designationOptions;
 export const selectPeopleLocationOptions = (state) => state.people.locationOptions;
 
 export default {
@@ -17,5 +18,6 @@ export default {
   selectPeopleTotalCount,
   selectPeopleCompanyFilter,
   selectPeopleDepartmentOptions,
+  selectPeopleDesignationOptions,
   selectPeopleLocationOptions,
 };

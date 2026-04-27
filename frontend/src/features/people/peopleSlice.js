@@ -32,6 +32,7 @@ const initialState = {
   companyFilter: 'AIA',
   currentPage: 1,
   departmentOptions: [],
+  designationOptions: [],
   locationOptions: [],
   loading: false,
   optionsLoading: false,
@@ -47,6 +48,7 @@ const peopleSlice = createSlice({
       state.currentPage = 1;
       // Clear options so they reload for the new company
       state.departmentOptions = [];
+      state.designationOptions = [];
       state.locationOptions = [];
     },
     setPage: (state, action) => {
@@ -94,6 +96,7 @@ const peopleSlice = createSlice({
       .addCase(loadPeopleOptions.fulfilled, (state, action) => {
         state.optionsLoading = false;
         state.departmentOptions = action.payload.departments || [];
+        state.designationOptions = action.payload.designations || [];
         state.locationOptions = action.payload.locations || [];
       })
       .addCase(loadPeopleOptions.rejected, (state) => {

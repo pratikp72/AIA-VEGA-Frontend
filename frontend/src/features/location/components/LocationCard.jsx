@@ -78,7 +78,7 @@ export default function LocationCard({ unit }) {
             href={mapLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full bg-[#A259FF] text-white rounded-lg py-2 font-semibold text-base mt-2 transition hover:bg-[#8a3be6] text-center"
+            className="block w-full bg-primary text-white rounded-lg py-2 font-semibold text-base mt-2 transition hover:bg-[#8a3be6] text-center"
           >
             Get Direction
           </a>
