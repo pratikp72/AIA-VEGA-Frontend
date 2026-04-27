@@ -76,8 +76,9 @@ export default function LocationsPage() {
       <PageHeader
         title="Locations"
         breadcrumbs={breadcrumbs}
+        showBreadcrumbSeparator
       >
-        <div className="text-gray-500 text-base">
+        <div className="text-body text-muted-foreground max-w-3xl sm:max-w-5xl">
           Access a detailed directory of all plant sites, unit locations, and contact details.
         </div>
       </PageHeader>

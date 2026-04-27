@@ -198,14 +198,14 @@ export default function RoutesPage() {
     : null;
   return (
     <div className="min-h-screen" style={routesBgStyle}>
-      <PageHeader title="Routes" breadcrumbs={breadcrumbs}>
-        <p className="text-gray-500 text-base">
+      <PageHeader title="Routes" breadcrumbs={breadcrumbs} showBreadcrumbSeparator>
+        <p className="text-body text-muted-foreground max-w-3xl sm:max-w-5xl">
           Access a detailed directory of all plant sites, unit locations, and
           bus routes with shift‑wise timings.
         </p>
       </PageHeader>
 
-      <PageContainer className="pt-3 pb-50 space-y-6">
+      <PageContainer className="pt-3 space-y-6">
         {/* Location selector (full width) */}
         <div className="w-full">
           <div className="font-semibold text-[18px] text-[#363A4D] mb-2">
@@ -409,7 +409,7 @@ export default function RoutesPage() {
 
         {/* Bottom panel – route description from backend note field */}
         { selectedRouteId && noteHtml ? (
-          <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-6">
+          <div className="rounded-2xl bg-white shadow-md border border-gray-100 p-6 mb-8">
             <div className="text-sm text-[#4B5563] leading-relaxed space-y-2 [&_ol]:list-decimal [&_ul]:list-disc [&_ol]:pl-5 [&_ul]:pl-5 [&_li]:mb-1">
               <div className="font-semibold text-base text-[#111827] mb-3">નોંધ</div>
               <div dangerouslySetInnerHTML={{ __html: noteHtml }} />

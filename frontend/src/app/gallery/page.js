@@ -158,7 +158,7 @@ export default function GalleryPage() {
           </div>
         }
       >
-        <p className="text-body text-muted-foreground">Explore company's collection of images and videos</p>
+        <p className="text-body text-muted-foreground max-w-3xl sm:mx-w-5xl">Explore company's collection of images and videos.</p>
         <div className="mt-4">
           <Filters
             search={search}

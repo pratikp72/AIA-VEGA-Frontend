@@ -115,6 +115,7 @@ export default function HomePage() {
           containerClassName="pt-xl pb-xl px-xl bg-transparent"
           title={`${getGreeting()}, ${username}`}
           breadcrumbs={[{ label: 'Home' }]}
+          showBreadcrumbSeparator
         >
           <p className="text-body text-muted-foreground max-w-3xl sm:max-w-5xl">
             Welcome to your learning and information hub. Stay updated with the latest announcements and continue your training journey.
