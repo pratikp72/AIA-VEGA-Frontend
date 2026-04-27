@@ -471,7 +471,7 @@ export default function CalendarPage() {
         containerClassName="pt-xl pb-4 px-xl bg-transparent"
       >
         <p className="text-body text-muted-foreground">
-          Stay on top of events, deadlines, and celebrations
+          Stay on top of events, deadlines, and celebrations.
         </p>
       </PageHeader>
 

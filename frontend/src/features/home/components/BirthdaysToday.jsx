@@ -10,7 +10,7 @@ export default function BirthdaysToday({ birthdays = [] }) {
         <h2 className="text-h2 text-gray-900">Birthdays Today</h2>
         <Link
           href="/calendar"
-          className="text-body text-purple-600 hover:text-purple-700 hover:underline font-medium"
+          className="text-body text-primary hover:underline font-medium"
         >
           View Calendar →
         </Link>

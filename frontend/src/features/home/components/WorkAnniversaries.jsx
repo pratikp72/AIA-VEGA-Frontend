@@ -13,7 +13,7 @@ export default function WorkAnniversaries({ anniversaries = [] }) {
         <h2 className="text-h2 text-gray-900">Work Anniversaries</h2>
         <Link
           href="/calendar"
-          className="text-body text-purple-600 hover:text-purple-700 hover:underline font-medium"
+          className="text-body text-primary hover:underline font-medium"
         >
           View Calendar →
         </Link>
