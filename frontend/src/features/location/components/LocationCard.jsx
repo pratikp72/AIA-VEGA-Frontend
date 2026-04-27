@@ -70,7 +70,7 @@ export default function LocationCard({ unit }) {
           <span className="mr-2"><MapPin className='w-4 h-4'/></span> {unit?.name ?? ''}
         </div>
         <div className="text-gray-text text-sm mb-2">{unit?.address || '—'}</div>
-        <div className="text-xs mb-1">Site Manager : <b className="text-gray-text">{siteManager || '—'}</b></div>
+        <div className="text-xs mb-1">Unit Head : <b className="text-gray-text">{siteManager || '—'}</b></div>
         <div className="text-xs mb-1">HR Manager : <b className="text-gray-text">{hrManager || '—'}</b></div>
         <div className="text-xs mb-2">Contact No. : <b className="text-gray-text">{unit?.contact || '—'}</b></div>
         {mapLink ? (
