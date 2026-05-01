@@ -41,7 +41,7 @@ export const fetchDashboardData = async () => {
 export const fetchQuickLinks = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
-    return MOCK_HOME_DATA.quickLinks;
+    return [...MOCK_HOME_DATA.quickLinks];
   }
 
   let response;
@@ -49,7 +49,7 @@ export const fetchQuickLinks = async () => {
     response = await api.get('/important-links', {
       params: {
         'populate[link_icon]': true,
-        sort: 'createdAt:desc',
+        sort: 'updatedAt:desc',
       },
     });
   } catch {
@@ -94,6 +94,11 @@ export const fetchQuickLinks = async () => {
   // Map to expected frontend format if needed
   return links
     .filter((link) => link?.active !== 'unpublished')
+    .sort((a, b) => {
+      const aTime = new Date(a?.updatedAt || a?.updated_at || a?.publishedAt || a?.createdAt || 0).getTime();
+      const bTime = new Date(b?.updatedAt || b?.updated_at || b?.publishedAt || b?.createdAt || 0).getTime();
+      return bTime - aTime;
+    })
     .map(link => ({
       id: link.id,
       documentId: link.documentId,
