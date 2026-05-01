@@ -1,11 +1,18 @@
 "use client";
 
+import { useEffect, useState } from 'react';
 import SurfaceCard from '@/components/common/SurfaceCard';
 import { Button } from '@/components/ui/button';
 import { Briefcase, Building2, MapPin, Mail, Phone, X } from 'lucide-react';
 
 export default function PeopleDetail({ selectedEmployee, onClose }) {
   if (!selectedEmployee) return null;
+
+  const [hasImageError, setHasImageError] = useState(false);
+
+  useEffect(() => {
+    setHasImageError(false);
+  }, [selectedEmployee.id, selectedEmployee.avatar]);
 
   function formatExperience(joinDate, fallbackYears) {
   const parsed = joinDate ? new Date(joinDate) : null;
@@ -35,6 +42,8 @@ export default function PeopleDetail({ selectedEmployee, onClose }) {
 }
 
 const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmployee.yearsAtCompany);
+  const avatarInitial = (selectedEmployee.avatarInitial || selectedEmployee.name?.[0] || '?').toUpperCase();
+  const showImageAvatar = Boolean(selectedEmployee.avatar) && !hasImageError;
 
   const companyNorm = (selectedEmployee.company || '').trim().toLowerCase();
   const isAIA = companyNorm.includes('aia');
@@ -47,11 +56,18 @@ const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmpl
           <div className="flex items-start gap-4 min-w-0">
           {/* Image */}
           <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-            <img
-              src={selectedEmployee.avatar}
-              alt={selectedEmployee.name}
-              className="w-full h-full object-cover"
-            />
+            {showImageAvatar ? (
+              <img
+                src={selectedEmployee.avatar}
+                alt={selectedEmployee.name}
+                className="w-full h-full object-cover"
+                onError={() => setHasImageError(true)}
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-primary text-white flex items-center justify-center font-semibold text-lg">
+                {avatarInitial}
+              </div>
+            )}
           </div>
           {/* Text content */}
           <div className="min-w-0">
