@@ -11,6 +11,21 @@ import api from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
 import { AlertCircle, Building2, Camera, CheckCircle2, Edit2, Eye, EyeOff, Hash } from 'lucide-react';
 
+const DISMISSED_REJECTION_STORAGE_KEY = 'profileEditDismissedRejectionRequestId';
+
+function getRequestField(request, field) {
+  return request?.[field] ?? request?.attributes?.[field] ?? null;
+}
+
+function getNormalizedRequestStatus(request) {
+  const rawStatus =
+    getRequestField(request, 'request_status') ??
+    getRequestField(request, 'requestStatus') ??
+    getRequestField(request, 'status') ??
+    '';
+  return String(rawStatus).trim().toLowerCase();
+}
+
 function formatDate(value) {
   if (!value) return '';
   const d = new Date(value);
@@ -81,6 +96,8 @@ function Field({ label, value, editing, name, onChange, type = 'text', disabled 
             value={value}
             onChange={onChange}
             disabled={disabled}
+            inputMode={name === 'contact_no' ? 'numeric' : undefined}
+            maxLength={name === 'contact_no' ? 10 : undefined}
             className={`${baseClass} disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500`}
           />
         )
@@ -106,6 +123,8 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [hasPendingEditRequest, setHasPendingEditRequest] = useState(false);
+  const [rejectedEditReason, setRejectedEditReason] = useState('');
+  const [activeRejectedRequestId, setActiveRejectedRequestId] = useState(null);
 
   // Password reset state
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -124,30 +143,76 @@ export default function ProfilePage() {
   const loadPendingEditRequestStatus = async (targetUserId) => {
     if (!targetUserId) {
       setHasPendingEditRequest(false);
+      setRejectedEditReason('');
+      setActiveRejectedRequestId(null);
       return;
     }
 
     try {
-      const response = await api.get(API_ENDPOINTS.PROFILE_EDIT_REQUESTS.LIST, {
-        params: {
-          'filters[users_permissions_user][id][$eq]': targetUserId,
-          'filters[request_status][$eq]': 'Pending',
-          'pagination[page]': 1,
-          'pagination[pageSize]': 1,
-          sort: 'createdAt:desc',
-        },
-      });
+      const [pendingResponse, latestResponse] = await Promise.all([
+        api.get(API_ENDPOINTS.PROFILE_EDIT_REQUESTS.LIST, {
+          params: {
+            'filters[users_permissions_user][id][$eq]': targetUserId,
+            'filters[request_status][$eq]': 'Pending',
+            'pagination[page]': 1,
+            'pagination[pageSize]': 1,
+            sort: 'createdAt:desc',
+          },
+        }),
+        api.get(API_ENDPOINTS.PROFILE_EDIT_REQUESTS.LIST, {
+          params: {
+            'filters[users_permissions_user][id][$eq]': targetUserId,
+            'pagination[page]': 1,
+            'pagination[pageSize]': 1,
+            sort: 'createdAt:desc',
+          },
+        }),
+      ]);
 
-      const rows = Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response)
-          ? response
+      const pendingRows = Array.isArray(pendingResponse?.data)
+        ? pendingResponse.data
+        : Array.isArray(pendingResponse)
+          ? pendingResponse
           : [];
 
-      setHasPendingEditRequest(rows.length > 0);
+      const latestRows = Array.isArray(latestResponse?.data)
+        ? latestResponse.data
+        : Array.isArray(latestResponse)
+          ? latestResponse
+          : [];
+
+      setHasPendingEditRequest(pendingRows.length > 0);
+
+      const latestRequest = latestRows[0];
+      const latestRequestStatus = getNormalizedRequestStatus(latestRequest);
+      const reason =
+        getRequestField(latestRequest, 'reason_for_rejection') ||
+        getRequestField(latestRequest, 'reason') ||
+        '';
+      const reasonText = String(reason || '').trim();
+      const isRejectedStatus = latestRequestStatus.includes('reject') || Boolean(reasonText);
+      const latestRejectedId =
+        latestRequest?.id ??
+        latestRequest?.documentId ??
+        latestRequest?.attributes?.documentId ??
+        null;
+      const dismissedRequestId = localStorage.getItem(DISMISSED_REJECTION_STORAGE_KEY);
+      const isDismissedCurrentRejectedRequest =
+        isRejectedStatus &&
+        latestRejectedId != null &&
+        String(dismissedRequestId || '') === String(latestRejectedId);
+
+      setActiveRejectedRequestId(isRejectedStatus ? latestRejectedId : null);
+      setRejectedEditReason(
+        isRejectedStatus && !isDismissedCurrentRejectedRequest && reasonText
+          ? reasonText
+          : ''
+      );
     } catch {
       // Do not block profile UI if pending-state lookup fails.
       setHasPendingEditRequest(false);
+      setRejectedEditReason('');
+      setActiveRejectedRequestId(null);
     }
   };
 
@@ -251,6 +316,13 @@ export default function ProfilePage() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'contact_no') {
+      const digitsOnly = String(value || '').replace(/\D/g, '').slice(0, 10);
+      setFormData((prev) => ({ ...prev, [name]: digitsOnly }));
+      return;
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -329,6 +401,12 @@ export default function ProfilePage() {
     setErrorMessage('');
     setSuccessMessage('');
 
+    const contactNoTrimmed = String(formData?.contact_no || '').trim();
+    if (contactNoTrimmed && !/^\d{10}$/.test(contactNoTrimmed)) {
+      setErrorMessage('Contact number must be exactly 10 digits.');
+      return;
+    }
+
     const changes = {};
 
     const updatedFullName = (formData.username || '').trim();
@@ -384,11 +462,21 @@ export default function ProfilePage() {
       setUploadedPhotoId(null);
       setSuccessMessage('Profile update request sent to admin for approval.');
       setHasPendingEditRequest(true);
+      setRejectedEditReason('');
+      setActiveRejectedRequestId(null);
+      localStorage.removeItem(DISMISSED_REJECTION_STORAGE_KEY);
     } catch (err) {
       setErrorMessage(err?.error?.message || err?.message || 'Failed to submit request.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCloseRejectedReason = () => {
+    if (activeRejectedRequestId != null) {
+      localStorage.setItem(DISMISSED_REJECTION_STORAGE_KEY, String(activeRejectedRequestId));
+    }
+    setRejectedEditReason('');
   };
 
   const handlePwChange = (e) => {
@@ -462,6 +550,50 @@ export default function ProfilePage() {
               You have requested profile changes. Your request has been submitted to the admin for approval.
             </div>
           )}
+
+          {/* {!!rejectedEditReason && !isEditing && (
+            <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p>
+                Your profile edit request was rejected. 
+                <div className="mt-1 text-sm text-red-200 whitespace-pre-wrap">
+                  Reason: {rejectedEditReason}
+                </div>
+              </p>
+              <button
+                type="button"
+                onClick={handleCloseRejectedReason}
+                className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-red-700 transition-colors bg-red-100 hover:bg-red-200"
+                aria-label="Close rejection reason"
+              >
+                Close
+              </button>
+            </div>
+          )} */}
+
+{!!rejectedEditReason && !isEditing && (
+  <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+    
+    <div className="flex-1">
+      <p className="text-sm text-red-700">
+        Your profile edit request was rejected.
+      </p>
+
+      <p className="mt-1 whitespace-pre-wrap text-sm text-red-700">
+        <span className="font-bold">Reason:</span>{" "}
+        {rejectedEditReason}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      onClick={handleCloseRejectedReason}
+      className="shrink-0 rounded-md bg-red-100 px-3 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-200"
+      aria-label="Close rejection reason"
+    >
+      Close
+    </button>
+  </div>
+)}
 
           <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between md:p-8">

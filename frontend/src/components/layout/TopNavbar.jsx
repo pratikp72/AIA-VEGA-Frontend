@@ -95,7 +95,7 @@ function NotificationBellDropdown() {
                   onClick={() => handleNotificationClick(n)}
                 >
                   <div className="font-medium text-white text-sm">{n.title || n.type}</div>
-                  <div className="text-gray-400 text-sm mt-0.5">{n.message}</div>
+                  <div className="text-gray-400 text-sm mt-0.5 line-clamp-3">{n.message}</div>
                   {n.createdAt && (
                     <div className="text-gray-500 text-xs mt-1">
                       {new Date(n.createdAt).toLocaleString()}
