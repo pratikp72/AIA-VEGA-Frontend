@@ -20,6 +20,21 @@ import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
 import telemetryService from '@/services/telemetry';
 
+const getReattemptMarkerKey = (userId, courseId) => `quiz-reattempt:${Number(userId)}:${Number(courseId)}`;
+
+const writeReattemptMarker = (userId, courseId, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value == null) {
+      window.localStorage.removeItem(getReattemptMarkerKey(userId, courseId));
+      return;
+    }
+    window.localStorage.setItem(getReattemptMarkerKey(userId, courseId), JSON.stringify(value));
+  } catch {
+    // Ignore storage errors and continue with API-driven flow.
+  }
+};
+
 function ResultScreen({
   passed,
   score,
@@ -287,14 +302,6 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
     }
   }, [submitted]);
 
-  useEffect(() => {
-    if (!showAutoSubmitModal) return;
-    const timer = setTimeout(() => {
-      setShowAutoSubmitModal(false);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [showAutoSubmitModal]);
-
   const formatTime = useCallback((seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -503,6 +510,7 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
       submittedRef.current = true;
       setIsSubmitting(false);
       setSubmitted(true);
+      setShowAutoSubmitModal(false);
     }
   }, [questions, userId, courseNumericId, quizDurationSeconds]); 
 
@@ -666,6 +674,12 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
           ? numericMaxAttempt + 1
           : undefined;
       await sendReattemptRequest(Number(userId), Number(courseNumericId), requestedForAttempt);
+      writeReattemptMarker(userId, courseNumericId, {
+        status: 'pending',
+        forAttempt: Number.isFinite(Number(requestedForAttempt)) && Number(requestedForAttempt) > 0
+          ? Number(requestedForAttempt)
+          : null,
+      });
       setReattemptSent(true);
       telemetryService.trackLearningEvent('quiz_reattempt_requested', {
         routePath: typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/courses',

@@ -2,7 +2,23 @@ import React from "react";
 import { Lock, CheckCircle2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
-export default function FinalAssessment({ unlocked, category, courseId, isCompleted, quizScore, hasPendingReattempt, hasRejectedReattempt, needsFeedbackSubmission, onOpenFeedback, selectedLanguage, hasQuizInSelectedLanguage }) {
+export default function FinalAssessment({
+  unlocked,
+  category,
+  courseId,
+  isCompleted,
+  quizScore,
+  hasPendingReattempt,
+  hasRejectedReattempt,
+  needsReattemptRequest,
+  reattemptRequestLoading,
+  reattemptRequestError,
+  onSendReattemptRequest,
+  needsFeedbackSubmission,
+  onOpenFeedback,
+  selectedLanguage,
+  hasQuizInSelectedLanguage,
+}) {
   const router = useRouter();
   const langQuery = selectedLanguage ? `?lang=${encodeURIComponent(selectedLanguage)}` : "";
   if (!unlocked) {
@@ -71,6 +87,29 @@ export default function FinalAssessment({ unlocked, category, courseId, isComple
         <p className="text-xs text-muted-foreground text-center mt-2">
           Please wait for admin approval to take the assessment again.
         </p>
+      </div>
+    );
+  }
+  if (needsReattemptRequest) {
+    return (
+      <div className="bg-white rounded-xl shadow p-6 mt-6">
+        <div className="font-semibold text-gray-800 text-lg mb-4">Final Assessment</div>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onSendReattemptRequest}
+            disabled={reattemptRequestLoading}
+            className="bg-error/10 border border-error text-error font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-error/20 transition-all duration-150 text-lg disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {reattemptRequestLoading ? "Sending..." : "Send Re-attempt Request"}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          You have reached the maximum number of attempts. Send a re-attempt request to continue.
+        </p>
+        {reattemptRequestError ? (
+          <p className="text-xs text-destructive text-center mt-1">{reattemptRequestError}</p>
+        ) : null}
       </div>
     );
   }
