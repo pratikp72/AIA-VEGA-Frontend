@@ -14,12 +14,53 @@ import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
 import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/features/courses/coursesSlice";
 import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress, startCourse } from "@/features/courses/coursesAPI";
-import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
+import { getLatestSubmission, checkPendingReattemptRequest, sendReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 import telemetryService from '@/services/telemetry';
 import { getSocket } from '@/services/socket';
 
 const md = new MarkdownIt({ html: true, breaks: true });
+
+const getReattemptMarkerKey = (userId, courseId) => `quiz-reattempt:${Number(userId)}:${Number(courseId)}`;
+
+const normalizeReattemptMarker = (value) => {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    // Backward compatibility with previous marker format: "pending" | "approved".
+    if (value === 'pending' || value === 'approved') return { status: value, forAttempt: null };
+    return null;
+  }
+  const status = value?.status;
+  if (status !== 'pending' && status !== 'approved') return null;
+  const parsedForAttempt = Number(value?.forAttempt);
+  const forAttempt = Number.isFinite(parsedForAttempt) && parsedForAttempt > 0 ? parsedForAttempt : null;
+  return { status, forAttempt };
+};
+
+const readReattemptMarker = (userId, courseId) => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(getReattemptMarkerKey(userId, courseId));
+    if (!raw) return null;
+    try {
+      return normalizeReattemptMarker(JSON.parse(raw));
+    } catch {
+      return normalizeReattemptMarker(raw);
+    }
+  } catch {
+    return null;
+  }
+};
+
+const writeReattemptMarker = (userId, courseId, value) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (value == null) localStorage.removeItem(getReattemptMarkerKey(userId, courseId));
+    else localStorage.setItem(getReattemptMarkerKey(userId, courseId), JSON.stringify(normalizeReattemptMarker(value)));
+  } catch {
+    // Ignore storage errors and continue with API-driven state.
+  }
+};
 
 export default function CoursesDetailPage({ category, course, selectedModule, initialLanguage }) {
   const courseLanguages = course?.languages ?? course?.course_language ?? [];
@@ -35,7 +76,9 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const [showFullReadingView, setShowFullReadingView] = useState(false);
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
-  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, needsFeedbackSubmission: false, progressPercentage: 0 });
+  const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, hasApprovedReattempt: false, needsFeedbackSubmission: false, needsReattemptRequest: false, latestAttemptNumber: null, maxAttempt: null, progressPercentage: 0 });
+  const [reattemptRequestLoading, setReattemptRequestLoading] = useState(false);
+  const [reattemptRequestError, setReattemptRequestError] = useState(null);
   const skipNextProgressUpdate = useRef(false);
   const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState('');
   const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
@@ -231,6 +274,12 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage, selectedLanguage: savedLang }, reattemptStatus]) => {
       const hasPending = reattemptStatus?.hasPending ?? false;
       const hasRejected = reattemptStatus?.hasRejected ?? false;
+      const hasApprovedFromApi = reattemptStatus?.hasApproved ?? false;
+      const existingMarker = readReattemptMarker(userId, courseIdForApi);
+
+      if (hasPending) writeReattemptMarker(userId, courseIdForApi, { status: 'pending', forAttempt: existingMarker?.forAttempt ?? null });
+      else if (hasRejected) writeReattemptMarker(userId, courseIdForApi, null);
+      else if (hasApprovedFromApi) writeReattemptMarker(userId, courseIdForApi, { status: 'approved', forAttempt: existingMarker?.forAttempt ?? null });
     
       const urlHasLang = !!(searchParams.get('lang') || searchParams.get('language'));
       if (!urlHasLang && savedLang && courseLanguages.some((l) => (l || '').trim().toLowerCase() === savedLang.trim().toLowerCase())) {
@@ -238,14 +287,36 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
       }
       if (skipNextProgressUpdate.current) {
         skipNextProgressUpdate.current = false;
-        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
+        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected, hasApprovedReattempt: hasApprovedFromApi }));
       } else {
         dispatch(initializeModuleReadState(completedModules));
-        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected }));
+        setCourseProgress((p) => ({ ...p, progressStatus, progressPercentage, hasPendingReattempt: hasPending, hasRejectedReattempt: hasRejected, hasApprovedReattempt: hasApprovedFromApi }));
       }
      
       getLatestSubmission(userId, courseIdForApi).then((res) => {
         const submission = res?.submission;
+        const latestAttemptNumber = submission?.attempt_number ?? null;
+        const latestMaxAttempt = res?.maxAttempt ?? 1;
+        const marker = readReattemptMarker(userId, courseIdForApi);
+        const markerForAttempt = Number(marker?.forAttempt);
+        const hasMarkerForAttempt = Number.isFinite(markerForAttempt) && markerForAttempt > 0;
+        const markerConsumed = hasMarkerForAttempt && latestAttemptNumber != null && Number(latestAttemptNumber) >= markerForAttempt;
+        if (markerConsumed) {
+          writeReattemptMarker(userId, courseIdForApi, null);
+        }
+        const inferredApprovedFromMarker =
+          !markerConsumed &&
+          hasMarkerForAttempt &&
+          latestAttemptNumber != null &&
+          Number(latestAttemptNumber) < markerForAttempt &&
+          (marker?.status === 'approved' || (marker?.status === 'pending' && !hasPending && !hasRejected));
+        const hasApproved = hasApprovedFromApi || inferredApprovedFromMarker;
+        const failedAtMaxAttempts = Boolean(
+          submission &&
+          submission.passed !== true &&
+          latestAttemptNumber != null &&
+          latestAttemptNumber >= latestMaxAttempt
+        );
         if (submission) {
           const score = submission.score;
           const passed = submission.passed === true;
@@ -253,10 +324,22 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
             ...p,
             quizScore: score,
             quizAlreadyTaken: true,
+            hasApprovedReattempt: hasApproved,
+            latestAttemptNumber,
+            maxAttempt: latestMaxAttempt,
+            needsReattemptRequest: failedAtMaxAttempts && !hasPending && !hasRejected && !hasApproved,
             needsFeedbackSubmission: passed && !feedbackSubmitted && progressStatus !== "Completed",
           }));
         } else {
-          setCourseProgress((p) => ({ ...p, quizAlreadyTaken: false, needsFeedbackSubmission: false }));
+          setCourseProgress((p) => ({
+            ...p,
+            quizAlreadyTaken: false,
+            hasApprovedReattempt: false,
+            latestAttemptNumber: null,
+            maxAttempt: null,
+            needsReattemptRequest: false,
+            needsFeedbackSubmission: false,
+          }));
         }
       });
     });
@@ -270,6 +353,7 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     const handleNotification = (payload) => {
       const type = payload?.type || '';
       if (type === 'quiz_reattempt_approved' || type === 'quiz_reattempt_rejected') {
+        const isApprovedEvent = type === 'quiz_reattempt_approved';
         const userId = getCurrentUserId();
         const courseIdForApi = course?.id ?? course?.documentId;
         if (!userId || !courseIdForApi) return;
@@ -279,25 +363,78 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
           checkPendingReattemptRequest(userId, courseIdForApi),
         ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage }, reattemptStatus]) => {
           dispatch(initializeModuleReadState(completedModules));
+          const hasPendingFromApi = reattemptStatus?.hasPending ?? false;
+          const hasRejectedFromApi = reattemptStatus?.hasRejected ?? false;
+          const hasApprovedFromApi = reattemptStatus?.hasApproved ?? false;
+
+          const hasPendingResolved = isApprovedEvent ? false : hasPendingFromApi;
+          const hasRejectedResolved = isApprovedEvent ? false : hasRejectedFromApi;
+          const hasApprovedResolved = isApprovedEvent ? true : hasApprovedFromApi;
+
           setCourseProgress((p) => ({
             ...p,
             progressStatus,
             progressPercentage,
-            hasPendingReattempt: reattemptStatus?.hasPending ?? false,
-            hasRejectedReattempt: reattemptStatus?.hasRejected ?? false,
+            hasPendingReattempt: hasPendingResolved,
+            hasRejectedReattempt: hasRejectedResolved,
+            hasApprovedReattempt: hasApprovedResolved,
           }));
 
           getLatestSubmission(userId, courseIdForApi).then((res) => {
             const submission = res?.submission;
+            const latestAttemptNumber = submission?.attempt_number ?? null;
+            const latestMaxAttempt = res?.maxAttempt ?? 1;
+            const marker = readReattemptMarker(userId, courseIdForApi);
+            const markerForAttempt = Number(marker?.forAttempt);
+            const resolvedForAttempt = Number.isFinite(markerForAttempt) && markerForAttempt > 0
+              ? markerForAttempt
+              : (latestAttemptNumber != null ? Number(latestAttemptNumber) + 1 : null);
+
+            if (isApprovedEvent) {
+              writeReattemptMarker(userId, courseIdForApi, { status: 'approved', forAttempt: resolvedForAttempt });
+            } else {
+              writeReattemptMarker(userId, courseIdForApi, null);
+            }
+
+            const hasMarkerForAttempt = Number.isFinite(Number(resolvedForAttempt)) && Number(resolvedForAttempt) > 0;
+            const markerConsumed = hasMarkerForAttempt && latestAttemptNumber != null && Number(latestAttemptNumber) >= Number(resolvedForAttempt);
+            if (markerConsumed) {
+              writeReattemptMarker(userId, courseIdForApi, null);
+            }
+            const inferredApprovedFromMarker =
+              !markerConsumed &&
+              hasMarkerForAttempt &&
+              latestAttemptNumber != null &&
+              Number(latestAttemptNumber) < Number(resolvedForAttempt) &&
+              (isApprovedEvent || (marker?.status === 'pending' && !hasPendingResolved && !hasRejectedResolved));
+            const hasApprovedEffective = Boolean(hasApprovedResolved || inferredApprovedFromMarker);
+            const failedAtMaxAttempts = Boolean(
+              submission &&
+              submission.passed !== true &&
+              latestAttemptNumber != null &&
+              latestAttemptNumber >= latestMaxAttempt
+            );
             if (submission) {
               setCourseProgress((prev) => ({
                 ...prev,
                 quizScore: submission.score,
                 quizAlreadyTaken: true,
+                hasApprovedReattempt: hasApprovedEffective,
+                latestAttemptNumber,
+                maxAttempt: latestMaxAttempt,
+                needsReattemptRequest: failedAtMaxAttempts && !hasPendingResolved && !hasRejectedResolved && !hasApprovedEffective,
                 needsFeedbackSubmission: submission.passed === true && !feedbackSubmitted && progressStatus !== 'Completed',
               }));
             } else {
-              setCourseProgress((prev) => ({ ...prev, quizAlreadyTaken: false, needsFeedbackSubmission: false }));
+              setCourseProgress((prev) => ({
+                ...prev,
+                quizAlreadyTaken: false,
+                hasApprovedReattempt: false,
+                latestAttemptNumber: null,
+                maxAttempt: null,
+                needsReattemptRequest: false,
+                needsFeedbackSubmission: false,
+              }));
             }
           });
         });
@@ -307,6 +444,44 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     socket.on('new-notification', handleNotification);
     return () => socket.off('new-notification', handleNotification);
   }, [course?.id, course?.documentId, dispatch]);
+
+  const handleSendReattemptFromCourse = async () => {
+    if (reattemptRequestLoading || courseProgress.hasPendingReattempt || courseProgress.hasRejectedReattempt) return;
+    const userId = getCurrentUserId();
+    const courseIdForApi = course?.id ?? course?.documentId;
+    if (!userId || !courseIdForApi) return;
+
+    setReattemptRequestLoading(true);
+    setReattemptRequestError(null);
+    try {
+      const numericAttempt = Number(courseProgress.latestAttemptNumber);
+      const numericMaxAttempt = Number(courseProgress.maxAttempt);
+      const requestedForAttempt = Number.isFinite(numericAttempt) && numericAttempt > 0
+        ? numericAttempt + 1
+        : Number.isFinite(numericMaxAttempt) && numericMaxAttempt > 0
+          ? numericMaxAttempt + 1
+          : undefined;
+
+      await sendReattemptRequest(Number(userId), Number(courseIdForApi), requestedForAttempt);
+      writeReattemptMarker(userId, courseIdForApi, {
+        status: 'pending',
+        forAttempt: Number.isFinite(Number(requestedForAttempt)) && Number(requestedForAttempt) > 0
+          ? Number(requestedForAttempt)
+          : null,
+      });
+      setCourseProgress((p) => ({
+        ...p,
+        hasPendingReattempt: true,
+        hasApprovedReattempt: false,
+        needsReattemptRequest: false,
+      }));
+    } catch (err) {
+      const msg = err?.error?.message || err?.message || "Failed to send re-attempt request.";
+      setReattemptRequestError(msg);
+    } finally {
+      setReattemptRequestLoading(false);
+    }
+  };
 
 
   // Called when user first engages with content (video play or View Full Content).
@@ -849,6 +1024,10 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
                 quizAlreadyTaken={courseProgress.quizAlreadyTaken}
                 hasPendingReattempt={courseProgress.hasPendingReattempt}
                 hasRejectedReattempt={courseProgress.hasRejectedReattempt}
+                needsReattemptRequest={courseProgress.needsReattemptRequest}
+                reattemptRequestLoading={reattemptRequestLoading}
+                reattemptRequestError={reattemptRequestError}
+                onSendReattemptRequest={handleSendReattemptFromCourse}
                 needsFeedbackSubmission={courseProgress.needsFeedbackSubmission}
                 onOpenFeedback={() => setShowFeedbackForm(true)}
                 selectedLanguage={selectedLanguage}

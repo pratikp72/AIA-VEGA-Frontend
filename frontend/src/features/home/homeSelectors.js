@@ -26,13 +26,27 @@ const isPublishedNewsItem = (item) => {
 
 const selectNewsList = (state) => state.news?.newsList ?? [];
 
+const getNewsCreatedTime = (item) => {
+  const rawDate =
+    item?.createdAt ??
+    item?.created_at ??
+    item?.publishedAt ??
+    item?.published_at ??
+    item?.date;
+
+  const timestamp = new Date(rawDate ?? 0).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
 export const selectNewsCarousel = createSelector(selectNewsList, (list) =>
-  list.filter(
-    (n) =>
-      n.active !== false &&
-      (n.visible_on_homepage === true || n.visible_on_homepage === 1) &&
-      isPublishedNewsItem(n)
-  )
+  list
+    .filter(
+      (n) =>
+        n.active !== false &&
+        (n.visible_on_homepage === true || n.visible_on_homepage === 1) &&
+        isPublishedNewsItem(n)
+    )
+    .sort((a, b) => getNewsCreatedTime(b) - getNewsCreatedTime(a))
 );
 export const selectQuickLinks = (state) => state.home.quickLinks;
 export const selectUpcomingEvents = (state) => state.home.upcomingEvents;
