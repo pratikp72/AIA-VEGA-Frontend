@@ -15,6 +15,28 @@ import { useNotificationSocket } from '@/hooks/useNotificationSocket';
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_MIN_LENGTH = 2;
 
+function parseNotificationMeta(notification) {
+  const meta = notification?.meta;
+  if (meta && typeof meta === 'object') return meta;
+  if (typeof meta === 'string') {
+    try {
+      const parsed = JSON.parse(meta);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function isProfileRequestUserUpdate(notification) {
+  const type = String(notification?.type || '').trim().toLowerCase();
+  const meta = parseNotificationMeta(notification);
+  const action = String(meta?.action || '').trim().toLowerCase();
+  if (type !== 'profile_edit_request') return false;
+  return action === 'status_update' || action === 'pending_comment';
+}
+
 function NotificationBellDropdown() {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -34,6 +56,17 @@ function NotificationBellDropdown() {
 
   const handleNotificationClick = async (notification) => {
     await markRead(notification);
+
+    if (isProfileRequestUserUpdate(notification)) {
+      const meta = parseNotificationMeta(notification);
+      const requestId = meta?.requestId;
+      setOpen(false);
+      router.push(
+        requestId
+          ? `/profile?requestId=${encodeURIComponent(String(requestId))}`
+          : '/profile'
+      );
+    }
   };
 
   const handleSeeAllClick = async (e) => {

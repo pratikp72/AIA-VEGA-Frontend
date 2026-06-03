@@ -26,6 +26,46 @@ function getNormalizedRequestStatus(request) {
   return String(rawStatus).trim().toLowerCase();
 }
 
+function getRequestId(request) {
+  return (
+    request?.id ??
+    request?.documentId ??
+    request?.attributes?.id ??
+    request?.attributes?.documentId ??
+    null
+  );
+}
+
+function normalizePendingAdminComments(request) {
+  const raw = getRequestField(request, 'pending_admin_comments');
+  const list = Array.isArray(raw)
+    ? raw
+    : Array.isArray(raw?.data)
+      ? raw.data
+      : [];
+
+  return list
+    .map((entry) => {
+      const source = entry?.attributes || entry || {};
+      const commenter = source?.commented_by?.attributes || source?.commented_by || {};
+      return {
+        comment: String(source?.comment || '').trim(),
+        commented_at: source?.commented_at || null,
+        commented_by: {
+          id: commenter?.id ?? null,
+          name: String(commenter?.name || commenter?.username || '').trim(),
+        },
+      };
+    })
+    .filter((item) => item.comment);
+}
+
+function getLatestPendingNote(request) {
+  const comments = normalizePendingAdminComments(request);
+  if (comments.length === 0) return null;
+  return comments[comments.length - 1];
+}
+
 function formatDate(value) {
   if (!value) return '';
   const d = new Date(value);
@@ -35,6 +75,13 @@ function formatDate(value) {
     month: 'short',
     year: 'numeric',
   });
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString();
 }
 
 function toInputDate(value) {
@@ -123,6 +170,7 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [hasPendingEditRequest, setHasPendingEditRequest] = useState(false);
+  const [latestPendingAdminNote, setLatestPendingAdminNote] = useState(null);
   const [rejectedEditReason, setRejectedEditReason] = useState('');
   const [activeRejectedRequestId, setActiveRejectedRequestId] = useState(null);
 
@@ -143,6 +191,7 @@ export default function ProfilePage() {
   const loadPendingEditRequestStatus = async (targetUserId) => {
     if (!targetUserId) {
       setHasPendingEditRequest(false);
+      setLatestPendingAdminNote(null);
       setRejectedEditReason('');
       setActiveRejectedRequestId(null);
       return;
@@ -183,6 +232,11 @@ export default function ProfilePage() {
 
       setHasPendingEditRequest(pendingRows.length > 0);
 
+      const latestPendingRequest = pendingRows[0] || null;
+      const latestPendingNote = getLatestPendingNote(latestPendingRequest);
+
+      setLatestPendingAdminNote(latestPendingNote);
+
       const latestRequest = latestRows[0];
       const latestRequestStatus = getNormalizedRequestStatus(latestRequest);
       const reason =
@@ -191,11 +245,7 @@ export default function ProfilePage() {
         '';
       const reasonText = String(reason || '').trim();
       const isRejectedStatus = latestRequestStatus.includes('reject') || Boolean(reasonText);
-      const latestRejectedId =
-        latestRequest?.id ??
-        latestRequest?.documentId ??
-        latestRequest?.attributes?.documentId ??
-        null;
+      const latestRejectedId = getRequestId(latestRequest);
       const dismissedRequestId = localStorage.getItem(DISMISSED_REJECTION_STORAGE_KEY);
       const isDismissedCurrentRejectedRequest =
         isRejectedStatus &&
@@ -211,6 +261,7 @@ export default function ProfilePage() {
     } catch {
       // Do not block profile UI if pending-state lookup fails.
       setHasPendingEditRequest(false);
+      setLatestPendingAdminNote(null);
       setRejectedEditReason('');
       setActiveRejectedRequestId(null);
     }
@@ -462,6 +513,7 @@ export default function ProfilePage() {
       setUploadedPhotoId(null);
       setSuccessMessage('Profile update request sent to admin for approval.');
       setHasPendingEditRequest(true);
+      setLatestPendingAdminNote(null);
       setRejectedEditReason('');
       setActiveRejectedRequestId(null);
       localStorage.removeItem(DISMISSED_REJECTION_STORAGE_KEY);
@@ -547,7 +599,21 @@ export default function ProfilePage() {
 
           {hasPendingEditRequest && !isEditing && (
             <div className="rounded-xl border border-primary-opacity-20 bg-primary-light px-4 py-3 text-sm text-primary">
-              You have requested profile changes. Your request has been submitted to the admin for approval.
+              {latestPendingAdminNote?.comment ? (
+                <>
+                  <p className="font-medium">Your request is still under review.</p>
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-white/70 px-3 py-2 text-primary">
+                    <p>
+                      <span className="font-semibold">Update from HR:</span> {latestPendingAdminNote.comment}
+                    </p>
+                    <p className="mt-1 text-xs text-primary/80">
+                      {formatDateTime(latestPendingAdminNote.commented_at)}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <p>You have requested profile changes. Your request has been submitted to the admin for approval.</p>
+              )}
             </div>
           )}
 
