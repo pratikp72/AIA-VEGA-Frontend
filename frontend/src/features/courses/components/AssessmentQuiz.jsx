@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Clock,
@@ -221,7 +221,16 @@ export default function AssessmentQuiz({ onExit, courseId, category, courseNumer
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const questions = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
+  const questions = useMemo(() => {
+    const src = Array.isArray(quizQuestions) && quizQuestions.length > 0 ? quizQuestions : MOCK_ASSESSMENT_QUESTIONS;
+    const shuffled = [...src];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const resultData = resultDataProp || MOCK_ASSESSMENT_RESULTS;
   const totalQuestions = questions.length;
   const feedbackMandatory = feedbackCompulsory ?? getCourseFeedbackConfig(courseId).mandatory;

@@ -266,7 +266,7 @@ function GlobalSearch() {
                         <button
                           type="button"
                           className="w-full text-left px-4 py-2.5 hover:bg-gray-700/70 flex flex-col gap-0.5"
-                          onClick={() => handleSelect(p.href, p.searchQuery, p.company)}
+                          onClick={() => handleSelect(p.href, p.name, p.company)}
                           role="option"
                         >
                           <span className="font-medium text-white text-sm truncate">{p.name}</span>
