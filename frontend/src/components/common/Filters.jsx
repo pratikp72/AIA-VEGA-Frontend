@@ -83,19 +83,24 @@ export default function Filters({
         )}
 
         {/* Dynamic selects */}
-        {selects.map((s, idx) => (
-          <div key={idx} className="group relative w-full lg:w-62">
-            <Select
-              value={s.value}
-              onChange={s.onChange}
-              options={s.options || []}
-              placeholder={s.placeholder}
-              textSize="text-sm"
-              variant={s.variant}
-              wrapValue={s.wrapValue}
-            />
-          </div>
-        ))}
+        {selects.map((s, idx) => {
+          const multiSelect = s.multiSelect === true || (s.multiSelect !== false && s.variant === 'filter' && s.singleSelect !== true);
+
+          return (
+            <div key={idx} className="group relative w-full lg:w-62">
+              <Select
+                value={s.value}
+                onChange={s.onChange}
+                options={s.options || []}
+                placeholder={s.placeholder}
+                textSize="text-sm"
+                variant={s.variant}
+                wrapValue={s.wrapValue ?? multiSelect}
+                multiSelect={multiSelect}
+              />
+            </div>
+          );
+        })}
 
         {/* Extra actions (e.g. Reset filters button) */}
         {children && (

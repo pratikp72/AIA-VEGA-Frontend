@@ -1,5 +1,6 @@
 import { apiService } from '@/services/api';
 import { API_ENDPOINTS } from '@/services/endpoints';
+import { parseFilterParam } from '@/lib/filterParams';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:1337').replace(/\/api\/?$/, '');
 
@@ -54,7 +55,7 @@ export async function fetchGalleryByFilters(filters = {}) {
 
   const params = new URLSearchParams();
   if (company) params.set('company', company);
-  if (type) params.set('type', type.toLowerCase());
+  parseFilterParam(type).forEach((entry) => params.append('type', String(entry).toLowerCase()));
   if (sortBy) params.set('sortBy', sortBy);
   else params.set('sortBy', 'newest'); // Default to newest first when no sort specified
   if (search?.trim()) params.set('search', search.trim());
