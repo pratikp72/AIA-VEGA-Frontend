@@ -310,6 +310,12 @@ import { USE_MOCK_DATA, mockDelay } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
 import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
 import { isNewJoinee } from '@/lib/newJoinee';
+import {
+  scalarFilterValue,
+  hasMultipleFilterValues,
+  buildSingleFilterCombos,
+} from '@/lib/filterParams';
+
 function getCurrentUserCompany() {
   if (typeof window === 'undefined') return null;
   try {
@@ -366,6 +372,141 @@ function normalizeUser(user) {
   };
 }
 
+function sortRawEmployees(items, sort) {
+  if (!sort) return items;
+  const copy = [...items];
+  const getName = (user) => String(user.employee_name || user.username || '');
+  const getJoinTime = (user) => (user.joining_date ? new Date(user.joining_date).getTime() : 0);
+
+  switch (sort) {
+    case 'name-asc':
+      return copy.sort((a, b) => getName(a).localeCompare(getName(b)));
+    case 'name-desc':
+      return copy.sort((a, b) => getName(b).localeCompare(getName(a)));
+    case 'join-newest':
+      return copy.sort((a, b) => getJoinTime(b) - getJoinTime(a));
+    case 'join-oldest':
+      return copy.sort((a, b) => getJoinTime(a) - getJoinTime(b));
+    default:
+      return copy;
+  }
+}
+
+function filterActiveEmployees(items, company) {
+  const isVega = company?.toLowerCase() === 'vega';
+  return items.filter((user) => (isVega ? user?.active === true : user?.exit_date == null));
+}
+
+function buildPeopleQueryParams({
+  company = '',
+  department = '',
+  designation = '',
+  location = '',
+  search = '',
+  sort = '',
+  page = 1,
+  pageSize = 9,
+} = {}) {
+  const params = { page, pageSize };
+  if (company) params.company = company;
+
+  const departmentValue = scalarFilterValue(department);
+  const designationValue = scalarFilterValue(designation);
+  const locationValue = scalarFilterValue(location);
+  if (departmentValue) params.department = departmentValue;
+  if (designationValue) params.designation = designationValue;
+  if (locationValue) params.location = locationValue;
+  if (search) params.search = search;
+  if (sort) params.sortBy = sort;
+
+  return params;
+}
+
+async function fetchPeoplePage({
+  company = '',
+  department = '',
+  designation = '',
+  location = '',
+  search = '',
+  sort = '',
+  page = 1,
+  pageSize = 9,
+} = {}) {
+  const params = buildPeopleQueryParams({
+    company,
+    department,
+    designation,
+    location,
+    search,
+    sort,
+    page,
+    pageSize,
+  });
+
+  const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, { params });
+  const items = filterActiveEmployees(response?.items || [], company).map(normalizeUser);
+
+  return {
+    items,
+    totalPages: response?.totalPages || 1,
+    totalCount: response?.total || items.length,
+    currentPage: response?.page || page,
+  };
+}
+
+async function fetchPeopleWithMergedFilters({
+  company = '',
+  department = '',
+  designation = '',
+  location = '',
+  search = '',
+  sort = '',
+  page = 1,
+  pageSize = 9,
+} = {}) {
+  const combos = buildSingleFilterCombos({ department, designation, location });
+  const baseParams = {};
+  if (company) baseParams.company = company;
+  if (search) baseParams.search = search;
+
+  const batches = await Promise.all(
+    combos.map((combo) => {
+      const params = { ...baseParams, ...combo };
+      return fetchAllAnalyticsEmployees(api, API_ENDPOINTS.ANALYTICS.EMPLOYEES, params);
+    })
+  );
+
+  const seen = new Set();
+  let mergedRaw = [];
+  for (const batch of batches) {
+    for (const user of batch) {
+      const key = user?.id;
+      if (key == null) continue;
+      const keyStr = String(key);
+      if (seen.has(keyStr)) continue;
+      seen.add(keyStr);
+      mergedRaw.push(user);
+    }
+  }
+
+  mergedRaw = filterActiveEmployees(mergedRaw, company);
+  mergedRaw = sortRawEmployees(mergedRaw, sort);
+
+  const normalized = mergedRaw.map(normalizeUser);
+  const totalCount = normalized.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize) || 1);
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+  const items = normalized.slice(start, start + pageSize);
+
+  return {
+    items,
+    totalPages,
+    totalCount,
+    currentPage: safePage,
+  };
+}
+
 /**
  * Fetch paginated + filtered people from /analytics/employees.
  * All filtering is done server-side.
@@ -393,29 +534,29 @@ export const fetchPeople = async ({
 
   console.log('[fetchPeople] called with:', { company, department, designation, location, search, sort, page, pageSize });
 
-  const params = { page, pageSize };
+  if (hasMultipleFilterValues(department, designation, location)) {
+    return fetchPeopleWithMergedFilters({
+      company,
+      department,
+      designation,
+      location,
+      search,
+      sort,
+      page,
+      pageSize,
+    });
+  }
 
-  if (company) params.company = company;
-  if (department) params.department = department;
-  if (designation) params.designation = designation;
-  if (location) params.location = location;
-  if (search) params.search = search;
-  // sortBy values match the sortFieldMap keys in analyticsShared.js
-  if (sort) params.sortBy = sort;
-
-  const response = await api.get(API_ENDPOINTS.ANALYTICS.EMPLOYEES, { params });
-
-  // /analytics/employees returns { items, total, page, pageSize, totalPages }
-  const isVega = company?.toLowerCase() === 'vega';
-  const items = (response?.items || [])
-    .filter((user) => isVega ? user?.active === true : user?.exit_date == null)
-    .map(normalizeUser);
-  return {
-    items,
-    totalPages: response?.totalPages || 1,
-    totalCount: response?.total || items.length,
-    currentPage: response?.page || page,
-  };
+  return fetchPeoplePage({
+    company,
+    department,
+    designation,
+    location,
+    search,
+    sort,
+    page,
+    pageSize,
+  });
 };
 
 /**

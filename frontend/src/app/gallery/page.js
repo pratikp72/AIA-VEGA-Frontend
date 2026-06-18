@@ -18,6 +18,7 @@ import {
   selectGalleryTotalPages,
 } from '@/features/gallery/gallerySelectors';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { parseFilterParam, serializeFilterParam, hasFilterValue } from '@/lib/filterParams';
 
 const PAGE_SIZE = 24;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -57,7 +58,7 @@ export default function GalleryPage() {
   const [searchDebounced, setSearchDebounced] = useState(searchParams.get('search') || '');
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || '');
   const [date, setDate] = useState(searchParams.get('date') || '');
-  const [type, setType] = useState(searchParams.get('type') || '');
+  const [type, setType] = useState(() => parseFilterParam(searchParams.get('type')));
   const searchDebounceRef = useRef(null);
 
   // Debounce search input
@@ -75,7 +76,7 @@ export default function GalleryPage() {
     dispatch(setGalleryPage(1));
     const params = { page: 1, pageSize: PAGE_SIZE };
     if (companyFilter) params.company = companyFilter;
-    if (type) params.type = type;
+    if (hasFilterValue(type)) params.type = type;
     if (sortBy) params.sortBy = sortBy;
     if (searchDebounced?.trim()) params.search = searchDebounced.trim();
     if (date) params.date = formatDateForApi(date);
@@ -86,7 +87,7 @@ export default function GalleryPage() {
     const nextPage = currentPage + 1;
     const params = { page: nextPage, pageSize: PAGE_SIZE, append: true };
     if (companyFilter) params.company = companyFilter;
-    if (type) params.type = type;
+    if (hasFilterValue(type)) params.type = type;
     if (sortBy) params.sortBy = sortBy;
     if (searchDebounced?.trim()) params.search = searchDebounced.trim();
     if (date) params.date = formatDateForApi(date);
@@ -122,7 +123,8 @@ export default function GalleryPage() {
       const dateStr = typeof date === 'string' ? date : formatDateForApi(date);
       if (dateStr) params.set('date', dateStr);
     }
-    if (type) params.set('type', type);
+    const typeParam = serializeFilterParam(type);
+    if (typeParam) params.set('type', typeParam);
     const qs = params.toString();
     const newUrl = `${pathname}${qs ? `?${qs}` : ''}`;
     router.replace(newUrl, { scroll: false });
@@ -166,7 +168,7 @@ export default function GalleryPage() {
             date={date}
             onDateChange={(v) => setDate(v)}
             selects={[
-              { value: sortBy, onChange: (v) => setSortBy(v), options: SORT_BY_OPTIONS, placeholder: 'Sort By', variant: 'filter' },
+              { value: sortBy, onChange: (v) => setSortBy(v), options: SORT_BY_OPTIONS, placeholder: 'Sort By', multiSelect: false },
               { value: type, onChange: (v) => setType(v), options: TYPE_OPTIONS, placeholder: 'Type', variant: 'filter' },
             ]}
           >
@@ -174,7 +176,7 @@ export default function GalleryPage() {
               search ||
               date ||
               sortBy ||
-              type
+              hasFilterValue(type)
             ) && (
               <Button
                 type="button"
@@ -183,7 +185,7 @@ export default function GalleryPage() {
                   setSearch('');
                   setDate('');
                   setSortBy('');
-                  setType('');
+                  setType([]);
                 }}
               >
                 Reset filters
@@ -208,7 +210,7 @@ export default function GalleryPage() {
                   page: 1,
                   pageSize: PAGE_SIZE,
                   company: companyFilter,
-                  type: type || undefined,
+                  type: hasFilterValue(type) ? type : undefined,
                   sortBy: sortBy || 'newest',
                   search: searchDebounced?.trim(),
                   date: date ? formatDateForApi(date) : undefined,

@@ -39,7 +39,7 @@ export default function PeopleFilters({
               onChange: onSortChange,
               options: SORT_OPTIONS,
               placeholder: 'Sort By',
-              variant: 'filter',
+              multiSelect: false,
             },
             {
               value: departmentFilter,

@@ -28,13 +28,28 @@ export default function Select({
   wrapValue = false,
   variant = 'default',
   disabled = false,
+  multiSelect = false,
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const normalizedOptions = options.map(normalizeOption).filter(Boolean);
-  const selectedOption = normalizedOptions.find((option) => option.value === value) || null;
-  const displayValue = selectedOption?.label || value || placeholder;
+  const selectedOption =
+    !multiSelect
+      ? normalizedOptions.find((option) => option.value === value) || null
+      : null;
+  const selectedValues = multiSelect
+    ? (Array.isArray(value) ? value : value ? [value] : [])
+    : [];
+  const displayValue = multiSelect
+    ? selectedValues.length > 0
+      ? normalizedOptions
+          .filter((opt) => selectedValues.includes(opt.value))
+          .map((opt) => opt.label)
+          .join(', ')
+      : placeholder
+    : selectedOption?.label || value || placeholder;
   const isFilterVariant = variant === 'filter';
+  const hasValue = multiSelect ? selectedValues.length > 0 : Boolean(value);
 
   function getCheckboxClasses(isSelected) {
     if (isFilterVariant) {
@@ -76,7 +91,7 @@ export default function Select({
         className={cn(
           'relative w-full overflow-hidden rounded-[12px] border border-gray-100 bg-white px-4 pr-10 text-left text-small shadow-sm',
           wrapValue ? 'min-h-12 h-auto py-2' : 'h-12',
-          value ? 'text-black' : 'text-gray-text',
+          hasValue ? 'text-black' : 'text-gray-text',
           disabled && 'cursor-not-allowed bg-gray-50 text-gray-400'
         )}
       >
@@ -102,23 +117,34 @@ export default function Select({
           )}
         >
           <div className={cn('flex flex-col', isFilterVariant ? 'max-h-70 overflow-y-auto pr-1 gap-1' : 'py-2')}>
-            
-
             {normalizedOptions.length === 0 ? (
               <div className="px-4 py-2 text-sm text-gray-500">No options</div>
             ) : (
               normalizedOptions.map((opt) => {
-                const isSelected = opt.value === value;
+                const isSelected = multiSelect
+                  ? selectedValues.includes(opt.value)
+                  : opt.value === value;
 
                 return (
                   <button
                     key={opt.value}
                     type="button"
                     onClick={() => {
-                      onChange && onChange(opt.value);
-                      setOpen(false);
+                      if (!onChange) return;
+
+                      if (multiSelect) {
+                        if (selectedValues.includes(opt.value)) {
+                          onChange(selectedValues.filter((v) => v !== opt.value));
+                        } else {
+                          onChange([...selectedValues, opt.value]);
+                        }
+                      } else {
+                        onChange(opt.value);
+                        setOpen(false);
+                      }
                     }}
-                    className='w-full text-left text-sm flex items-center gap-3 rounded-[12px] px-3 py-3 text-gray-text hover:bg-[#f8f5ff]'>
+                    className="w-full text-left text-sm flex items-center gap-3 rounded-[12px] px-3 py-3 text-gray-text hover:bg-[#f8f5ff]"
+                  >
                     {isFilterVariant ? (
                       <>
                         <span

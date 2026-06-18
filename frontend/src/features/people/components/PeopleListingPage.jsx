@@ -13,6 +13,7 @@ import Loader from '@/components/common/Loader';
 import Pagination from '@/components/common/Pagination';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { parseFilterParam, serializeFilterParam, hasFilterValue } from '@/lib/filterParams';
 import {
   loadPeople,
   loadPeopleOptions,
@@ -72,9 +73,9 @@ export default function PeopleListingPage() {
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
 
   const [sortBy, setSortBy] = useState(searchParams.get('sortBy') ?? '');
-  const [departmentFilter, setDepartmentFilter] = useState(searchParams.get('department') ?? '');
-  const [designationFilter, setDesignationFilter] = useState(searchParams.get('designation') ?? '');
-  const [locationFilter, setLocationFilter] = useState(searchParams.get('location') ?? '');
+  const [departmentFilter, setDepartmentFilter] = useState(() => parseFilterParam(searchParams.get('department')));
+  const [designationFilter, setDesignationFilter] = useState(() => parseFilterParam(searchParams.get('designation')));
+  const [locationFilter, setLocationFilter] = useState(() => parseFilterParam(searchParams.get('location')));
   const [perPage, setPerPage] = useState(() => {
     const urlPerPage = searchParams.get('perPage');
     if (urlPerPage === AUTO_PER_PAGE) return AUTO_PER_PAGE;
@@ -168,9 +169,12 @@ export default function PeopleListingPage() {
     if (debouncedSearch) params.set('search', debouncedSearch);
     if (companyFilter && companyFilter !== 'AIA') params.set('company', companyFilter);
     if (sortBy) params.set('sortBy', sortBy);
-    if (departmentFilter) params.set('department', departmentFilter);
-    if (designationFilter) params.set('designation', designationFilter);
-    if (locationFilter) params.set('location', locationFilter);
+    const departmentParam = serializeFilterParam(departmentFilter);
+    const designationParam = serializeFilterParam(designationFilter);
+    const locationParam = serializeFilterParam(locationFilter);
+    if (departmentParam) params.set('department', departmentParam);
+    if (designationParam) params.set('designation', designationParam);
+    if (locationParam) params.set('location', locationParam);
     if (perPage !== PER_PAGE) params.set('perPage', String(perPage));
 
     const qs = params.toString();
@@ -187,9 +191,9 @@ export default function PeopleListingPage() {
   const handleCompanySwitch = (company) => {
     dispatch(setCompanyFilter(company));
     dispatch(setPage(1));
-    setDepartmentFilter('');
-    setDesignationFilter('');
-    setLocationFilter('');
+    setDepartmentFilter([]);
+    setDesignationFilter([]);
+    setLocationFilter([]);
     setSearchTerm('');
     setDebouncedSearch('');
     setSortBy('');
@@ -229,13 +233,18 @@ export default function PeopleListingPage() {
     backgroundRepeat: 'no-repeat',
   };
 
-  const hasActiveFilters = sortBy || departmentFilter || designationFilter || locationFilter || searchTerm;
+  const hasActiveFilters =
+    sortBy ||
+    hasFilterValue(departmentFilter) ||
+    hasFilterValue(designationFilter) ||
+    hasFilterValue(locationFilter) ||
+    searchTerm;
 
   const handleResetFilters = () => {
     setSortBy('');
-    setDepartmentFilter('');
-    setDesignationFilter('');
-    setLocationFilter('');
+    setDepartmentFilter([]);
+    setDesignationFilter([]);
+    setLocationFilter([]);
     setSearchTerm('');
     setDebouncedSearch('');
     dispatch(setPage(1));
@@ -255,9 +264,9 @@ export default function PeopleListingPage() {
   useEffect(() => {
     if (!hasTargetFromHome) return;
     setSortBy('');
-    setDepartmentFilter('');
-    setDesignationFilter('');
-    setLocationFilter('');
+    setDepartmentFilter([]);
+    setDesignationFilter([]);
+    setLocationFilter([]);
     setSearchTerm('');
     setDebouncedSearch('');
     if (targetPersonCompany) {
@@ -342,7 +351,7 @@ export default function PeopleListingPage() {
               onChange: handleFilterChange(setSortBy),
               options: SORT_OPTIONS,
               placeholder: 'Sort By',
-              variant: 'filter',
+              multiSelect: false,
             },
             {
               value: departmentFilter,
