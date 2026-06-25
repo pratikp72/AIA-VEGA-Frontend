@@ -97,11 +97,11 @@ const getImageUrl = (news) => {
         </div>
 
         {/* Headline */}
-        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight mb-[30px]">
+        <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight pt-12">
           {currentNews.title}
         </h2>
 
-        <p
+        {/* <p
           className="text-white text-body leading-relaxed mb-10"
           style={{
             display: '-webkit-box',
@@ -110,7 +110,7 @@ const getImageUrl = (news) => {
             overflow: 'hidden',
           }}
           dangerouslySetInnerHTML={{ __html: md.render(renderDescription(currentNews.description || '')) }}
-        />
+        /> */}
 
         {/* Read More button */}
         <div className="mt-auto">
