@@ -361,6 +361,7 @@ function normalizeUser(user) {
     joinDate,
     exitDate: user.exit_date || null,
     dateOfBirth,
+    business_vertical: user.business_vertical || '',
     company,
     emp_code: user.emp_code || '',
     emp_id: user.emp_id || '',
