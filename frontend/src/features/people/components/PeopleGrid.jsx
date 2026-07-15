@@ -55,7 +55,13 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
           <div className="space-y-3 text-body text-muted-foreground">
             <div className="flex items-center gap-2">
               <Briefcase className="h-3.5 w-3.5 text-gray-text" />
-              <span className="truncate text-gray-text">{person.department}</span>
+              <span className="break-words text-gray-text">
+                {(person.company || '').trim().toLowerCase().includes('vega')
+                  ? [person.business_vertical, person.department]
+                      .filter(Boolean)
+                      .join(' - ')
+                  : person.department}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-3.5 w-3.5 text-gray-text" />
