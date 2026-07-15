@@ -364,7 +364,7 @@ export default function RoutesPage() {
                     {selectedLocation?.name || ""}
                   </div>
                   <h2 className="text-base md:text-lg font-semibold text-[#111827]">
-                    {(activeRoute?.name || "").toUpperCase()}  STOP &amp; TIME
+                    {(activeRoute?.name || "").toUpperCase()}{" "}STOP &amp; TIME
                   </h2>
                 </div>
               </div>
