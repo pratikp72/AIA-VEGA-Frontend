@@ -115,7 +115,13 @@ const experienceLabel = formatExperience(selectedEmployee.joinDate, selectedEmpl
       <div className="px-4 py-3 space-y-4 text-muted-foreground xl:flex-1 xl:min-h-0 xl:overflow-y-auto">
         <div className="flex items-center gap-2 min-w-0">
           <Briefcase className="h-4 w-4 shrink-0" />
-          <span className="break-words">{selectedEmployee.department}</span>
+            <span className="break-words">
+                  {isVega
+              ? [selectedEmployee.business_vertical, selectedEmployee.department]
+                  .filter(Boolean)
+                  .join(' - ')
+              : selectedEmployee.department}
+          </span>
         </div>
         <div className="flex items-center gap-2 min-w-0">
           <Building2 className="h-4 w-4 shrink-0" />
