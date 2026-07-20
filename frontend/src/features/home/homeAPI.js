@@ -188,6 +188,7 @@ function normalizeCompanyForFilter(company) {
 function normalizeUserForJoinee(user) {
   const name = user.employee_name || user.username || 'Unknown';
   const avatar = getAvatarPropsForEmployee(user);
+  const company = user.company || '';
   return {
     id: user.id,
     documentId: user.documentId,
@@ -197,12 +198,62 @@ function normalizeUserForJoinee(user) {
     position: user.designation || '',
     department: user.department || '',
     joinDate: user.joining_date || null,
+    dateOfBirth: user.date_of_birth || null,
     exitDate: user.exit_date || null,
-    company: user.company || '',
+    company,
+    branch: user.branch || '',
+    workingLocation: user.working_location || '',
+    businessVertical: user.business_vertical || '',
+    location: company === 'AIA' ? (user.branch || '') : (user.working_location || ''),
+    empCode: user.emp_code || '',
+    empId: user.emp_id || '',
+    welcomeNote: user.welcome_note || '',
     avatar: avatar.src,
     avatarInitial: avatar.initials,
   };
 }
+
+function unwrapUserResponse(response) {
+  const data = response?.data ?? response;
+  if (data?.attributes) {
+    return { id: data.id, documentId: data.documentId, ...data.attributes };
+  }
+  return data;
+}
+
+export const fetchNewJoineeById = async (id) => {
+  if (!id) return null;
+
+  if (USE_MOCK_DATA) {
+    await mockDelay(300);
+    const joinee = MOCK_HOME_DATA.newJoinees.find(
+      (j) => String(j.id) === String(id) || String(j.documentId) === String(id)
+    );
+    if (!joinee) return null;
+    return joinee;
+  }
+
+  const response = await api.get(API_ENDPOINTS.USERS.GET(id), {
+    params: {
+      'populate[photograph]': true,
+    },
+  });
+
+  const user = unwrapUserResponse(response);
+  if (!user) return null;
+
+  const joinDate = user.joining_date || null;
+  const isActiveNewJoinee =
+    user.blocked !== true &&
+    user.active !== false &&
+    user.exit_date == null &&
+    joinDate &&
+    isNewJoinee(joinDate, NEW_JOINEE_DAYS);
+
+  if (!isActiveNewJoinee) return null;
+
+  return normalizeUserForJoinee(user);
+};
 
 function toUtcDateStringDaysAgo(daysAgo) {
   const d = new Date();
@@ -541,6 +592,7 @@ export default {
   fetchQuickLinks,
   fetchUpcomingEvents,
   fetchNewJoinees,
+  fetchNewJoineeById,
   fetchMyCourses,
   fetchBirthdaysToday,
   fetchWorkAnniversaries,
