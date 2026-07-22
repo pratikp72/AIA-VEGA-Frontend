@@ -72,7 +72,7 @@ export default function PeopleGrid({ pagedPeople, selectedEmployeeId, handleSele
               <span className="truncate text-gray-text">
                 {person.joinDate
                   ? `Joined ${new Date(person.joinDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  : 'Joined —'}
+                  : '—'}
               </span>
             </div>
           </div>
