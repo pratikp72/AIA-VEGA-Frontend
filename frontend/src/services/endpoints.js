@@ -62,6 +62,11 @@ export const API_ENDPOINTS = {
     GET: (id) => `/news/${id}`,
   },
 
+  // Social Media endpoints (Strapi pluralName: social-medias)
+  SOCIAL_MEDIA: {
+    LIST: '/social-medias',
+  },
+
   // People endpoints
   PEOPLE: {
     LIST: '/people',

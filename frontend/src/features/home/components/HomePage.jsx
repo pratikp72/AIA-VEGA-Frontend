@@ -6,6 +6,8 @@ import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
 import { loadDashboardData, loadMyCourses } from '@/features/home/homeSlice';
 import { loadAllNews } from '@/features/news/newsSlice';
+import { loadSocialMedias } from '@/features/news/socialMediaSlice';
+import { selectSocialMediaList } from '@/features/news/socialMediaSelectors';
 import { getSocket } from '@/services/socket';
 import {
   selectNewsCarousel,
@@ -20,6 +22,7 @@ import {
 } from '@/features/home/homeSelectors';
 
 import NewsCarousel from '@/features/home/components/NewsCarousel';
+import SocialMediaSection from '@/features/home/components/SocialMediaSection';
 import QuickLinks from '@/features/home/components/QuickLinks';
 import UpcomingEvents from '@/features/home/components/UpcomingEvents';
 import NewJoinees from '@/features/home/components/NewJoinees';
@@ -35,6 +38,7 @@ export default function HomePage() {
 
   // Selectors
   const news = useAppSelector(selectNewsCarousel);
+  const socialMedia = useAppSelector(selectSocialMediaList);
   const quickLinks = useAppSelector(selectQuickLinks);
   const events = useAppSelector(selectUpcomingEvents);
   const joinees = useAppSelector(selectNewJoinees);
@@ -61,10 +65,11 @@ export default function HomePage() {
     }
   }, []);
 
-  // Load dashboard data and news (carousel reads from news slice)
+  // Load dashboard data, news (carousel), and social media
   useEffect(() => {
     dispatch(loadDashboardData());
     dispatch(loadAllNews());
+    dispatch(loadSocialMedias({ page: 1, pageSize: 2, append: false }));
   }, [dispatch]);
 
   // Real-time course list refresh on course_assigned notification via socket
@@ -135,6 +140,9 @@ export default function HomePage() {
 
           {/* Quick Links - Full Width */}
           <QuickLinks links={quickLinks} />
+          
+          {/* Social Media - Full Width */}
+          <SocialMediaSection items={socialMedia} />
 
           {/* New Joinees & My Courses - Two Column Equal Width */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-md items-start">
