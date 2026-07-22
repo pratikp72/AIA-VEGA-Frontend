@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import homeReducer from '@/features/home/homeSlice';
 import newsReducer from '@/features/news/newsSlice';
+import socialMediaReducer from '@/features/news/socialMediaSlice';
 import peopleReducer from '@/features/people/peopleSlice';
 import resourcesReducer from '@/features/resources/resourcesSlice';
 import policiesReducer from '@/features/resources/policiesSlice';
@@ -15,7 +16,8 @@ import locationsReducer from '@/features/location/locationSlice';
 export const store = configureStore({
   reducer: {
     home: homeReducer, 
-    news: newsReducer, // ← ADD THIS
+    news: newsReducer,
+    socialMedia: socialMediaReducer,
     people: peopleReducer,
     resources: resourcesReducer,
     policies: policiesReducer,

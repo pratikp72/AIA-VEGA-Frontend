@@ -14,10 +14,10 @@ import {
 import { fetchNewsCategories } from '@/features/news/newsAPI';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import NewsCard from './NewsCard';
+import NewsFilters from './NewsFilters';
 import Loader from '@/components/common/Loader';
 import PageHeader from '@/components/common/PageHeader';
 import PageSection from '@/components/common/PageSection';
-import Select from '@/components/ui/select';
 
 const PAGE_SIZE = 24;
 
@@ -118,18 +118,26 @@ export default function NewsListingPage() {
         title="News"
         breadcrumbs={[{ label: 'News' }]}
         showBreadcrumbSeparator
-        right={
-          <div className="w-50">
-            <Select
-              value={selectedCategory}
-              onChange={handleCategoryChange}
-              options={categoryOptions}
-              placeholder="All Categories"
-              variant="filter"
-            />
-          </div>
-        }
-      />
+        containerClassName="pt-xl pb-0 px-xl bg-transparent"
+      >
+        <p className="text-body text-muted-foreground">Company news and social media updates.</p>
+        <NewsFilters
+          tab="news"
+          onTabChange={(val) => {
+            if (val === 'social-media') router.push('/news/social-media');
+          }}
+          selects={[
+            {
+              value: selectedCategory,
+              onChange: handleCategoryChange,
+              options: categoryOptions,
+              placeholder: 'All Categories',
+              variant: 'filter',
+              singleSelect: true,
+            },
+          ]}
+        />
+      </PageHeader>
 
       <main>
         <PageSection>
