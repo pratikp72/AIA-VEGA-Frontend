@@ -13,7 +13,7 @@ import LayoutShell from "@/components/layout/LayoutShell";
 import PageContainer from "@/components/layout/PageContainer";
 import { useAppDispatch } from "@/store/hooks";
 import { markModuleAsRead, initializeModuleReadState, loadCourseById } from "@/features/courses/coursesSlice";
-import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress, startCourse } from "@/features/courses/coursesAPI";
+import { markModuleProgress, markModuleVideoProgress, fetchUserCourseProgress, fetchAllUserProgress, startCourse } from "@/features/courses/coursesAPI";
 import { getLatestSubmission, checkPendingReattemptRequest, sendReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 import telemetryService from '@/services/telemetry';
@@ -77,6 +77,8 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [showFeedbackSuccess, setShowFeedbackSuccess] = useState(false);
   const [courseProgress, setCourseProgress] = useState({ progressStatus: null, quizScore: null, hasPendingReattempt: false, hasRejectedReattempt: false, hasApprovedReattempt: false, needsFeedbackSubmission: false, needsReattemptRequest: false, latestAttemptNumber: null, maxAttempt: null, progressPercentage: 0 });
+  // due_date from the user's own user-progress record — used to enforce deadline lock on this page
+  const [dueDateForCourse, setDueDateForCourse] = useState(null);
   const [reattemptRequestLoading, setReattemptRequestLoading] = useState(false);
   const [reattemptRequestError, setReattemptRequestError] = useState(null);
   const skipNextProgressUpdate = useRef(false);
@@ -271,7 +273,15 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
     Promise.all([
       fetchUserCourseProgress(userId, courseIdForApi, { fresh: true }),
       checkPendingReattemptRequest(userId, courseIdForApi),
-    ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage, selectedLanguage: savedLang }, reattemptStatus]) => {
+      // Fetch the user's own due_date for this course (stamped at assignment time)
+      fetchAllUserProgress(userId).catch(() => ({})),
+    ]).then(([{ completedModules, progressStatus, feedbackSubmitted, progressPercentage, selectedLanguage: savedLang }, reattemptStatus, allProgress]) => {
+      // Stamp the per-user due_date so we can enforce the deadline lock on this page
+      const numericCourseId = course?.id;
+      if (numericCourseId != null) {
+        const progressEntry = allProgress?.[numericCourseId] ?? allProgress?.[String(numericCourseId)];
+        if (progressEntry?.due_date) setDueDateForCourse(progressEntry.due_date);
+      }
       const hasPending = reattemptStatus?.hasPending ?? false;
       const hasRejected = reattemptStatus?.hasRejected ?? false;
       const hasApprovedFromApi = reattemptStatus?.hasApproved ?? false;
@@ -707,6 +717,23 @@ export default function CoursesDetailPage({ category, course, selectedModule, in
       },
     });
   };
+
+  // Deadline lock: navigate back when due date has passed and course is not completed.
+  // Must be in a useEffect — never call router.back() directly during render.
+  // dueDateForCourse is null until the progress fetch resolves, so this fires only
+  // after we have a confirmed due_date.
+  const isDetailPageLocked = (() => {
+    const status = String(courseProgress?.progressStatus || '').trim().toLowerCase();
+    if (status === 'completed') return false;
+    if (!dueDateForCourse) return false;
+    const dueEnd = new Date(`${dueDateForCourse}T23:59:59`);
+    return Number.isFinite(dueEnd.getTime()) && Date.now() > dueEnd.getTime();
+  })();
+
+  useEffect(() => {
+    if (!isDetailPageLocked) return;
+    router.back();
+  }, [isDetailPageLocked]);
 
   // Feedback success: show "Thank you" screen briefly after feedback submission
   if (showFeedbackSuccess) {

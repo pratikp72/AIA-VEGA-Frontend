@@ -21,9 +21,9 @@ export const loadAllCourses = createAsyncThunk(
   'courses/loadAllCourses',
   async ({ page = 1, pageSize = 9 } = {}, { rejectWithValue }) => {
     try {
-      const result = await fetchAllCourses({ page, pageSize });
-      const courses = result.items || [];
       const userId = getCurrentUserId();
+      const result = await fetchAllCourses({ page, pageSize, userId });
+      const courses = result.items || [];
       let enrichedCourses = courses;
       if (userId) {
         const progressByCourse = await fetchAllUserProgress(userId);
@@ -34,6 +34,8 @@ export const loadAllCourses = createAsyncThunk(
             certificationGenerated: progressByCourse[c.id]?.certificate_issued ?? c.certificationGenerated,
             progressStatus: progressByCourse[c.id]?.progress_status ?? null,
             feedbackSubmitted: progressByCourse[c.id]?.feedback_submitted ?? false,
+            // Use the due_date from the user's own progress record if available
+            deadline: progressByCourse[c.id]?.due_date ?? c.deadline ?? null,
           }))
           .map(withDeadlineLock);
       } else {

@@ -346,6 +346,7 @@ async function fetchCourseDueDateMap() {
         'filters[active][$eq]': 'published',
         'pagination[pageSize]': 1000,
         'pagination[page]': 1,
+        sort: 'createdAt:asc',
       },
     });
     assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
@@ -381,14 +382,31 @@ async function fetchCourseDueDateMap() {
     for (const course of courses) {
       const cid = course?.id;
       if (!cid) continue;
-      // Keep the earliest due_date per course
-      if (!dueDateMap[cid] || new Date(dueDate) < new Date(dueDateMap[cid])) {
-        dueDateMap[cid] = dueDate;
+      // Pick the due_date from the OLDEST assignment that applies to this user.
+      // When a new assignment is created for the same course and the old one is
+      // unpublished, only the new record survives — but if somehow multiple
+      // active assignments exist for the same course/user, we want the one that
+      // was created first (i.e. the user's original assignment date).
+      const assignedAt = assignment.createdAt ?? assignment.created_at ?? null;
+      const existing = dueDateMap[cid];
+      if (!existing) {
+        dueDateMap[cid] = { dueDate, createdAt: assignedAt };
+      } else {
+        const existingDate = existing.createdAt ? new Date(existing.createdAt) : null;
+        const thisDate = assignedAt ? new Date(assignedAt) : null;
+        if (existingDate && thisDate && thisDate < existingDate) {
+          dueDateMap[cid] = { dueDate, createdAt: assignedAt };
+        }
       }
     }
   }
 
-  return dueDateMap;
+  // Flatten: return courseId → dueDate string
+  const result = {};
+  for (const [cid, entry] of Object.entries(dueDateMap)) {
+    result[cid] = entry.dueDate;
+  }
+  return result;
 }
 
 export const fetchMyCourses = async () => {
@@ -431,6 +449,8 @@ export const fetchMyCourses = async () => {
         : [],
       progressStatus: entry.progress_status ?? null,
       progressPercentage: Number(entry.progress_percentage ?? 0) || 0,
+      // due_date stamped at assignment time — this is the user's original due date
+      dueDate: entry.due_date ?? null,
     };
   };
 
@@ -490,6 +510,16 @@ export const fetchMyCourses = async () => {
     }
 
     const assignmentDueDate = dueDateMap[String(courseId)] ?? dueDateMap[courseId];
+    // Prefer the due_date stamped on the user's own progress record (their original assignment date).
+    // Fall back to the assignment-scan result for users who don't have a progress record yet.
+    const resolvedDueDate = progressEntry?.dueDate ?? assignmentDueDate ?? null;
+
+    // Deadline lock: past due AND not yet completed — mirrors the same logic in coursesSlice.js
+    const isCompleted = progressEntry?.progressStatus?.toLowerCase() === 'completed';
+    const isPastDue = resolvedDueDate
+      ? Date.now() > new Date(`${resolvedDueDate}T23:59:59`).getTime()
+      : false;
+    const isDeadlineLocked = !isCompleted && isPastDue;
 
     return {
       id: c.id,
@@ -501,7 +531,8 @@ export const fetchMyCourses = async () => {
       completedLessons,
       totalLessons,
       progressStatus: progressEntry?.progressStatus ?? null,
-      deadline: assignmentDueDate || c.deadline || null,
+      deadline: resolvedDueDate || c.deadline || null,
+      isDeadlineLocked,
     };
   });
 };

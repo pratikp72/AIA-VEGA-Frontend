@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 
 export default function MyCourses({ courses = [] }) {
+  const handleCourseClick = (e, course) => {
+    // Block navigation if due date has passed and course is not completed
+    if (course?.isDeadlineLocked) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   return (
     <section className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
@@ -31,6 +39,7 @@ export default function MyCourses({ courses = [] }) {
               key={course.id}
               href={`/courses/${(course.category || 'courses').toLowerCase().replace(/\s+/g, '-')}/${course.documentId || course.id}`}
               className="w-full"
+              onClick={(e) => handleCourseClick(e, course)}
             >
               <Card className="w-full min-w-0 p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 bg-white rounded-[20px] h-[140px] flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
                 <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">

@@ -160,6 +160,7 @@ async function fetchCourseDueDateMap() {
         'filters[active][$eq]': 'published',
         'pagination[pageSize]': 1000,
         'pagination[page]': 1,
+        sort: 'createdAt:asc',
       },
     });
     assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
@@ -194,13 +195,32 @@ async function fetchCourseDueDateMap() {
     for (const course of courses) {
       const cid = course?.id;
       if (!cid) continue;
-      if (!dueDateMap[cid] || new Date(dueDate) < new Date(dueDateMap[cid])) {
-        dueDateMap[cid] = dueDate;
+      // Pick the due_date from the OLDEST assignment that applies to this user.
+      // When a new assignment is created for the same course and the old one is
+      // unpublished, only the new record survives — but if somehow multiple
+      // active assignments exist for the same course/user, we want the one that
+      // was created first (i.e. the user's original assignment date).
+      const assignedAt = assignment.createdAt ?? assignment.created_at ?? null;
+      const existing = dueDateMap[cid];
+      if (!existing) {
+        dueDateMap[cid] = { dueDate, createdAt: assignedAt };
+      } else {
+        // Prefer the record created earliest — that is the user's original assignment
+        const existingDate = existing.createdAt ? new Date(existing.createdAt) : null;
+        const thisDate = assignedAt ? new Date(assignedAt) : null;
+        if (existingDate && thisDate && thisDate < existingDate) {
+          dueDateMap[cid] = { dueDate, createdAt: assignedAt };
+        }
       }
     }
   }
 
-  return dueDateMap;
+  // Flatten: return courseId → dueDate string
+  const result = {};
+  for (const [cid, entry] of Object.entries(dueDateMap)) {
+    result[cid] = entry.dueDate;
+  }
+  return result;
 }
 
 function toArray(value) {
@@ -335,7 +355,7 @@ const COURSES_LIST_PARAMS = {
   sort: 'createdAt:desc',
 };
 
-export const fetchAllCourses = async ({ page = 1, pageSize = 9 } = {}) => {
+export const fetchAllCourses = async ({ page = 1, pageSize = 9, userId = null } = {}) => {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
     const items = MOCK_COURSE_CATEGORIES;
@@ -354,15 +374,38 @@ export const fetchAllCourses = async ({ page = 1, pageSize = 9 } = {}) => {
     },
   });
   const data = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
-  const dueDateMap = await fetchCourseDueDateMap();
+
+  // Fetch both the assignment-level due dates (fallback for users without a progress record)
+  // and the user-progress records (the authoritative per-user original assignment date).
+  const [dueDateMap, progressData] = await Promise.all([
+    fetchCourseDueDateMap(),
+    userId
+      ? api.get('/user-progress/all', { params: { userId } }).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  // Build courseId → due_date from the user's own progress records (most authoritative source)
+  const progressDueDateMap = {};
+  const rawProgress = progressData?.data ?? progressData ?? null;
+  if (rawProgress && typeof rawProgress === 'object' && !Array.isArray(rawProgress)) {
+    Object.entries(rawProgress).forEach(([courseId, entry]) => {
+      if (entry?.due_date) progressDueDateMap[courseId] = entry.due_date;
+    });
+  }
+
   const items = data
     .filter(c => c.active !== 'unpublished')
     .map((course) => {
       const normalizedCourse = normalizeCourse(course);
-      const assignedDueDate = dueDateMap[course?.id] || null;
+      const cid = String(course?.id ?? '');
+      // Priority: user's own progress due_date > assignment-scan due_date > course default
+      const resolvedDueDate =
+        progressDueDateMap[cid] ||
+        dueDateMap[course?.id] ||
+        null;
       return {
         ...normalizedCourse,
-        deadline: assignedDueDate || normalizedCourse.deadline || null,
+        deadline: resolvedDueDate || normalizedCourse.deadline || null,
       };
     });
   const meta = response?.meta?.pagination || {};
