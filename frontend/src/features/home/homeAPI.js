@@ -4,6 +4,11 @@ import { USE_MOCK_DATA, mockDelay, MOCK_HOME_DATA } from '@/services/mockData';
 import { getAvatarPropsForEmployee } from '@/lib/avatar';
 import { fetchAllAnalyticsEmployees } from '@/services/analyticsEmployeesPagination';
 import { NEW_JOINEE_DAYS, isNewJoinee } from '@/lib/newJoinee';
+import {
+  fetchUserCourseProgress,
+  computeDashboardCourseProgress,
+  toProgressEntryFromCourseProgress,
+} from '@/features/courses/coursesAPI';
 
 export const fetchDashboardData = async () => {
   const rest = USE_MOCK_DATA
@@ -315,100 +320,6 @@ function getCurrentUserId() {
   }
 }
 
-function getCurrentUserInfo() {
-  if (typeof window === 'undefined') return {};
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}');
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Fetch all active course-assignments and build a map of courseId → earliest due_date.
- * Filters only assignments that apply to the current user (by company, department,
- * work_location, or individual user id).
- */
-async function fetchCourseDueDateMap() {
-  const user = getCurrentUserInfo();
-  const userId = user?.id ?? null;
-  const userDept = String(user?.department ?? '').trim().toLowerCase();
-  const userWorkLocation = String(user?.work_location ?? user?.work_location_id ?? '').trim().toLowerCase();
-
-  let assignments = [];
-  try {
-    const res = await api.get('/course-assignments', {
-      params: {
-        'populate[courses]': true,
-        'populate[departments]': true,
-        'populate[individual_user]': true,
-        'populate[work_locations]': true,
-        'filters[active][$eq]': 'published',
-        'pagination[pageSize]': 1000,
-        'pagination[page]': 1,
-        sort: 'createdAt:asc',
-      },
-    });
-    assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-  } catch {
-    return {};
-  }
-
-  const dueDateMap = {};
-
-  for (const assignment of assignments) {
-    const dueDate = assignment.due_date;
-    if (!dueDate) continue;
-
-    const targetType = assignment.assignment_target_type;
-    let applicable = false;
-
-    if (targetType === 'Department') {
-      const names = (Array.isArray(assignment.departments) ? assignment.departments : [])
-        .map(d => String(d?.name ?? d?.title ?? '').trim().toLowerCase());
-      applicable = userDept && names.some(n => n === userDept || n.includes(userDept) || userDept.includes(n));
-    } else if (targetType === 'Individual') {
-      const users = Array.isArray(assignment.individual_user) ? assignment.individual_user : [];
-      applicable = userId != null && users.some(u => String(u?.id) === String(userId) || String(u?.documentId) === String(userId));
-    } else if (targetType === 'Location') {
-      const names = (Array.isArray(assignment.work_locations) ? assignment.work_locations : [])
-        .map(l => String(l?.name ?? l?.title ?? l?.id ?? '').trim().toLowerCase());
-      applicable = userWorkLocation && names.some(n => n === userWorkLocation || n.includes(userWorkLocation) || userWorkLocation.includes(n));
-    }
-
-    if (!applicable) continue;
-
-    const courses = Array.isArray(assignment.courses) ? assignment.courses : [];
-    for (const course of courses) {
-      const cid = course?.id;
-      if (!cid) continue;
-      // Pick the due_date from the OLDEST assignment that applies to this user.
-      // When a new assignment is created for the same course and the old one is
-      // unpublished, only the new record survives — but if somehow multiple
-      // active assignments exist for the same course/user, we want the one that
-      // was created first (i.e. the user's original assignment date).
-      const assignedAt = assignment.createdAt ?? assignment.created_at ?? null;
-      const existing = dueDateMap[cid];
-      if (!existing) {
-        dueDateMap[cid] = { dueDate, createdAt: assignedAt };
-      } else {
-        const existingDate = existing.createdAt ? new Date(existing.createdAt) : null;
-        const thisDate = assignedAt ? new Date(assignedAt) : null;
-        if (existingDate && thisDate && thisDate < existingDate) {
-          dueDateMap[cid] = { dueDate, createdAt: assignedAt };
-        }
-      }
-    }
-  }
-
-  // Flatten: return courseId → dueDate string
-  const result = {};
-  for (const [cid, entry] of Object.entries(dueDateMap)) {
-    result[cid] = entry.dueDate;
-  }
-  return result;
-}
-
 export const fetchMyCourses = async () => {
   if (USE_MOCK_DATA) {
     await mockDelay(500);
@@ -416,106 +327,48 @@ export const fetchMyCourses = async () => {
   }
   const userId = getCurrentUserId();
 
-  // Three parallel calls: courses list + all user progress + assignment due dates
-  const [response, allProgressRes, dueDateRes] = await Promise.allSettled([
-    api.get(API_ENDPOINTS.COURSES.LIST, {
-      params: {
-        'populate[thumbnail]': true,
-        'populate[modules]': true,
-        sort: 'createdAt:desc',
-      },
-    }),
-    userId
-      ? api.get('/user-progress/all', { params: { userId } })
-      : Promise.resolve(null),
-    fetchCourseDueDateMap(),
-  ]);
+  const response = await api.get(API_ENDPOINTS.COURSES.LIST, {
+    params: {
+      'populate[thumbnail]': true,
+      'populate[modules]': true,
+      sort: 'createdAt:desc',
+    },
+  });
 
-  const raw = response.status === 'fulfilled'
-    ? (Array.isArray(response.value?.data) ? response.value.data : (Array.isArray(response.value) ? response.value : []))
-    : [];
+  const raw = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
   const courses = raw.filter(c => c.active !== 'unpublished').slice(0, 4);
 
-  // Build a map of courseId -> progress payload from the batch progress response.
-  // Supports both shapes returned by backend:
-  // 1) array of entries [{ course, completed_modules, progress_status, progress_percentage }]
-  // 2) object map { [courseId]: { ...progressFields } }
-  const progressMap = {};
-  const setProgressEntry = (courseId, entry) => {
-    if (courseId == null || !entry || typeof entry !== 'object') return;
-    progressMap[String(courseId)] = {
-      completedModules: Array.isArray(entry.completed_modules)
-        ? entry.completed_modules.map(String)
-        : [],
-      progressStatus: entry.progress_status ?? null,
-      progressPercentage: Number(entry.progress_percentage ?? 0) || 0,
-      // due_date stamped at assignment time — this is the user's original due date
-      dueDate: entry.due_date ?? null,
-    };
-  };
+  const courseProgressList = userId
+    ? await Promise.all(
+      courses.map(async (course) => {
+        const courseId = course.id ?? course.documentId;
+        if (!courseId) return null;
+        try {
+          return await fetchUserCourseProgress(userId, courseId);
+        } catch {
+          return null;
+        }
+      })
+    )
+    : courses.map(() => null);
 
-  if (allProgressRes.status === 'fulfilled' && allProgressRes.value) {
-    const progressData = allProgressRes.value?.data ?? allProgressRes.value;
-    if (Array.isArray(progressData)) {
-      for (const entry of progressData) {
-        const cId = entry?.course?.id ?? entry?.courseId ?? entry?.course_id;
-        setProgressEntry(cId, entry);
-      }
-    } else if (progressData && typeof progressData === 'object') {
-      Object.entries(progressData).forEach(([key, entry]) => {
-        const cId = entry?.course?.id ?? entry?.courseId ?? entry?.course_id ?? key;
-        setProgressEntry(cId, entry);
-      });
-    }
-  }
-
-  const dueDateMap =
-    dueDateRes.status === 'fulfilled' && dueDateRes.value && typeof dueDateRes.value === 'object'
-      ? dueDateRes.value
-      : {};
-
-  return courses.map((c) => {
+  return courses.map((c, index) => {
     const courseModules = Array.isArray(c.modules)
       ? c.modules
       : Array.isArray(c.modulesList)
         ? c.modulesList
         : [];
-    const totalLessons = courseModules.length;
-    const courseId = c.id ?? c.documentId;
-    const progressEntry = progressMap[String(courseId)] || null;
-    const completedModules = progressEntry?.completedModules || [];
-    const completedLessonsById = courseModules.filter((m) =>
-      completedModules.includes(String(m.id)) ||
-      (m.module_id && completedModules.includes(String(m.module_id))) ||
-      (m.moduleId && completedModules.includes(String(m.moduleId)))
-    ).length;
-
-    const statusNorm = String(progressEntry?.progressStatus || '').trim().toLowerCase();
-    const progressFromApi = Math.min(100, Math.max(0, Math.round(Number(progressEntry?.progressPercentage || 0))));
-
-    let progress = 0;
-    let completedLessons = completedLessonsById;
-
-    if (statusNorm === 'completed') {
-      progress = 100;
-      completedLessons = totalLessons;
-    } else if (progressFromApi > 0) {
-      progress = progressFromApi;
-      completedLessons = totalLessons > 0
-        ? Math.min(totalLessons, Math.round((progressFromApi / 100) * totalLessons))
-        : completedLessonsById;
-    } else {
-      progress = totalLessons > 0 ? Math.min(100, Math.round((completedLessonsById / totalLessons) * 100)) : 0;
-      completedLessons = completedLessonsById;
-    }
-
-    const assignmentDueDate = dueDateMap[String(courseId)] ?? dueDateMap[courseId];
-    // Prefer the due_date stamped on the user's own progress record (their original assignment date).
-    // Fall back to the assignment-scan result for users who don't have a progress record yet.
-    const resolvedDueDate = progressEntry?.dueDate ?? assignmentDueDate ?? null;
+    const progressEntry = toProgressEntryFromCourseProgress(courseProgressList[index]);
+    const {
+      progress,
+      completedLessons,
+      totalLessons,
+      progressStatus,
+      dueDate: resolvedDueDate,
+    } = computeDashboardCourseProgress(progressEntry, courseModules);
 
     // Deadline lock: past due AND not yet completed — mirrors the same logic in coursesSlice.js
-    const isCompleted = progressEntry?.progressStatus?.toLowerCase() === 'completed';
+    const isCompleted = String(progressStatus || '').trim().toLowerCase() === 'completed';
     const isPastDue = resolvedDueDate
       ? Date.now() > new Date(`${resolvedDueDate}T23:59:59`).getTime()
       : false;
@@ -530,8 +383,8 @@ export const fetchMyCourses = async () => {
       progress,
       completedLessons,
       totalLessons,
-      progressStatus: progressEntry?.progressStatus ?? null,
-      deadline: resolvedDueDate || c.deadline || null,
+      progressStatus,
+      deadline: resolvedDueDate,
       isDeadlineLocked,
     };
   });

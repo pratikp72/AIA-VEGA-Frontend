@@ -1,16 +1,82 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function MyCourses({ courses = [] }) {
-  const handleCourseClick = (e, course) => {
-    // Block navigation if due date has passed and course is not completed
-    if (course?.isDeadlineLocked) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
+  const [deadlineModalOpen, setDeadlineModalOpen] = useState(false);
+
+  const handleLockedCourseActivate = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDeadlineModalOpen(true);
   };
+
+  const renderCourseCard = (course) => (
+    <Card className={`w-full min-w-0 p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 bg-white rounded-[20px] h-[140px] flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch ${course.isDeadlineLocked ? 'opacity-70' : ''}`}>
+      <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">
+        {/* Course Thumbnail */}
+        <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
+          <img
+            src={course.thumbnail}
+            alt={course.title}
+            className="w-full h-full block object-cover object-center"
+          />
+        </div>
+
+        {/* Course Info */}
+        <div className="flex-1 min-w-0 flex flex-col justify-start overflow-visible pt-0.5">
+          <h3 className="text-h3 font-semibold text-gray-900 truncate leading-normal">
+            {course.title}
+          </h3>
+          <p className="text-small text-muted-foreground mb-2">
+            {Math.min(course.completedLessons, course.totalLessons)} of {course.totalLessons} modules
+          </p>
+
+          {/* Progress bar */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-primary h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, Math.max(0, course.progress))}%` }}
+                />
+              </div>
+            </div>
+            <span className="text-small font-semibold text-gray-900 shrink-0">
+              {Math.min(100, course.progress)}%
+            </span>
+          </div>
+
+          {course.isDeadlineLocked ? (
+            <p className="text-small text-gray-500 mt-1.5">
+              Course Disabled
+              {course.deadline ? (
+                <>
+                  {' · '}
+                  Due {new Date(course.deadline).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </>
+              ) : null}
+            </p>
+          ) : course.deadline ? (
+            <p className="text-small text-muted-foreground mt-1.5">
+              Due {new Date(course.deadline).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
 
   return (
     <section className="h-full flex flex-col">
@@ -34,62 +100,50 @@ export default function MyCourses({ courses = [] }) {
         </div>
       ) : (
         <div className="flex flex-col items-start gap-6 h-[677px] flex-1 w-full">
-          {courses.slice(0, 4).map((course) => (
-            <Link
-              key={course.id}
-              href={`/courses/${(course.category || 'courses').toLowerCase().replace(/\s+/g, '-')}/${course.documentId || course.id}`}
-              className="w-full"
-              onClick={(e) => handleCourseClick(e, course)}
-            >
-              <Card className="w-full min-w-0 p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 bg-white rounded-[20px] h-[140px] flex flex-col min-h-0 overflow-visible justify-center items-start gap-4 self-stretch">
-                <div className="flex items-center gap-4 flex-1 min-h-0 min-w-0 w-full">
-                  {/* Course Thumbnail */}
-                  <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
-                    <img
-                      src={course.thumbnail}
-                      alt={course.title}
-                      className="w-full h-full block object-cover object-center"
-                    />
-                  </div>
-
-                  {/* Course Info */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-start overflow-visible pt-0.5">
-                    <h3 className="text-h3 font-semibold text-gray-900 truncate leading-normal">
-                      {course.title}
-                    </h3>
-                    <p className="text-small text-muted-foreground mb-2">
-                      {Math.min(course.completedLessons, course.totalLessons)} of {course.totalLessons} modules
-                    </p>
-
-                    {/* Progress bar */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-primary h-2 rounded-full transition-all"
-                            style={{ width: `${Math.min(100, Math.max(0, course.progress))}%` }}
-                          />
-                        </div>
-                      </div>
-                      <span className="text-small font-semibold text-gray-900 shrink-0">
-                        {Math.min(100, course.progress)}%
-                      </span>
-                    </div>
-
-                    {course.deadline ? (
-                      <p className="text-small text-muted-foreground mt-1.5">
-                        Due {new Date(course.deadline).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </p>
-                    ) : null}
-                  </div>
+          {courses.slice(0, 4).map((course) => {
+            if (course.isDeadlineLocked) {
+              return (
+                <div
+                  key={course.id}
+                  className="w-full"
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleLockedCourseActivate}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handleLockedCourseActivate(e);
+                  }}
+                >
+                  {renderCourseCard(course)}
                 </div>
-              </Card>
-            </Link>
-          ))}
+              );
+            }
+
+            return (
+              <Link
+                key={course.id}
+                href={`/courses/${(course.category || 'courses').toLowerCase().replace(/\s+/g, '-')}/${course.documentId || course.id}`}
+                className="w-full"
+              >
+                {renderCourseCard(course)}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {deadlineModalOpen && (
+        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/45 px-4">
+          <div className="w-[min(92vw,520px)] rounded-2xl bg-white border border-gray-200 shadow-2xl p-6">
+            <h3 className="text-xl font-semibold text-gray-900 leading-7 break-words">Course Disabled</h3>
+            <p className="mt-3 text-sm text-gray-600 leading-6 whitespace-normal break-words">
+              This course is disabled because the due date has passed. Please contact admin to update the due date.
+            </p>
+            <div className="mt-5 flex justify-end">
+              <Button onClick={() => setDeadlineModalOpen(false)} className="bg-primary text-white">
+                OK
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </section>

@@ -1,5 +1,10 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchAllCourses, fetchCourseById, fetchAllUserProgress } from './coursesAPI';
+import {
+  fetchAllCourses,
+  fetchCourseById,
+  fetchAllUserProgress,
+  lookupProgressByCourse,
+} from './coursesAPI';
 import { getCurrentUserId } from '@/lib/auth';
 
 const isPastDeadline = (deadline) => {
@@ -22,24 +27,26 @@ export const loadAllCourses = createAsyncThunk(
   async ({ page = 1, pageSize = 9 } = {}, { rejectWithValue }) => {
     try {
       const userId = getCurrentUserId();
-      const result = await fetchAllCourses({ page, pageSize, userId });
+      const result = await fetchAllCourses({ page, pageSize });
       const courses = result.items || [];
       let enrichedCourses = courses;
       if (userId) {
         const progressByCourse = await fetchAllUserProgress(userId);
         enrichedCourses = courses
-          .map((c) => ({
-            ...c,
-            completed: progressByCourse[c.id]?.completed ?? c.completed,
-            certificationGenerated: progressByCourse[c.id]?.certificate_issued ?? c.certificationGenerated,
-            progressStatus: progressByCourse[c.id]?.progress_status ?? null,
-            feedbackSubmitted: progressByCourse[c.id]?.feedback_submitted ?? false,
-            // Use the due_date from the user's own progress record if available
-            deadline: progressByCourse[c.id]?.due_date ?? c.deadline ?? null,
-          }))
+          .map((c) => {
+            const progress = lookupProgressByCourse(progressByCourse, c);
+            return {
+              ...c,
+              completed: progress?.completed ?? c.completed,
+              certificationGenerated: progress?.certificate_issued ?? c.certificationGenerated,
+              progressStatus: progress?.progress_status ?? null,
+              feedbackSubmitted: progress?.feedback_submitted ?? false,
+              deadline: progress?.due_date ?? progress?.dueDate ?? null,
+            };
+          })
           .map(withDeadlineLock);
       } else {
-        enrichedCourses = courses.map(withDeadlineLock);
+        enrichedCourses = courses.map((c) => withDeadlineLock({ ...c, deadline: null }));
       }
       return {
         items: enrichedCourses,

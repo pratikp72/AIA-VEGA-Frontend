@@ -113,9 +113,25 @@ export default function CoursesCategoryPage({ category }) {
     backgroundRepeat: 'no-repeat',
   };
 
+  const openDeadlineLockModal = () => {
+    setStartBlockModal({
+      open: true,
+      title: 'Course Disabled',
+      message: 'This course is disabled because the due date has passed. Please contact admin to update the due date.',
+      kind: 'deadline',
+      prerequisite: null,
+      managerName: '',
+    });
+  };
+
   const handleFeedbackClick = async (event, course) => {
     event.preventDefault();
     event.stopPropagation();
+
+    if (course?.isDeadlineLocked) {
+      openDeadlineLockModal();
+      return;
+    }
 
     const userId = getCurrentUserId();
     if (!userId) {
@@ -394,14 +410,7 @@ export default function CoursesCategoryPage({ category }) {
     event.stopPropagation();
 
     if (course?.isDeadlineLocked) {
-      setStartBlockModal({
-        open: true,
-        title: 'Course Disabled',
-        message: 'This course is disabled because the due date has passed. Please contact admin to update the due date.',
-        kind: 'deadline',
-        prerequisite: null,
-        managerName: '',
-      });
+      openDeadlineLockModal();
       return;
     }
 
@@ -671,6 +680,15 @@ export default function CoursesCategoryPage({ category }) {
                       >
                         {course.title}
                       </div>
+                      {isLockedByDeadline && course.deadline ? (
+                        <p className="text-small text-gray-500">
+                          Due {new Date(course.deadline).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </p>
+                      ) : null}
                       <div className={COURSE_CARD_ACTION_CLASS}>
                         {isInProgress && (
                           <Button
@@ -705,6 +723,25 @@ export default function CoursesCategoryPage({ category }) {
                     </div>
                   </SurfaceCard>
                 );
+
+                if (isLockedByDeadline) {
+                  return (
+                    <div
+                      key={course.id}
+                      role="button"
+                      tabIndex={0}
+                      style={{ textDecoration: 'none' }}
+                      onClick={(event) => handleStartCourse(event, course, courseUrl)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          handleStartCourse(event, course, courseUrl);
+                        }
+                      }}
+                    >
+                      {cardContent}
+                    </div>
+                  );
+                }
 
                 return (
                   <Link

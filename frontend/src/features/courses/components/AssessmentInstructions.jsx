@@ -21,6 +21,9 @@ import AssessmentQuiz from "./AssessmentQuiz";
 import { getLatestSubmission, checkPendingReattemptRequest } from "../quizSubmissionAPI";
 import { getCurrentUserId } from "@/lib/auth";
 import telemetryService from '@/services/telemetry';
+import { fetchUserCourseProgress } from '@/features/courses/coursesAPI';
+import Loader from '@/components/common/Loader';
+import { Button } from '@/components/ui/button';
 
 const ICON_MAP = {
   Timer,
@@ -47,6 +50,7 @@ export default function AssessmentInstructions(props) {
   const [canRequestAgainAt, setCanRequestAgainAt] = useState(null);
   const [blockCheckLoading, setBlockCheckLoading] = useState(true);
   const [startingAssessment, setStartingAssessment] = useState(false);
+  const [deadlineGate, setDeadlineGate] = useState('checking');
 
 const { subtitle, notice, instructionCards: mockInstructionCards, checklist: mockChecklist, buttonText } =
   MOCK_ASSESSMENT_DATA;
@@ -143,6 +147,30 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
     return () => { cancelled = true; };
   }, [props.userId, props.courseNumericId]);
 
+  useEffect(() => {
+    const userId = props.userId ?? getCurrentUserId();
+    const courseNumericId = props.courseNumericId;
+    if (!courseNumericId || !userId) {
+      setDeadlineGate('open');
+      return;
+    }
+    let cancelled = false;
+    fetchUserCourseProgress(userId, courseNumericId, { fresh: true })
+      .then((progress) => {
+        if (cancelled) return;
+        setDeadlineGate(() => {
+          const status = String(progress.progressStatus || '').trim().toLowerCase();
+          const dueEnd = progress.dueDate ? new Date(`${progress.dueDate}T23:59:59`) : null;
+          const isPastDue = Number.isFinite(dueEnd?.getTime()) && Date.now() > dueEnd.getTime();
+          return status !== 'completed' && isPastDue ? 'locked' : 'open';
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setDeadlineGate('open');
+      });
+    return () => { cancelled = true; };
+  }, [props.userId, props.courseNumericId]);
+
   // Prepare quiz questions and result data for AssessmentQuiz
   // Support both quiz_questions (from API) and questions (legacy/mock)
   let quizQuestions = undefined;
@@ -166,6 +194,34 @@ const { subtitle, notice, instructionCards: mockInstructionCards, checklist: moc
   const feedbackQuestions = feedbackForLang?.feedback_question || [];
   // compulsory is a yes-no-toggle custom field: true = mandatory, false/null = optional
   const feedbackCompulsory = feedbackForLang?.compulsory === true;
+
+  if (deadlineGate === 'checking') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader size="lg" />
+      </div>
+    );
+  }
+
+  if (deadlineGate === 'locked') {
+    return (
+      <div className="min-h-screen bg-[#fafafa]">
+        <div className="fixed inset-0 z-[120] grid place-items-center bg-black/45 px-4">
+          <div className="w-[min(92vw,520px)] rounded-2xl bg-white border border-gray-200 shadow-2xl p-6">
+            <h3 className="text-xl font-semibold text-gray-900 leading-7 break-words">Course Disabled</h3>
+            <p className="mt-3 text-sm text-gray-600 leading-6 whitespace-normal break-words">
+              This course is disabled because the due date has passed. Please contact admin to update the due date.
+            </p>
+            <div className="mt-5 flex justify-end">
+              <Button onClick={() => router.replace(`/courses/${category || ''}`)} className="bg-primary text-white">
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (quizStarted) {
     return (

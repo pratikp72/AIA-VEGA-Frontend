@@ -134,95 +134,6 @@ function normalizeCourse(course) {
   };
 }
 
-function getCurrentUserInfo() {
-  if (typeof window === 'undefined') return {};
-  try {
-    return JSON.parse(localStorage.getItem('user') || '{}');
-  } catch {
-    return {};
-  }
-}
-
-async function fetchCourseDueDateMap() {
-  const user = getCurrentUserInfo();
-  const userId = user?.id ?? null;
-  const userDept = String(user?.department ?? '').trim().toLowerCase();
-  const userWorkLocation = String(user?.work_location ?? user?.work_location_id ?? '').trim().toLowerCase();
-
-  let assignments = [];
-  try {
-    const res = await api.get('/course-assignments', {
-      params: {
-        'populate[courses]': true,
-        'populate[departments]': true,
-        'populate[individual_user]': true,
-        'populate[work_locations]': true,
-        'filters[active][$eq]': 'published',
-        'pagination[pageSize]': 1000,
-        'pagination[page]': 1,
-        sort: 'createdAt:asc',
-      },
-    });
-    assignments = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
-  } catch {
-    return {};
-  }
-
-  const dueDateMap = {};
-  for (const assignment of assignments) {
-    const dueDate = assignment.due_date;
-    if (!dueDate) continue;
-
-    const targetType = assignment.assignment_target_type;
-    let applicable = false;
-
-    if (targetType === 'Department') {
-      const names = (Array.isArray(assignment.departments) ? assignment.departments : [])
-        .map(d => String(d?.name ?? d?.title ?? '').trim().toLowerCase());
-      applicable = userDept && names.some(n => n === userDept || n.includes(userDept) || userDept.includes(n));
-    } else if (targetType === 'Individual') {
-      const users = Array.isArray(assignment.individual_user) ? assignment.individual_user : [];
-      applicable = userId != null && users.some(u => String(u?.id) === String(userId) || String(u?.documentId) === String(userId));
-    } else if (targetType === 'Location') {
-      const names = (Array.isArray(assignment.work_locations) ? assignment.work_locations : [])
-        .map(l => String(l?.name ?? l?.title ?? l?.id ?? '').trim().toLowerCase());
-      applicable = userWorkLocation && names.some(n => n === userWorkLocation || n.includes(userWorkLocation) || userWorkLocation.includes(n));
-    }
-
-    if (!applicable) continue;
-
-    const courses = Array.isArray(assignment.courses) ? assignment.courses : [];
-    for (const course of courses) {
-      const cid = course?.id;
-      if (!cid) continue;
-      // Pick the due_date from the OLDEST assignment that applies to this user.
-      // When a new assignment is created for the same course and the old one is
-      // unpublished, only the new record survives — but if somehow multiple
-      // active assignments exist for the same course/user, we want the one that
-      // was created first (i.e. the user's original assignment date).
-      const assignedAt = assignment.createdAt ?? assignment.created_at ?? null;
-      const existing = dueDateMap[cid];
-      if (!existing) {
-        dueDateMap[cid] = { dueDate, createdAt: assignedAt };
-      } else {
-        // Prefer the record created earliest — that is the user's original assignment
-        const existingDate = existing.createdAt ? new Date(existing.createdAt) : null;
-        const thisDate = assignedAt ? new Date(assignedAt) : null;
-        if (existingDate && thisDate && thisDate < existingDate) {
-          dueDateMap[cid] = { dueDate, createdAt: assignedAt };
-        }
-      }
-    }
-  }
-
-  // Flatten: return courseId → dueDate string
-  const result = {};
-  for (const [cid, entry] of Object.entries(dueDateMap)) {
-    result[cid] = entry.dueDate;
-  }
-  return result;
-}
-
 function toArray(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -355,7 +266,7 @@ const COURSES_LIST_PARAMS = {
   sort: 'createdAt:desc',
 };
 
-export const fetchAllCourses = async ({ page = 1, pageSize = 9, userId = null } = {}) => {
+export const fetchAllCourses = async ({ page = 1, pageSize = 9 } = {}) => {
   if (USE_MOCK_DATA) {
     await mockDelay(300);
     const items = MOCK_COURSE_CATEGORIES;
@@ -375,39 +286,9 @@ export const fetchAllCourses = async ({ page = 1, pageSize = 9, userId = null } 
   });
   const data = Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []);
 
-  // Fetch both the assignment-level due dates (fallback for users without a progress record)
-  // and the user-progress records (the authoritative per-user original assignment date).
-  const [dueDateMap, progressData] = await Promise.all([
-    fetchCourseDueDateMap(),
-    userId
-      ? api.get('/user-progress/all', { params: { userId } }).catch(() => null)
-      : Promise.resolve(null),
-  ]);
-
-  // Build courseId → due_date from the user's own progress records (most authoritative source)
-  const progressDueDateMap = {};
-  const rawProgress = progressData?.data ?? progressData ?? null;
-  if (rawProgress && typeof rawProgress === 'object' && !Array.isArray(rawProgress)) {
-    Object.entries(rawProgress).forEach(([courseId, entry]) => {
-      if (entry?.due_date) progressDueDateMap[courseId] = entry.due_date;
-    });
-  }
-
   const items = data
     .filter(c => c.active !== 'unpublished')
-    .map((course) => {
-      const normalizedCourse = normalizeCourse(course);
-      const cid = String(course?.id ?? '');
-      // Priority: user's own progress due_date > assignment-scan due_date > course default
-      const resolvedDueDate =
-        progressDueDateMap[cid] ||
-        dueDateMap[course?.id] ||
-        null;
-      return {
-        ...normalizedCourse,
-        deadline: resolvedDueDate || normalizedCourse.deadline || null,
-      };
-    });
+    .map((course) => normalizeCourse(course));
   const meta = response?.meta?.pagination || {};
   return {
     items,
@@ -566,31 +447,195 @@ export const markModuleVideoProgress = async ({
 // Returns completed module IDs and progress status for this user+course.
 // Falls back to empty on any error so the UI stays functional.
 // Pass { fresh: true } to bypass GET deduplication cache (use after mutations like mark-as-read).
+const EMPTY_COURSE_PROGRESS = {
+  completedModules: [],
+  progressStatus: null,
+  feedbackSubmitted: false,
+  progressPercentage: 0,
+  selectedLanguage: null,
+  dueDate: null,
+};
+
+function unwrapProgressRecord(entry) {
+  if (!entry || typeof entry !== 'object') return entry;
+  const attrs = entry.attributes && typeof entry.attributes === 'object' ? entry.attributes : {};
+  const inner = entry.data && typeof entry.data === 'object' && !Array.isArray(entry.data) ? entry.data : {};
+  const innerAttrs = inner.attributes && typeof inner.attributes === 'object' ? inner.attributes : {};
+  return {
+    ...inner,
+    ...innerAttrs,
+    ...entry,
+    ...attrs,
+    id: entry.id ?? inner.id ?? attrs.id ?? innerAttrs.id,
+    documentId: entry.documentId ?? attrs.documentId ?? inner.documentId ?? innerAttrs.documentId,
+  };
+}
+
+function resolveProgressCourseRef(record, fallbackKey) {
+  const courseRef = record?.course;
+  if (typeof courseRef === 'number' || typeof courseRef === 'string') {
+    return { courseId: courseRef, documentId: null };
+  }
+  if (courseRef && typeof courseRef === 'object') {
+    return {
+      courseId: courseRef.id ?? record?.courseId ?? record?.course_id ?? fallbackKey ?? null,
+      documentId: courseRef.documentId ?? null,
+    };
+  }
+  return {
+    courseId: record?.courseId ?? record?.course_id ?? fallbackKey ?? null,
+    documentId: null,
+  };
+}
+
+function normalizeProgressRecord(entry) {
+  const unwrapped = unwrapProgressRecord(entry);
+  const completedRaw = unwrapped?.completed_modules ?? unwrapped?.completedModules;
+  const dueDate = unwrapped?.due_date ?? unwrapped?.dueDate ?? null;
+  return {
+    ...unwrapped,
+    completed_modules: Array.isArray(completedRaw) ? completedRaw.map(String) : [],
+    progress_status: unwrapped?.progress_status ?? unwrapped?.progressStatus ?? null,
+    progress_percentage: Number(unwrapped?.progress_percentage ?? unwrapped?.progressPercentage ?? 0) || 0,
+    due_date: dueDate,
+    dueDate,
+  };
+}
+
+export function lookupProgressByCourse(progressMap, course) {
+  if (!progressMap || !course) return null;
+  const keys = [course.id, course.documentId].filter((value) => value != null).map(String);
+  for (const key of keys) {
+    if (progressMap[key]) return progressMap[key];
+  }
+  return null;
+}
+
+export function toProgressEntryFromCourseProgress(progress) {
+  if (!progress) return null;
+  return {
+    progress_status: progress.progressStatus ?? progress.progress_status ?? null,
+    progress_percentage: Number(progress.progressPercentage ?? progress.progress_percentage ?? 0) || 0,
+    completed_modules: progress.completedModules ?? progress.completed_modules ?? [],
+    due_date: progress.dueDate ?? progress.due_date ?? null,
+    dueDate: progress.dueDate ?? progress.due_date ?? null,
+  };
+}
+
+export function computeDashboardCourseProgress(progressEntry, courseModules = []) {
+  const totalLessons = courseModules.length;
+  if (!progressEntry) {
+    return {
+      progress: 0,
+      completedLessons: 0,
+      totalLessons,
+      progressStatus: null,
+      dueDate: null,
+    };
+  }
+
+  const completedModules = progressEntry.completed_modules ?? progressEntry.completedModules ?? [];
+  const statusNorm = String(
+    progressEntry.progress_status ?? progressEntry.progressStatus ?? ''
+  ).trim().toLowerCase();
+  const progressFromApi = Math.min(
+    100,
+    Math.max(0, Math.round(Number(
+      progressEntry.progress_percentage ?? progressEntry.progressPercentage ?? 0
+    )))
+  );
+  const completedLessonsById = courseModules.filter((module) =>
+    completedModules.includes(String(module.id)) ||
+    (module.module_id && completedModules.includes(String(module.module_id))) ||
+    (module.moduleId && completedModules.includes(String(module.moduleId)))
+  ).length;
+
+  let progress = 0;
+  let completedLessons = completedLessonsById;
+
+  if (statusNorm === 'completed') {
+    progress = 100;
+    completedLessons = totalLessons;
+  } else if (progressFromApi > 0) {
+    progress = progressFromApi;
+    completedLessons = totalLessons > 0
+      ? Math.min(totalLessons, Math.round((progressFromApi / 100) * totalLessons))
+      : completedLessonsById;
+  } else {
+    progress = totalLessons > 0
+      ? Math.min(100, Math.round((completedLessonsById / totalLessons) * 100))
+      : 0;
+    completedLessons = completedLessonsById;
+  }
+
+  return {
+    progress,
+    completedLessons,
+    totalLessons,
+    progressStatus: progressEntry.progress_status ?? null,
+    dueDate: progressEntry.due_date ?? progressEntry.dueDate ?? null,
+  };
+}
+
 export const fetchUserCourseProgress = async (userId, courseNumericId, opts = {}) => {
   if (!userId || !courseNumericId) {
-    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0, selectedLanguage: null };
+    return { ...EMPTY_COURSE_PROGRESS };
   }
   try {
     const params = { userId, courseId: courseNumericId };
     if (opts.fresh) params._t = Date.now(); // bypass dedupe cache
     const response = await api.get('/user-progress/progress', { params });
-    const data = response?.data || response;
-    const completedModules = Array.isArray(data?.completed_modules) ? data.completed_modules.map(String) : [];
-    const feedbackSubmitted = !!data?.feedback_submission;
-    const progressPercentage = data?.progress_percentage ?? 0;
-    const selectedLanguage = data?.selected_language ?? null;
-    return { completedModules, progressStatus: data?.progress_status ?? null, feedbackSubmitted, progressPercentage, selectedLanguage };
+    const data = normalizeProgressRecord(response?.data || response);
+    const completedModules = data.completed_modules ?? [];
+    const feedbackSubmitted = !!(data?.feedback_submission ?? data?.feedbackSubmission);
+    const progressPercentage = data.progress_percentage ?? 0;
+    const selectedLanguage = data?.selected_language ?? data?.selectedLanguage ?? null;
+    return {
+      completedModules,
+      progressStatus: data?.progress_status ?? null,
+      feedbackSubmitted,
+      progressPercentage,
+      selectedLanguage,
+      dueDate: data?.due_date ?? data?.dueDate ?? null,
+    };
   } catch {
-    return { completedModules: [], progressStatus: null, feedbackSubmitted: false, progressPercentage: 0, selectedLanguage: null };
+    return { ...EMPTY_COURSE_PROGRESS };
   }
 };
 
-// Returns all user progress keyed by course id (for course list completion badges).
+function indexProgressByCourseId(raw) {
+  const map = {};
+  const setEntry = (courseId, documentId, entry) => {
+    if (!entry || typeof entry !== 'object') return;
+    const normalized = normalizeProgressRecord(entry);
+    if (courseId != null) map[String(courseId)] = normalized;
+    if (documentId != null && String(documentId) !== String(courseId)) {
+      map[String(documentId)] = normalized;
+    }
+  };
+  const data = raw?.data ?? raw;
+  if (Array.isArray(data)) {
+    for (const entry of data) {
+      const record = unwrapProgressRecord(entry);
+      const { courseId, documentId } = resolveProgressCourseRef(record);
+      setEntry(courseId, documentId, record);
+    }
+  } else if (data && typeof data === 'object') {
+    Object.entries(data).forEach(([key, entry]) => {
+      const record = unwrapProgressRecord(entry);
+      const { courseId, documentId } = resolveProgressCourseRef(record, key);
+      setEntry(courseId, documentId, record);
+    });
+  }
+  return map;
+}
+
+// Returns all user progress keyed by course id (for course list completion badges and per-user due dates).
 export const fetchAllUserProgress = async (userId) => {
   if (!userId) return {};
   try {
     const res = await api.get('/user-progress/all', { params: { userId } });
-    return res || {};
+    return indexProgressByCourseId(res);
   } catch {
     return {};
   }
